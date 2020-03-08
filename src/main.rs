@@ -9,25 +9,50 @@ use zeroize::Zeroize;
 
 pub type Handle = u32;
 
-struct HandlesManager<HandleType: Clone + Sync> {
+struct HandlesManagerInner<HandleType: Clone + Sync> {
     last_handle: Handle,
     map: HashMap<Handle, HandleType>,
     type_id: u8,
 }
 
-// These maps should be stored in a WASI context
-lazy_static! {
-    static ref SIGNATURE_OP_MANAGER: Mutex<HandlesManager<SignatureOp>> =
-        Mutex::new(HandlesManager::new(0x00));
-    static ref SIGNATURE_KEYPAIR_BUILDER_MANAGER: Mutex<HandlesManager<SignatureKeyPairBuilder>> =
-        Mutex::new(HandlesManager::new(0x01));
-    static ref SIGNATURE_KEYPAIR_MANAGER: Mutex<HandlesManager<SignatureKeyPair>> =
-        Mutex::new(HandlesManager::new(0x02));
+struct HandlesManager<HandleType: Clone + Sync> {
+    inner: Mutex<HandlesManagerInner<HandleType>>,
 }
 
 impl<HandleType: Clone + Sync> HandlesManager<HandleType> {
-    pub fn new(type_id: u8) -> Self {
+    fn new(handle_type: u8) -> Self {
         HandlesManager {
+            inner: Mutex::new(HandlesManagerInner::new(handle_type)),
+        }
+    }
+
+    pub fn close(&self, handle: Handle) -> Result<(), Error> {
+        self.inner.lock().close(handle)
+    }
+
+    pub fn register(&self, op: HandleType) -> Result<Handle, Error> {
+        self.inner.lock().register(op)
+    }
+
+    pub fn get(&self, handle: Handle) -> Result<HandleType, Error> {
+        self.inner.lock().get(handle).map(|x| x.clone())
+    }
+}
+
+// These maps should be stored in a WASI context
+lazy_static! {
+    static ref SIGNATURE_OP_MANAGER: HandlesManager<SignatureOp> = HandlesManager::new(0x00);
+    static ref SIGNATURE_KEYPAIR_BUILDER_MANAGER: HandlesManager<SignatureKeyPairBuilder> =
+        HandlesManager::new(0x01);
+    static ref SIGNATURE_KEYPAIR_MANAGER: HandlesManager<SignatureKeyPair> =
+        HandlesManager::new(0x02);
+    static ref SIGNATURE_STATE_MANAGER: HandlesManager<ExclusiveSignatureState> =
+        HandlesManager::new(0x03);
+}
+
+impl<HandleType: Clone + Sync> HandlesManagerInner<HandleType> {
+    pub fn new(type_id: u8) -> Self {
+        HandlesManagerInner {
             last_handle: (type_id as Handle).rotate_right(8),
             map: HashMap::new(),
             type_id,
@@ -152,20 +177,20 @@ pub fn signature_open(alg_str: &str) -> Result<Handle, Error> {
         )),
         _ => bail!("Unsupported algorithm"),
     };
-    let handle = SIGNATURE_OP_MANAGER.lock().register(signature_op)?;
+    let handle = SIGNATURE_OP_MANAGER.register(signature_op)?;
     Ok(handle)
 }
 
 pub fn signature_close(handle: Handle) -> Result<(), Error> {
-    SIGNATURE_OP_MANAGER.lock().close(handle)
+    SIGNATURE_OP_MANAGER.close(handle)
 }
 
 pub fn signature_keypair_builder_close(handle: Handle) -> Result<(), Error> {
-    SIGNATURE_KEYPAIR_BUILDER_MANAGER.lock().close(handle)
+    SIGNATURE_KEYPAIR_BUILDER_MANAGER.close(handle)
 }
 
 pub fn signature_keypair_close(handle: Handle) -> Result<(), Error> {
-    SIGNATURE_KEYPAIR_MANAGER.lock().close(handle)
+    SIGNATURE_KEYPAIR_MANAGER.close(handle)
 }
 
 #[derive(Debug, Clone)]
@@ -315,9 +340,7 @@ impl ECDSASignatureKeyPairBuilder {
 
     fn generate(&self) -> Result<Handle, Error> {
         let kp = ECDSASignatureKeyPair::generate(self.alg)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER
-            .lock()
-            .register(SignatureKeyPair::ECDSA(kp))?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::ECDSA(kp))?;
         Ok(handle)
     }
 
@@ -327,9 +350,7 @@ impl ECDSASignatureKeyPairBuilder {
             _ => bail!("Unsupported"),
         };
         let kp = ECDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER
-            .lock()
-            .register(SignatureKeyPair::ECDSA(kp))?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::ECDSA(kp))?;
         Ok(handle)
     }
 }
@@ -341,9 +362,7 @@ impl EdDSASignatureKeyPairBuilder {
 
     fn generate(&self) -> Result<Handle, Error> {
         let kp = EdDSASignatureKeyPair::generate(self.alg)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER
-            .lock()
-            .register(SignatureKeyPair::EdDSA(kp))?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::EdDSA(kp))?;
         Ok(handle)
     }
 
@@ -353,9 +372,7 @@ impl EdDSASignatureKeyPairBuilder {
             _ => bail!("Unsupported"),
         };
         let kp = ECDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER
-            .lock()
-            .register(SignatureKeyPair::ECDSA(kp))?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::ECDSA(kp))?;
         Ok(handle)
     }
 }
@@ -375,9 +392,7 @@ impl RSASignatureKeyPairBuilder {
             _ => bail!("Unsupported"),
         };
         let kp = RSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER
-            .lock()
-            .register(SignatureKeyPair::RSA(kp))?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::RSA(kp))?;
         Ok(handle)
     }
 }
@@ -411,7 +426,7 @@ impl SignatureKeyPair {
 }
 
 pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error> {
-    let signature_op = SIGNATURE_OP_MANAGER.lock().get(op_handle)?.clone();
+    let signature_op = SIGNATURE_OP_MANAGER.get(op_handle)?;
     let kp_builder = match signature_op {
         SignatureOp::ECDSA(_) => {
             SignatureKeyPairBuilder::ECDSA(ECDSASignatureKeyPairBuilder::new(signature_op.alg()))
@@ -423,17 +438,12 @@ pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error
             SignatureKeyPairBuilder::RSA(RSASignatureKeyPairBuilder::new(signature_op.alg()))
         }
     };
-    let handle = SIGNATURE_KEYPAIR_BUILDER_MANAGER
-        .lock()
-        .register(kp_builder)?;
+    let handle = SIGNATURE_KEYPAIR_BUILDER_MANAGER.register(kp_builder)?;
     Ok(handle)
 }
 
 pub fn signature_keypair_generate(kp_builder_handle: Handle) -> Result<Handle, Error> {
-    let kp_builder = SIGNATURE_KEYPAIR_BUILDER_MANAGER
-        .lock()
-        .get(kp_builder_handle)?
-        .clone();
+    let kp_builder = SIGNATURE_KEYPAIR_BUILDER_MANAGER.get(kp_builder_handle)?;
     let handle = match kp_builder {
         SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.generate()?,
         SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.generate()?,
@@ -447,10 +457,7 @@ pub fn signature_keypair_import(
     encoded: &[u8],
     encoding: KeyPairEncoding,
 ) -> Result<Handle, Error> {
-    let kp_builder = SIGNATURE_KEYPAIR_BUILDER_MANAGER
-        .lock()
-        .get(kp_builder_handle)?
-        .clone();
+    let kp_builder = SIGNATURE_KEYPAIR_BUILDER_MANAGER.get(kp_builder_handle)?;
     let handle = match kp_builder {
         SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
         SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
@@ -463,9 +470,79 @@ pub fn signature_keypair_export(
     kp_handle: Handle,
     encoding: KeyPairEncoding,
 ) -> Result<Vec<u8>, Error> {
-    let kp = SIGNATURE_KEYPAIR_MANAGER.lock().get(kp_handle)?.clone();
+    let kp = SIGNATURE_KEYPAIR_MANAGER.get(kp_handle)?;
     let encoded = kp.export(encoding)?;
     Ok(encoded)
+}
+
+#[derive(Debug)]
+struct ECDSASignatureState {
+    kp: ECDSASignatureKeyPair,
+}
+
+impl ECDSASignatureState {
+    fn new(kp: ECDSASignatureKeyPair) -> Self {
+        ECDSASignatureState { kp }
+    }
+}
+
+#[derive(Debug)]
+struct EdDSASignatureState {
+    kp: EdDSASignatureKeyPair,
+}
+
+impl EdDSASignatureState {
+    fn new(kp: EdDSASignatureKeyPair) -> Self {
+        EdDSASignatureState { kp }
+    }
+}
+
+#[derive(Debug)]
+struct RSASignatureState {
+    kp: RSASignatureKeyPair,
+}
+
+impl RSASignatureState {
+    fn new(kp: RSASignatureKeyPair) -> Self {
+        RSASignatureState { kp }
+    }
+}
+
+#[derive(Debug)]
+enum SignatureState {
+    ECDSA(ECDSASignatureState),
+    EdDSA(EdDSASignatureState),
+    RSA(RSASignatureState),
+}
+
+#[derive(Debug, Clone)]
+struct ExclusiveSignatureState {
+    state: Arc<Mutex<SignatureState>>,
+}
+
+impl ExclusiveSignatureState {
+    pub fn new(signature_state: SignatureState) -> Self {
+        ExclusiveSignatureState {
+            state: Arc::new(Mutex::new(signature_state)),
+        }
+    }
+}
+
+pub fn signature_state_open(kp_handle: Handle) -> Result<Handle, Error> {
+    let kp = SIGNATURE_KEYPAIR_MANAGER.get(kp_handle)?;
+    let signature_state = match kp {
+        SignatureKeyPair::ECDSA(kp) => {
+            ExclusiveSignatureState::new(SignatureState::ECDSA(ECDSASignatureState::new(kp)))
+        }
+        SignatureKeyPair::EdDSA(kp) => {
+            ExclusiveSignatureState::new(SignatureState::EdDSA(EdDSASignatureState::new(kp)))
+        }
+        SignatureKeyPair::RSA(kp) => {
+            ExclusiveSignatureState::new(SignatureState::RSA(RSASignatureState::new(kp)))
+        }
+    };
+    let handle = SIGNATURE_STATE_MANAGER.register(signature_state)?;
+    Ok(handle)
 }
 
 fn main() {
