@@ -19,12 +19,14 @@ struct HandlesManager<HandleType: Clone + Sync> {
 lazy_static! {
     static ref SIGNATURE_OP_MANAGER: Mutex<HandlesManager<SignatureOp>> =
         Mutex::new(HandlesManager::new(0x00));
+    static ref SIGNATURE_KEYPAIR_BUILDER_MANAGER: Mutex<HandlesManager<SignatureKeyPairBuilder>> =
+        Mutex::new(HandlesManager::new(0x01));
 }
 
 impl<HandleType: Clone + Sync> HandlesManager<HandleType> {
     pub fn new(type_id: u8) -> Self {
         HandlesManager {
-            last_handle: (type_id as Handle) << (mem::size_of::<Handle>() * 8 - 8),
+            last_handle: (type_id as Handle).rotate_right(8),
             map: HashMap::new(),
             type_id,
         }
@@ -38,8 +40,7 @@ impl<HandleType: Clone + Sync> HandlesManager<HandleType> {
     }
 
     fn next_handle(&self, handle: Handle) -> Handle {
-        (handle.wrapping_add(1) & ((1 as Handle) << (mem::size_of::<Handle>() * 8 - 8) - 1))
-            | (self.type_id as Handle)
+        ((handle.wrapping_add(1) << 8) | (self.type_id as Handle)).rotate_right(8)
     }
 
     pub fn register(&mut self, op: HandleType) -> Result<Handle, Error> {
@@ -76,7 +77,7 @@ pub enum SignatureAlgorithm {
     RSA_PKCS1_2048_8192_SHA512,
     RSA_PKCS1_3072_8192_SHA384,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct ECDSASignatureOp {
     alg: SignatureAlgorithm,
 }
@@ -87,7 +88,7 @@ impl ECDSASignatureOp {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct EdDSASignatureOp {
     alg: SignatureAlgorithm,
 }
@@ -98,7 +99,7 @@ impl EdDSASignatureOp {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct RSASignatureOp {
     alg: SignatureAlgorithm,
 }
@@ -109,7 +110,7 @@ impl RSASignatureOp {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 enum SignatureOp {
     ECDSA(ECDSASignatureOp),
     EdDSA(EdDSASignatureOp),
@@ -117,8 +118,12 @@ enum SignatureOp {
 }
 
 impl SignatureOp {
-    pub fn pop(&mut self) {
-        //
+    fn alg(&self) -> SignatureAlgorithm {
+        match self {
+            SignatureOp::ECDSA(op) => op.alg,
+            SignatureOp::EdDSA(op) => op.alg,
+            SignatureOp::RSA(op) => op.alg,
+        }
     }
 }
 
@@ -206,19 +211,69 @@ impl ECDSAKeyPair {
     }
 }
 
-pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<(), Error> {
-    let mut signature_op = SIGNATURE_OP_MANAGER.lock();
-    let mut signature_op = signature_op.get(op_handle)?;
-    signature_op.pop();
-    Ok(())
+#[derive(Clone, Copy, Debug)]
+struct ECDSASignatureKeyPairBuilder {
+    alg: SignatureAlgorithm,
 }
 
-#[derive(Debug)]
-enum KeyPair {
-    ECDSA(ECDSAKeyPair),
+#[derive(Clone, Copy, Debug)]
+struct EdDSASignatureKeyPairBuilder {
+    alg: SignatureAlgorithm,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct RSASignatureKeyPairBuilder {
+    alg: SignatureAlgorithm,
+}
+
+impl ECDSASignatureKeyPairBuilder {
+    fn new(alg: SignatureAlgorithm) -> Self {
+        ECDSASignatureKeyPairBuilder { alg }
+    }
+}
+
+impl EdDSASignatureKeyPairBuilder {
+    fn new(alg: SignatureAlgorithm) -> Self {
+        EdDSASignatureKeyPairBuilder { alg }
+    }
+}
+
+impl RSASignatureKeyPairBuilder {
+    fn new(alg: SignatureAlgorithm) -> Self {
+        RSASignatureKeyPairBuilder { alg }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SignatureKeyPairBuilder {
+    ECDSA(ECDSASignatureKeyPairBuilder),
+    EdDSA(EdDSASignatureKeyPairBuilder),
+    RSA(RSASignatureKeyPairBuilder),
+}
+
+pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error> {
+    let signature_op = SIGNATURE_OP_MANAGER.lock().get(op_handle)?.clone();
+    let kp_builder = match signature_op {
+        SignatureOp::ECDSA(_) => {
+            SignatureKeyPairBuilder::ECDSA(ECDSASignatureKeyPairBuilder::new(signature_op.alg()))
+        }
+        SignatureOp::EdDSA(_) => {
+            SignatureKeyPairBuilder::EdDSA(EdDSASignatureKeyPairBuilder::new(signature_op.alg()))
+        }
+        SignatureOp::RSA(_) => {
+            SignatureKeyPairBuilder::RSA(RSASignatureKeyPairBuilder::new(signature_op.alg()))
+        }
+    };
+    let handle = SIGNATURE_KEYPAIR_BUILDER_MANAGER
+        .lock()
+        .register(kp_builder)?;
+    Ok(handle)
 }
 
 fn main() {
-    let handle = signature_open("ECDSA_P256_SHA256").unwrap();
+    let op_handle = signature_open("ECDSA_P256_SHA256").unwrap();
+    let keypair_builder = signature_keypair_builder_open(op_handle).unwrap();
+    dbg!(op_handle);
+    dbg!(keypair_builder);
     println!("Hello, world!");
 }
