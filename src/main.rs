@@ -63,7 +63,7 @@ impl<HandleType: Clone + Sync> HandlesManagerInner<HandleType> {
     pub fn close(&mut self, handle: Handle) -> Result<(), Error> {
         self.map
             .remove(&handle)
-            .ok_or(anyhow!("Handle was already closed"))?;
+            .ok_or_else(|| anyhow!("Handle was already closed"))?;
         Ok(())
     }
 
@@ -89,7 +89,7 @@ impl<HandleType: Clone + Sync> HandlesManagerInner<HandleType> {
         let op = self
             .map
             .get(&handle)
-            .ok_or(anyhow!("Unregistered handle"))?;
+            .ok_or_else(|| anyhow!("Unregistered handle"))?;
         Ok(op)
     }
 }
@@ -146,7 +146,7 @@ enum SignatureOp {
 }
 
 impl SignatureOp {
-    fn alg(&self) -> SignatureAlgorithm {
+    fn alg(self) -> SignatureAlgorithm {
         match self {
             SignatureOp::ECDSA(op) => op.alg,
             SignatureOp::EdDSA(op) => op.alg,
@@ -249,8 +249,8 @@ impl ECDSASignatureKeyPair {
 
     pub fn generate(alg: SignatureAlgorithm) -> Result<Self, Error> {
         let ring_alg = Self::ring_alg_from_alg(alg)?;
-        let mut rng = ring::rand::SystemRandom::new();
-        let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, &mut rng)
+        let rng = ring::rand::SystemRandom::new();
+        let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, &rng)
             .map_err(|_| anyhow!("RNG error"))?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }
@@ -280,8 +280,8 @@ impl EdDSASignatureKeyPair {
     }
 
     pub fn generate(alg: SignatureAlgorithm) -> Result<Self, Error> {
-        let mut rng = ring::rand::SystemRandom::new();
-        let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&mut rng)
+        let rng = ring::rand::SystemRandom::new();
+        let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)
             .map_err(|_| anyhow!("RNG error"))?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }
@@ -513,12 +513,12 @@ impl ECDSASignatureState {
     }
 
     fn sign(&self) -> Result<ECDSASignature, Error> {
-        let mut rng = ring::rand::SystemRandom::new();
+        let rng = ring::rand::SystemRandom::new();
         let input = self.input.lock();
         let signature_u8 = self
             .kp
             .ring_kp
-            .sign(&mut rng, &input)
+            .sign(&rng, &input)
             .map_err(|_| anyhow!("Unable to sign"))?
             .as_ref()
             .to_vec();
