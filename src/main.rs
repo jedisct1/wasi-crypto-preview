@@ -3,9 +3,8 @@ extern crate lazy_static;
 
 use anyhow::{anyhow, bail, ensure, Error};
 use parking_lot::Mutex;
-use ring::signature::KeyPair as _;
 use std::collections::HashMap;
-use std::mem;
+use std::sync::Arc;
 use zeroize::Zeroize;
 
 pub type Handle = u32;
@@ -16,11 +15,14 @@ struct HandlesManager<HandleType: Clone + Sync> {
     type_id: u8,
 }
 
+// These maps should be stored in a WASI context
 lazy_static! {
     static ref SIGNATURE_OP_MANAGER: Mutex<HandlesManager<SignatureOp>> =
         Mutex::new(HandlesManager::new(0x00));
     static ref SIGNATURE_KEYPAIR_BUILDER_MANAGER: Mutex<HandlesManager<SignatureKeyPairBuilder>> =
         Mutex::new(HandlesManager::new(0x01));
+    static ref SIGNATURE_KEYPAIR_MANAGER: Mutex<HandlesManager<SignatureKeyPair>> =
+        Mutex::new(HandlesManager::new(0x02));
 }
 
 impl<HandleType: Clone + Sync> HandlesManager<HandleType> {
@@ -158,20 +160,28 @@ pub fn signature_close(handle: Handle) -> Result<(), Error> {
     SIGNATURE_OP_MANAGER.lock().close(handle)
 }
 
-#[derive(Debug)]
-pub struct ECDSAKeyPair {
-    alg: SignatureAlgorithm,
-    pkcs8: Vec<u8>,
-    ring_kp: ring::signature::EcdsaKeyPair,
+pub fn signature_keypair_builder_close(handle: Handle) -> Result<(), Error> {
+    SIGNATURE_KEYPAIR_BUILDER_MANAGER.lock().close(handle)
 }
 
-impl Drop for ECDSAKeyPair {
+pub fn signature_keypair_close(handle: Handle) -> Result<(), Error> {
+    SIGNATURE_KEYPAIR_MANAGER.lock().close(handle)
+}
+
+#[derive(Debug, Clone)]
+pub struct ECDSASignatureKeyPair {
+    alg: SignatureAlgorithm,
+    pkcs8: Vec<u8>,
+    ring_kp: Arc<ring::signature::EcdsaKeyPair>,
+}
+
+impl Drop for ECDSASignatureKeyPair {
     fn drop(&mut self) {
         self.pkcs8.zeroize();
     }
 }
 
-impl ECDSAKeyPair {
+impl ECDSASignatureKeyPair {
     fn ring_alg_from_alg(
         alg: SignatureAlgorithm,
     ) -> Result<&'static ring::signature::EcdsaSigningAlgorithm, Error> {
@@ -191,10 +201,10 @@ impl ECDSAKeyPair {
         let ring_alg = Self::ring_alg_from_alg(alg)?;
         let ring_kp = ring::signature::EcdsaKeyPair::from_pkcs8(ring_alg, pkcs8)
             .map_err(|_| anyhow!("Invalid key pair"))?;
-        let kp = ECDSAKeyPair {
+        let kp = ECDSASignatureKeyPair {
             alg,
             pkcs8: pkcs8.to_vec(),
-            ring_kp,
+            ring_kp: Arc::new(ring_kp),
         };
         Ok(kp)
     }
@@ -206,9 +216,81 @@ impl ECDSAKeyPair {
     pub fn generate(alg: SignatureAlgorithm) -> Result<Self, Error> {
         let ring_alg = Self::ring_alg_from_alg(alg)?;
         let mut rng = ring::rand::SystemRandom::new();
-        let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, &mut rng).unwrap();
+        let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, &mut rng)
+            .map_err(|_| anyhow!("RNG error"))?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }
+}
+
+#[derive(Clone, Debug)]
+struct EdDSASignatureKeyPair {
+    alg: SignatureAlgorithm,
+    pkcs8: Vec<u8>,
+    ring_kp: Arc<ring::signature::Ed25519KeyPair>,
+}
+
+impl EdDSASignatureKeyPair {
+    pub fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, Error> {
+        let ring_kp = ring::signature::Ed25519KeyPair::from_pkcs8(pkcs8)
+            .map_err(|_| anyhow!("Invalid key pair"))?;
+        let kp = EdDSASignatureKeyPair {
+            alg,
+            pkcs8: pkcs8.to_vec(),
+            ring_kp: Arc::new(ring_kp),
+        };
+        Ok(kp)
+    }
+
+    pub fn as_pkcs8(&self) -> Result<&[u8], Error> {
+        Ok(&self.pkcs8)
+    }
+
+    pub fn generate(alg: SignatureAlgorithm) -> Result<Self, Error> {
+        let mut rng = ring::rand::SystemRandom::new();
+        let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&mut rng)
+            .map_err(|_| anyhow!("RNG error"))?;
+        Self::from_pkcs8(alg, pkcs8.as_ref())
+    }
+}
+
+impl Drop for EdDSASignatureKeyPair {
+    fn drop(&mut self) {
+        self.pkcs8.zeroize();
+    }
+}
+
+#[derive(Clone, Debug)]
+struct RSASignatureKeyPair {
+    alg: SignatureAlgorithm,
+    pkcs8: Vec<u8>,
+    ring_kp: Arc<ring::signature::RsaKeyPair>,
+}
+
+impl RSASignatureKeyPair {
+    pub fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, Error> {
+        let ring_kp = ring::signature::RsaKeyPair::from_pkcs8(pkcs8)
+            .map_err(|_| anyhow!("Invalid key pair"))?;
+        let kp = RSASignatureKeyPair {
+            alg,
+            pkcs8: pkcs8.to_vec(),
+            ring_kp: Arc::new(ring_kp),
+        };
+        Ok(kp)
+    }
+
+    pub fn as_pkcs8(&self) -> Result<&[u8], Error> {
+        Ok(&self.pkcs8)
+    }
+
+    #[allow(dead_code)]
+    pub fn generate(_alg: SignatureAlgorithm) -> Result<Self, Error> {
+        bail!("Unimplemented")
+    }
+}
+
+pub enum KeyPairEncoding {
+    Raw = 1,
+    PKCS8 = 2,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -230,17 +312,73 @@ impl ECDSASignatureKeyPairBuilder {
     fn new(alg: SignatureAlgorithm) -> Self {
         ECDSASignatureKeyPairBuilder { alg }
     }
+
+    fn generate(&self) -> Result<Handle, Error> {
+        let kp = ECDSASignatureKeyPair::generate(self.alg)?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER
+            .lock()
+            .register(SignatureKeyPair::ECDSA(kp))?;
+        Ok(handle)
+    }
+
+    fn import(&self, encoded: &[u8], encoding: KeyPairEncoding) -> Result<Handle, Error> {
+        match encoding {
+            KeyPairEncoding::PKCS8 => {}
+            _ => bail!("Unsupported"),
+        };
+        let kp = ECDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER
+            .lock()
+            .register(SignatureKeyPair::ECDSA(kp))?;
+        Ok(handle)
+    }
 }
 
 impl EdDSASignatureKeyPairBuilder {
     fn new(alg: SignatureAlgorithm) -> Self {
         EdDSASignatureKeyPairBuilder { alg }
     }
+
+    fn generate(&self) -> Result<Handle, Error> {
+        let kp = EdDSASignatureKeyPair::generate(self.alg)?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER
+            .lock()
+            .register(SignatureKeyPair::EdDSA(kp))?;
+        Ok(handle)
+    }
+
+    fn import(&self, encoded: &[u8], encoding: KeyPairEncoding) -> Result<Handle, Error> {
+        match encoding {
+            KeyPairEncoding::PKCS8 => {}
+            _ => bail!("Unsupported"),
+        };
+        let kp = ECDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER
+            .lock()
+            .register(SignatureKeyPair::ECDSA(kp))?;
+        Ok(handle)
+    }
 }
 
 impl RSASignatureKeyPairBuilder {
     fn new(alg: SignatureAlgorithm) -> Self {
         RSASignatureKeyPairBuilder { alg }
+    }
+
+    fn generate(&self) -> Result<Handle, Error> {
+        bail!("Unimplemented")
+    }
+
+    fn import(&self, encoded: &[u8], encoding: KeyPairEncoding) -> Result<Handle, Error> {
+        match encoding {
+            KeyPairEncoding::PKCS8 => {}
+            _ => bail!("Unsupported"),
+        };
+        let kp = RSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
+        let handle = SIGNATURE_KEYPAIR_MANAGER
+            .lock()
+            .register(SignatureKeyPair::RSA(kp))?;
+        Ok(handle)
     }
 }
 
@@ -249,6 +387,27 @@ enum SignatureKeyPairBuilder {
     ECDSA(ECDSASignatureKeyPairBuilder),
     EdDSA(EdDSASignatureKeyPairBuilder),
     RSA(RSASignatureKeyPairBuilder),
+}
+
+#[derive(Clone, Debug)]
+enum SignatureKeyPair {
+    ECDSA(ECDSASignatureKeyPair),
+    EdDSA(EdDSASignatureKeyPair),
+    RSA(RSASignatureKeyPair),
+}
+
+impl SignatureKeyPair {
+    fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, Error> {
+        let encoded = match encoding {
+            KeyPairEncoding::PKCS8 => match self {
+                SignatureKeyPair::ECDSA(kp) => kp.as_pkcs8()?.to_vec(),
+                SignatureKeyPair::EdDSA(kp) => kp.as_pkcs8()?.to_vec(),
+                SignatureKeyPair::RSA(kp) => kp.as_pkcs8()?.to_vec(),
+            },
+            _ => bail!("Unimplemented"),
+        };
+        Ok(encoded)
+    }
 }
 
 pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error> {
@@ -270,10 +429,58 @@ pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error
     Ok(handle)
 }
 
+pub fn signature_keypair_generate(kp_builder_handle: Handle) -> Result<Handle, Error> {
+    let kp_builder = SIGNATURE_KEYPAIR_BUILDER_MANAGER
+        .lock()
+        .get(kp_builder_handle)?
+        .clone();
+    let handle = match kp_builder {
+        SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.generate()?,
+        SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.generate()?,
+        SignatureKeyPairBuilder::RSA(kp_builder) => kp_builder.generate()?,
+    };
+    Ok(handle)
+}
+
+pub fn signature_keypair_import(
+    kp_builder_handle: Handle,
+    encoded: &[u8],
+    encoding: KeyPairEncoding,
+) -> Result<Handle, Error> {
+    let kp_builder = SIGNATURE_KEYPAIR_BUILDER_MANAGER
+        .lock()
+        .get(kp_builder_handle)?
+        .clone();
+    let handle = match kp_builder {
+        SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
+        SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
+        SignatureKeyPairBuilder::RSA(kp_builder) => kp_builder.import(encoded, encoding)?,
+    };
+    Ok(handle)
+}
+
+pub fn signature_keypair_export(
+    kp_handle: Handle,
+    encoding: KeyPairEncoding,
+) -> Result<Vec<u8>, Error> {
+    let kp = SIGNATURE_KEYPAIR_MANAGER.lock().get(kp_handle)?.clone();
+    let encoded = kp.export(encoding)?;
+    Ok(encoded)
+}
+
 fn main() {
     let op_handle = signature_open("ECDSA_P256_SHA256").unwrap();
-    let keypair_builder = signature_keypair_builder_open(op_handle).unwrap();
+    let op_handle = signature_open("Ed25519").unwrap();
+    let op_handle = signature_open("ECDSA_P384_SHA384").unwrap();
+    let kp_builder = signature_keypair_builder_open(op_handle).unwrap();
     dbg!(op_handle);
-    dbg!(keypair_builder);
+    dbg!(kp_builder);
+    let kp = signature_keypair_generate(kp_builder).unwrap();
+    dbg!(kp);
     println!("Hello, world!");
+    let encoded = signature_keypair_export(kp, KeyPairEncoding::PKCS8).unwrap();
+    dbg!(encoded.len());
+    signature_close(op_handle).unwrap();
+    signature_keypair_builder_close(kp_builder).unwrap();
+    signature_keypair_close(kp).unwrap();
 }
