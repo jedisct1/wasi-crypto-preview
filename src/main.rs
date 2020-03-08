@@ -636,6 +636,38 @@ impl PartialEq for Signature {
 
 impl Eq for Signature {}
 
+impl Signature {
+    fn from_raw(alg: SignatureAlgorithm, encoded: &[u8]) -> Result<Self, Error> {
+        let signature = match alg {
+            SignatureAlgorithm::ECDSA_P256_SHA256 => {
+                ensure!(encoded.len() == 64, "Unexpected signature length");
+                Signature::ECDSA(ECDSASignature(encoded.to_vec()))
+            }
+            SignatureAlgorithm::ECDSA_P384_SHA384 => {
+                ensure!(encoded.len() == 96, "Unexpected signature length");
+                Signature::ECDSA(ECDSASignature(encoded.to_vec()))
+            }
+            SignatureAlgorithm::Ed25519 => {
+                ensure!(encoded.len() == 64, "Unexpected signature length");
+                Signature::EdDSA(EdDSASignature(encoded.to_vec()))
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
+                Signature::RSA(RSASignature(encoded.to_vec()))
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384 => {
+                Signature::RSA(RSASignature(encoded.to_vec()))
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => {
+                Signature::RSA(RSASignature(encoded.to_vec()))
+            }
+            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+                Signature::RSA(RSASignature(encoded.to_vec()))
+            }
+        };
+        Ok(signature)
+    }
+}
+
 #[derive(Debug)]
 enum SignatureState {
     ECDSA(ECDSASignatureState),
@@ -723,10 +755,24 @@ pub fn signature_export(
     Ok(signature.as_ref().to_vec())
 }
 
+pub fn signature_import(
+    op_handle: Handle,
+    encoding: SignatureEncoding,
+    encoded: &[u8],
+) -> Result<Handle, Error> {
+    let signature_op = SIGNATURE_OP_MANAGER.get(op_handle)?;
+    let signature = match encoding {
+        SignatureEncoding::Raw => Signature::from_raw(signature_op.alg(), encoded)?,
+        _ => bail!("Unimplemented"),
+    };
+    let handle = SIGNATURE_MANAGER.register(signature)?;
+    Ok(handle)
+}
+
 fn main() {
-    //    let op_handle = signature_open("ECDSA_P256_SHA256").unwrap();
-    //let op_handle = signature_open("Ed25519").unwrap();
-    let op_handle = signature_op_open("ECDSA_P384_SHA384").unwrap();
+    let op_handle = signature_op_open("ECDSA_P256_SHA256").unwrap();
+    //let op_handle = signature_op_open("Ed25519").unwrap();
+    //    let op_handle = signature_op_open("ECDSA_P384_SHA384").unwrap();
     let kp_builder = signature_keypair_builder_open(op_handle).unwrap();
     dbg!(op_handle);
     dbg!(kp_builder);
@@ -748,6 +794,8 @@ fn main() {
     dbg!(&sig);
     let sig2 = signature_export(sig_handle, SignatureEncoding::Raw).unwrap();
     dbg!(&sig2);
+
+    dbg!(sig.len());
 
     signature_op_close(op_handle).unwrap();
     signature_keypair_builder_close(kp_builder).unwrap();
