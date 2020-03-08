@@ -48,6 +48,7 @@ lazy_static! {
         HandlesManager::new(0x02);
     static ref SIGNATURE_STATE_MANAGER: HandlesManager<ExclusiveSignatureState> =
         HandlesManager::new(0x03);
+    static ref SIGNATURE_MANAGER: HandlesManager<Signature> = HandlesManager::new(0x04);
 }
 
 impl<HandleType: Clone + Sync> HandlesManagerInner<HandleType> {
@@ -154,7 +155,7 @@ impl SignatureOp {
     }
 }
 
-pub fn signature_open(alg_str: &str) -> Result<Handle, Error> {
+pub fn signature_op_open(alg_str: &str) -> Result<Handle, Error> {
     let signature_op = match alg_str {
         "ECDSA_P256_SHA256" => {
             SignatureOp::ECDSA(ECDSASignatureOp::new(SignatureAlgorithm::ECDSA_P256_SHA256))
@@ -181,7 +182,7 @@ pub fn signature_open(alg_str: &str) -> Result<Handle, Error> {
     Ok(handle)
 }
 
-pub fn signature_close(handle: Handle) -> Result<(), Error> {
+pub fn signature_op_close(handle: Handle) -> Result<(), Error> {
     SIGNATURE_OP_MANAGER.close(handle)
 }
 
@@ -195,6 +196,10 @@ pub fn signature_keypair_close(handle: Handle) -> Result<(), Error> {
 
 pub fn signature_state_close(handle: Handle) -> Result<(), Error> {
     SIGNATURE_STATE_MANAGER.close(handle)
+}
+
+pub fn signature_close(handle: Handle) -> Result<(), Error> {
+    SIGNATURE_MANAGER.close(handle)
 }
 
 #[derive(Debug, Clone)]
@@ -606,7 +611,7 @@ impl RSASignatureState {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 enum Signature {
     ECDSA(ECDSASignature),
     EdDSA(EdDSASignature),
@@ -622,6 +627,14 @@ impl AsRef<[u8]> for Signature {
         }
     }
 }
+
+impl PartialEq for Signature {
+    fn eq(&self, other: &Self) -> bool {
+        ring::constant_time::verify_slices_are_equal(self.as_ref(), other.as_ref()).is_ok()
+    }
+}
+
+impl Eq for Signature {}
 
 #[derive(Debug)]
 enum SignatureState {
@@ -650,13 +663,13 @@ impl ExclusiveSignatureState {
         }
     }
 
-    pub fn sign(&mut self) -> Result<Vec<u8>, Error> {
+    pub fn sign(&mut self) -> Result<Signature, Error> {
         let signature = match self.state.as_ref() {
             SignatureState::ECDSA(state) => Signature::ECDSA(state.sign()?),
             SignatureState::EdDSA(state) => Signature::EdDSA(state.sign()?),
             SignatureState::RSA(state) => Signature::RSA(state.sign()?),
         };
-        Ok(signature.as_ref().to_vec())
+        Ok(signature)
     }
 }
 
@@ -682,16 +695,38 @@ pub fn signature_state_update(state_handle: Handle, input: &[u8]) -> Result<(), 
     state.update(input)
 }
 
-pub fn signature_state_sign(state_handle: Handle) -> Result<Vec<u8>, Error> {
+pub fn signature_state_sign(state_handle: Handle) -> Result<Handle, Error> {
     let mut state = SIGNATURE_STATE_MANAGER.get(state_handle)?;
     let signature = state.sign()?;
-    Ok(signature)
+    let handle = SIGNATURE_MANAGER.register(signature)?;
+    Ok(handle)
+}
+
+pub enum SignatureEncoding {
+    Raw = 1,
+    Hex = 2,
+    Base64Original = 3,
+    Base64OriginalNoPadding = 4,
+    Base64URLSafe = 5,
+    Base64URLSafeNoPadding = 6,
+}
+
+pub fn signature_export(
+    signature_handle: Handle,
+    encoding: SignatureEncoding,
+) -> Result<Vec<u8>, Error> {
+    match encoding {
+        SignatureEncoding::Raw => {}
+        _ => bail!("Unimplemented"),
+    }
+    let signature = SIGNATURE_MANAGER.get(signature_handle)?;
+    Ok(signature.as_ref().to_vec())
 }
 
 fn main() {
     //    let op_handle = signature_open("ECDSA_P256_SHA256").unwrap();
     //let op_handle = signature_open("Ed25519").unwrap();
-    let op_handle = signature_open("ECDSA_P384_SHA384").unwrap();
+    let op_handle = signature_op_open("ECDSA_P384_SHA384").unwrap();
     let kp_builder = signature_keypair_builder_open(op_handle).unwrap();
     dbg!(op_handle);
     dbg!(kp_builder);
@@ -704,11 +739,19 @@ fn main() {
     dbg!(state);
 
     signature_state_update(state, b"test").unwrap();
-    let sig = signature_state_sign(state).unwrap();
-    dbg!(sig.len());
+    let sig_handle = signature_state_sign(state).unwrap();
+    dbg!(sig_handle);
+    let sig_handle2 = signature_state_sign(state).unwrap();
+    dbg!(sig_handle2);
 
-    signature_close(op_handle).unwrap();
+    let sig = signature_export(sig_handle, SignatureEncoding::Raw).unwrap();
+    dbg!(&sig);
+    let sig2 = signature_export(sig_handle, SignatureEncoding::Raw).unwrap();
+    dbg!(&sig2);
+
+    signature_op_close(op_handle).unwrap();
     signature_keypair_builder_close(kp_builder).unwrap();
     signature_keypair_close(kp).unwrap();
     signature_state_close(state).unwrap();
+    signature_close(sig_handle).unwrap();
 }
