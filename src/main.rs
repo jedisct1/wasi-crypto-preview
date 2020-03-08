@@ -193,6 +193,10 @@ pub fn signature_keypair_close(handle: Handle) -> Result<(), Error> {
     SIGNATURE_KEYPAIR_MANAGER.close(handle)
 }
 
+pub fn signature_state_close(handle: Handle) -> Result<(), Error> {
+    SIGNATURE_STATE_MANAGER.close(handle)
+}
+
 #[derive(Debug, Clone)]
 pub struct ECDSASignatureKeyPair {
     alg: SignatureAlgorithm,
@@ -478,33 +482,144 @@ pub fn signature_keypair_export(
 #[derive(Debug)]
 struct ECDSASignatureState {
     kp: ECDSASignatureKeyPair,
+    input: Mutex<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ECDSASignature(Vec<u8>);
+
+impl AsRef<[u8]> for ECDSASignature {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 impl ECDSASignatureState {
     fn new(kp: ECDSASignatureKeyPair) -> Self {
-        ECDSASignatureState { kp }
+        ECDSASignatureState {
+            kp,
+            input: Mutex::new(vec![]),
+        }
+    }
+
+    fn update(&self, input: &[u8]) -> Result<(), Error> {
+        self.input.lock().extend_from_slice(input);
+        Ok(())
+    }
+
+    fn sign(&self) -> Result<ECDSASignature, Error> {
+        let mut rng = ring::rand::SystemRandom::new();
+        let input = self.input.lock();
+        let signature_u8 = self
+            .kp
+            .ring_kp
+            .sign(&mut rng, &input)
+            .map_err(|_| anyhow!("Unable to sign"))?
+            .as_ref()
+            .to_vec();
+        let signature = ECDSASignature(signature_u8);
+        Ok(signature)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct EdDSASignature(Vec<u8>);
+
+impl AsRef<[u8]> for EdDSASignature {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 
 #[derive(Debug)]
 struct EdDSASignatureState {
     kp: EdDSASignatureKeyPair,
+    input: Mutex<Vec<u8>>,
 }
 
 impl EdDSASignatureState {
     fn new(kp: EdDSASignatureKeyPair) -> Self {
-        EdDSASignatureState { kp }
+        EdDSASignatureState {
+            kp,
+            input: Mutex::new(vec![]),
+        }
+    }
+
+    fn update(&self, input: &[u8]) -> Result<(), Error> {
+        self.input.lock().extend_from_slice(input);
+        Ok(())
+    }
+
+    fn sign(&self) -> Result<EdDSASignature, Error> {
+        let input = self.input.lock();
+        let signature_u8 = self.kp.ring_kp.sign(&input).as_ref().to_vec();
+        let signature = EdDSASignature(signature_u8);
+        Ok(signature)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct RSASignature(Vec<u8>);
+
+impl AsRef<[u8]> for RSASignature {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 
 #[derive(Debug)]
 struct RSASignatureState {
     kp: RSASignatureKeyPair,
+    input: Mutex<Vec<u8>>,
 }
 
 impl RSASignatureState {
     fn new(kp: RSASignatureKeyPair) -> Self {
-        RSASignatureState { kp }
+        RSASignatureState {
+            kp,
+            input: Mutex::new(vec![]),
+        }
+    }
+
+    fn update(&self, input: &[u8]) -> Result<(), Error> {
+        self.input.lock().extend_from_slice(input);
+        Ok(())
+    }
+
+    fn sign(&self) -> Result<RSASignature, Error> {
+        let mut rng = ring::rand::SystemRandom::new();
+        let input = self.input.lock();
+        let mut signature_u8 = vec![];
+        let padding_alg = match self.kp.alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => &ring::signature::RSA_PKCS1_SHA256,
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384 => &ring::signature::RSA_PKCS1_SHA384,
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => &ring::signature::RSA_PKCS1_SHA512,
+            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => &ring::signature::RSA_PKCS1_SHA384,
+            _ => bail!("Unexpected configuration"),
+        };
+        self.kp
+            .ring_kp
+            .sign(padding_alg, &mut rng, &input, &mut signature_u8)
+            .map_err(|_| anyhow!("Unable to sign"))?;
+        let signature = RSASignature(signature_u8);
+        Ok(signature)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum Signature {
+    ECDSA(ECDSASignature),
+    EdDSA(EdDSASignature),
+    RSA(RSASignature),
+}
+
+impl AsRef<[u8]> for Signature {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Signature::ECDSA(signature) => signature.as_ref(),
+            Signature::EdDSA(signature) => signature.as_ref(),
+            Signature::RSA(signature) => signature.as_ref(),
+        }
     }
 }
 
@@ -517,14 +632,31 @@ enum SignatureState {
 
 #[derive(Debug, Clone)]
 struct ExclusiveSignatureState {
-    state: Arc<Mutex<SignatureState>>,
+    state: Arc<SignatureState>,
 }
 
 impl ExclusiveSignatureState {
     pub fn new(signature_state: SignatureState) -> Self {
         ExclusiveSignatureState {
-            state: Arc::new(Mutex::new(signature_state)),
+            state: Arc::new(signature_state),
         }
+    }
+
+    pub fn update(&mut self, input: &[u8]) -> Result<(), Error> {
+        match self.state.as_ref() {
+            SignatureState::ECDSA(state) => state.update(input),
+            SignatureState::EdDSA(state) => state.update(input),
+            SignatureState::RSA(state) => state.update(input),
+        }
+    }
+
+    pub fn sign(&mut self) -> Result<Vec<u8>, Error> {
+        let signature = match self.state.as_ref() {
+            SignatureState::ECDSA(state) => Signature::ECDSA(state.sign()?),
+            SignatureState::EdDSA(state) => Signature::EdDSA(state.sign()?),
+            SignatureState::RSA(state) => Signature::RSA(state.sign()?),
+        };
+        Ok(signature.as_ref().to_vec())
     }
 }
 
@@ -545,9 +677,20 @@ pub fn signature_state_open(kp_handle: Handle) -> Result<Handle, Error> {
     Ok(handle)
 }
 
+pub fn signature_state_update(state_handle: Handle, input: &[u8]) -> Result<(), Error> {
+    let mut state = SIGNATURE_STATE_MANAGER.get(state_handle)?;
+    state.update(input)
+}
+
+pub fn signature_state_sign(state_handle: Handle) -> Result<Vec<u8>, Error> {
+    let mut state = SIGNATURE_STATE_MANAGER.get(state_handle)?;
+    let signature = state.sign()?;
+    Ok(signature)
+}
+
 fn main() {
-    let op_handle = signature_open("ECDSA_P256_SHA256").unwrap();
-    let op_handle = signature_open("Ed25519").unwrap();
+    //    let op_handle = signature_open("ECDSA_P256_SHA256").unwrap();
+    //let op_handle = signature_open("Ed25519").unwrap();
     let op_handle = signature_open("ECDSA_P384_SHA384").unwrap();
     let kp_builder = signature_keypair_builder_open(op_handle).unwrap();
     dbg!(op_handle);
@@ -557,7 +700,15 @@ fn main() {
     println!("Hello, world!");
     let encoded = signature_keypair_export(kp, KeyPairEncoding::PKCS8).unwrap();
     dbg!(encoded.len());
+    let state = signature_state_open(kp).unwrap();
+    dbg!(state);
+
+    signature_state_update(state, b"test").unwrap();
+    let sig = signature_state_sign(state).unwrap();
+    dbg!(sig.len());
+
     signature_close(op_handle).unwrap();
     signature_keypair_builder_close(kp_builder).unwrap();
     signature_keypair_close(kp).unwrap();
+    signature_state_close(state).unwrap();
 }
