@@ -30,7 +30,7 @@ pub struct EdDSASignatureKeyPair {
 impl EdDSASignatureKeyPair {
     pub fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, Error> {
         let ring_kp = ring::signature::Ed25519KeyPair::from_pkcs8(pkcs8)
-            .map_err(|_| anyhow!("Invalid key pair"))?;
+            .map_err(|_| CryptoError::InvalidKey)?;
         let kp = EdDSASignatureKeyPair {
             alg,
             pkcs8: pkcs8.to_vec(),
@@ -46,7 +46,7 @@ impl EdDSASignatureKeyPair {
     pub fn generate(alg: SignatureAlgorithm) -> Result<Self, Error> {
         let rng = ring::rand::SystemRandom::new();
         let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)
-            .map_err(|_| anyhow!("RNG error"))?;
+            .map_err(|_| CryptoError::RNGError)?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }
 
@@ -82,7 +82,7 @@ impl EdDSASignatureKeyPairBuilder {
     pub fn import(&self, encoded: &[u8], encoding: KeyPairEncoding) -> Result<Handle, Error> {
         match encoding {
             KeyPairEncoding::PKCS8 => {}
-            _ => bail!("Unsupported"),
+            _ => bail!(CryptoError::NotAvailable),
         };
         let kp = EdDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
         let handle = WASI_CRYPTO_CTX
@@ -156,12 +156,12 @@ impl EdDSASignatureVerificationState {
     pub fn verify(&self, signature: &EdDSASignature) -> Result<(), Error> {
         let ring_alg = match self.pk.alg {
             SignatureAlgorithm::Ed25519 => &ring::signature::ED25519,
-            _ => bail!("Unsupported"),
+            _ => bail!(CryptoError::NotAvailable),
         };
         let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
         ring_pk
             .verify(self.input.lock().as_ref(), signature.as_ref())
-            .map_err(|_| anyhow!("Signature didn't verify"))?;
+            .map_err(|_| CryptoError::VerificationFailed)?;
         Ok(())
     }
 }

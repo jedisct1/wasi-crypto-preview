@@ -45,9 +45,7 @@ impl<HandleType: Clone + Sync> HandlesManagerInner<HandleType> {
     }
 
     pub fn close(&mut self, handle: Handle) -> Result<(), Error> {
-        self.map
-            .remove(&handle)
-            .ok_or_else(|| anyhow!("Handle was already closed"))?;
+        self.map.remove(&handle).ok_or(CryptoError::Closed)?;
         Ok(())
     }
 
@@ -70,10 +68,7 @@ impl<HandleType: Clone + Sync> HandlesManagerInner<HandleType> {
     }
 
     pub fn get(&mut self, handle: Handle) -> Result<&HandleType, Error> {
-        let op = self
-            .map
-            .get(&handle)
-            .ok_or_else(|| anyhow!("Unregistered handle"))?;
+        let op = self.map.get(&handle).ok_or(CryptoError::InvalidHandle)?;
         Ok(op)
     }
 }

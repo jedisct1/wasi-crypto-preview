@@ -44,7 +44,7 @@ impl ECDSASignatureKeyPair {
             SignatureAlgorithm::ECDSA_P384_SHA384 => {
                 &ring::signature::ECDSA_P384_SHA384_FIXED_SIGNING
             }
-            _ => bail!("Unsupported signature system"),
+            _ => bail!(CryptoError::NotAvailable),
         };
         Ok(ring_alg)
     }
@@ -52,7 +52,7 @@ impl ECDSASignatureKeyPair {
     pub fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, Error> {
         let ring_alg = Self::ring_alg_from_alg(alg)?;
         let ring_kp = ring::signature::EcdsaKeyPair::from_pkcs8(ring_alg, pkcs8)
-            .map_err(|_| anyhow!("Invalid key pair"))?;
+            .map_err(|_| CryptoError::InvalidKey)?;
         let kp = ECDSASignatureKeyPair {
             alg,
             pkcs8: pkcs8.to_vec(),
@@ -69,7 +69,7 @@ impl ECDSASignatureKeyPair {
         let ring_alg = Self::ring_alg_from_alg(alg)?;
         let rng = ring::rand::SystemRandom::new();
         let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, &rng)
-            .map_err(|_| anyhow!("RNG error"))?;
+            .map_err(|_| CryptoError::RNGError)?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }
 
@@ -99,7 +99,7 @@ impl ECDSASignatureKeyPairBuilder {
     pub fn import(&self, encoded: &[u8], encoding: KeyPairEncoding) -> Result<Handle, Error> {
         match encoding {
             KeyPairEncoding::PKCS8 => {}
-            _ => bail!("Unsupported"),
+            _ => bail!(CryptoError::NotAvailable),
         };
         let kp = ECDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
         let handle = WASI_CRYPTO_CTX
@@ -153,7 +153,7 @@ impl ECDSASignatureState {
             .kp
             .ring_kp
             .sign(&rng, &input)
-            .map_err(|_| anyhow!("Unable to sign"))?
+            .map_err(|_| CryptoError::AlgorithmFailure)?
             .as_ref()
             .to_vec();
         let signature = ECDSASignature::new(SignatureEncoding::Raw, encoded_signature);
@@ -194,12 +194,12 @@ impl ECDSASignatureVerificationState {
             (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::DER) => {
                 &ring::signature::ECDSA_P384_SHA384_ASN1
             }
-            _ => bail!("Unsupported"),
+            _ => bail!(CryptoError::NotAvailable),
         };
         let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
         ring_pk
             .verify(self.input.lock().as_ref(), signature.as_ref())
-            .map_err(|_| anyhow!("Signature didn't verify"))?;
+            .map_err(|_| CryptoError::VerificationFailed)?;
         Ok(())
     }
 }

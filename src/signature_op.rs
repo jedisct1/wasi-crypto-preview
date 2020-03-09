@@ -43,7 +43,7 @@ impl SignatureOp {
             "RSA_PKCS1_3072_8192_SHA384" => SignatureOp::RSA(RSASignatureOp::new(
                 SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384,
             )),
-            _ => bail!("Unsupported algorithm"),
+            _ => bail!(CryptoError::NotAvailable),
         };
         let handle = WASI_CRYPTO_CTX
             .signature_op_manager

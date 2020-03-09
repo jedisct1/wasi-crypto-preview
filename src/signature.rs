@@ -87,21 +87,21 @@ impl Signature {
     fn as_ecdsa(&self) -> Result<&ECDSASignature, Error> {
         match self {
             Signature::ECDSA(signature) => Ok(signature),
-            _ => bail!("Unexpected signature type"),
+            _ => bail!(CryptoError::InvalidSignature),
         }
     }
 
     fn as_eddsa(&self) -> Result<&EdDSASignature, Error> {
         match self {
             Signature::EdDSA(signature) => Ok(signature),
-            _ => bail!("Unexpected signature type"),
+            _ => bail!(CryptoError::InvalidSignature),
         }
     }
 
     fn as_rsa(&self) -> Result<&RSASignature, Error> {
         match self {
             Signature::RSA(signature) => Ok(signature),
-            _ => bail!("Unexpected signature type"),
+            _ => bail!(CryptoError::InvalidSignature),
         }
     }
 }
@@ -236,7 +236,7 @@ pub fn signature_export(
 ) -> Result<Vec<u8>, Error> {
     match encoding {
         SignatureEncoding::Raw => {}
-        _ => bail!("Unimplemented"),
+        _ => bail!(CryptoError::NotAvailable),
     }
     let signature = WASI_CRYPTO_CTX.signature_manager.get(signature_handle)?;
     Ok(signature.as_ref().to_vec())
@@ -250,7 +250,7 @@ pub fn signature_import(
     let signature_op = WASI_CRYPTO_CTX.signature_op_manager.get(op_handle)?;
     let signature = match encoding {
         SignatureEncoding::Raw => Signature::from_raw(signature_op.alg(), encoded)?,
-        _ => bail!("Unimplemented"),
+        _ => bail!(CryptoError::NotAvailable),
     };
     let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
     Ok(handle)
