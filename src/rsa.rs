@@ -6,7 +6,7 @@ use super::error::*;
 use super::handles::*;
 use super::signature::*;
 use super::signature_keypair::*;
-use super::SIGNATURE_KEYPAIR_MANAGER;
+use super::WASI_CRYPTO_CTX;
 
 #[derive(Clone, Copy, Debug)]
 pub struct RSASignatureOp {
@@ -74,7 +74,9 @@ impl RSASignatureKeyPairBuilder {
             _ => bail!("Unsupported"),
         };
         let kp = RSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::RSA(kp))?;
+        let handle = WASI_CRYPTO_CTX
+            .signature_keypair_manager
+            .register(SignatureKeyPair::RSA(kp))?;
         Ok(handle)
     }
 }

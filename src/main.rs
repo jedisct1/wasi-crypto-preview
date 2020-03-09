@@ -16,16 +16,23 @@ use signature::*;
 use signature_keypair::*;
 use signature_op::*;
 
+pub struct WasiCryptoCtx {
+    pub signature_op_manager: HandlesManager<SignatureOp>,
+    pub signature_keypair_builder_manager: HandlesManager<SignatureKeyPairBuilder>,
+    pub signature_keypair_manager: HandlesManager<SignatureKeyPair>,
+    pub signature_state_manager: HandlesManager<ExclusiveSignatureState>,
+    pub signature_manager: HandlesManager<Signature>,
+}
+
 // These maps should be stored in a WASI context
 lazy_static! {
-    static ref SIGNATURE_OP_MANAGER: HandlesManager<SignatureOp> = HandlesManager::new(0x00);
-    static ref SIGNATURE_KEYPAIR_BUILDER_MANAGER: HandlesManager<SignatureKeyPairBuilder> =
-        HandlesManager::new(0x01);
-    static ref SIGNATURE_KEYPAIR_MANAGER: HandlesManager<SignatureKeyPair> =
-        HandlesManager::new(0x02);
-    static ref SIGNATURE_STATE_MANAGER: HandlesManager<ExclusiveSignatureState> =
-        HandlesManager::new(0x03);
-    static ref SIGNATURE_MANAGER: HandlesManager<Signature> = HandlesManager::new(0x04);
+    static ref WASI_CRYPTO_CTX: WasiCryptoCtx = WasiCryptoCtx {
+        signature_op_manager: HandlesManager::new(0x00),
+        signature_keypair_builder_manager: HandlesManager::new(0x01),
+        signature_keypair_manager: HandlesManager::new(0x02),
+        signature_state_manager: HandlesManager::new(0x03),
+        signature_manager: HandlesManager::new(0x04),
+    };
 }
 
 fn main() {

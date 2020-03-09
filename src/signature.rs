@@ -6,9 +6,7 @@ use super::error::*;
 use super::handles::*;
 use super::rsa::*;
 use super::signature_keypair::*;
-use super::{
-    SIGNATURE_KEYPAIR_MANAGER, SIGNATURE_MANAGER, SIGNATURE_OP_MANAGER, SIGNATURE_STATE_MANAGER,
-};
+use super::WASI_CRYPTO_CTX;
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -117,7 +115,7 @@ impl ExclusiveSignatureState {
 }
 
 pub fn signature_state_open(kp_handle: Handle) -> Result<Handle, Error> {
-    let kp = SIGNATURE_KEYPAIR_MANAGER.get(kp_handle)?;
+    let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
     let signature_state = match kp {
         SignatureKeyPair::ECDSA(kp) => {
             ExclusiveSignatureState::new(SignatureState::ECDSA(ECDSASignatureState::new(kp)))
@@ -129,19 +127,21 @@ pub fn signature_state_open(kp_handle: Handle) -> Result<Handle, Error> {
             ExclusiveSignatureState::new(SignatureState::RSA(RSASignatureState::new(kp)))
         }
     };
-    let handle = SIGNATURE_STATE_MANAGER.register(signature_state)?;
+    let handle = WASI_CRYPTO_CTX
+        .signature_state_manager
+        .register(signature_state)?;
     Ok(handle)
 }
 
 pub fn signature_state_update(state_handle: Handle, input: &[u8]) -> Result<(), Error> {
-    let mut state = SIGNATURE_STATE_MANAGER.get(state_handle)?;
+    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
     state.update(input)
 }
 
 pub fn signature_state_sign(state_handle: Handle) -> Result<Handle, Error> {
-    let mut state = SIGNATURE_STATE_MANAGER.get(state_handle)?;
+    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
     let signature = state.sign()?;
-    let handle = SIGNATURE_MANAGER.register(signature)?;
+    let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
     Ok(handle)
 }
 
@@ -163,7 +163,7 @@ pub fn signature_export(
         SignatureEncoding::Raw => {}
         _ => bail!("Unimplemented"),
     }
-    let signature = SIGNATURE_MANAGER.get(signature_handle)?;
+    let signature = WASI_CRYPTO_CTX.signature_manager.get(signature_handle)?;
     Ok(signature.as_ref().to_vec())
 }
 
@@ -172,19 +172,19 @@ pub fn signature_import(
     encoding: SignatureEncoding,
     encoded: &[u8],
 ) -> Result<Handle, Error> {
-    let signature_op = SIGNATURE_OP_MANAGER.get(op_handle)?;
+    let signature_op = WASI_CRYPTO_CTX.signature_op_manager.get(op_handle)?;
     let signature = match encoding {
         SignatureEncoding::Raw => Signature::from_raw(signature_op.alg(), encoded)?,
         _ => bail!("Unimplemented"),
     };
-    let handle = SIGNATURE_MANAGER.register(signature)?;
+    let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
     Ok(handle)
 }
 
 pub fn signature_state_close(handle: Handle) -> Result<(), Error> {
-    SIGNATURE_STATE_MANAGER.close(handle)
+    WASI_CRYPTO_CTX.signature_state_manager.close(handle)
 }
 
 pub fn signature_close(handle: Handle) -> Result<(), Error> {
-    SIGNATURE_MANAGER.close(handle)
+    WASI_CRYPTO_CTX.signature_manager.close(handle)
 }

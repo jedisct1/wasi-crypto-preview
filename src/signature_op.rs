@@ -4,7 +4,7 @@ use super::error::*;
 use super::handles::*;
 use super::rsa::*;
 use super::signature::*;
-use super::SIGNATURE_OP_MANAGER;
+use super::WASI_CRYPTO_CTX;
 
 #[derive(Clone, Copy, Debug)]
 pub enum SignatureOp {
@@ -46,10 +46,12 @@ pub fn signature_op_open(alg_str: &str) -> Result<Handle, Error> {
         )),
         _ => bail!("Unsupported algorithm"),
     };
-    let handle = SIGNATURE_OP_MANAGER.register(signature_op)?;
+    let handle = WASI_CRYPTO_CTX
+        .signature_op_manager
+        .register(signature_op)?;
     Ok(handle)
 }
 
 pub fn signature_op_close(handle: Handle) -> Result<(), Error> {
-    SIGNATURE_OP_MANAGER.close(handle)
+    WASI_CRYPTO_CTX.signature_op_manager.close(handle)
 }

@@ -6,7 +6,7 @@ use super::error::*;
 use super::handles::*;
 use super::signature::*;
 use super::signature_keypair::*;
-use super::SIGNATURE_KEYPAIR_MANAGER;
+use super::WASI_CRYPTO_CTX;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ECDSASignatureOp {
@@ -85,7 +85,9 @@ impl ECDSASignatureKeyPairBuilder {
 
     pub fn generate(&self) -> Result<Handle, Error> {
         let kp = ECDSASignatureKeyPair::generate(self.alg)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::ECDSA(kp))?;
+        let handle = WASI_CRYPTO_CTX
+            .signature_keypair_manager
+            .register(SignatureKeyPair::ECDSA(kp))?;
         Ok(handle)
     }
 
@@ -95,7 +97,9 @@ impl ECDSASignatureKeyPairBuilder {
             _ => bail!("Unsupported"),
         };
         let kp = ECDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
-        let handle = SIGNATURE_KEYPAIR_MANAGER.register(SignatureKeyPair::ECDSA(kp))?;
+        let handle = WASI_CRYPTO_CTX
+            .signature_keypair_manager
+            .register(SignatureKeyPair::ECDSA(kp))?;
         Ok(handle)
     }
 }
