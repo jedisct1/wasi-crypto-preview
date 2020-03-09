@@ -4,6 +4,7 @@ use super::error::*;
 use super::handles::*;
 use super::rsa::*;
 use super::signature_op::*;
+use super::signature_publickey::*;
 use super::WASI_CRYPTO_CTX;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,6 +58,25 @@ impl SignatureKeyPair {
             SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
             SignatureKeyPairBuilder::RSA(kp_builder) => kp_builder.import(encoded, encoding)?,
         };
+        Ok(handle)
+    }
+
+    fn public_key(&self) -> Result<Handle, Error> {
+        let pk = match self {
+            SignatureKeyPair::ECDSA(kp) => {
+                let raw_pk = kp.raw_public_key();
+                SignaturePublicKey::ECDSA(ECDSASignaturePublicKey::from_raw(kp.alg, raw_pk)?)
+            }
+            SignatureKeyPair::EdDSA(kp) => {
+                let raw_pk = kp.raw_public_key();
+                SignaturePublicKey::EdDSA(EdDSASignaturePublicKey::from_raw(kp.alg, raw_pk)?)
+            }
+            SignatureKeyPair::RSA(kp) => {
+                let raw_pk = kp.raw_public_key();
+                SignaturePublicKey::RSA(RSASignaturePublicKey::from_raw(kp.alg, raw_pk)?)
+            }
+        };
+        let handle = WASI_CRYPTO_CTX.signature_publickey_manager.register(pk)?;
         Ok(handle)
     }
 }
@@ -121,6 +141,12 @@ pub fn signature_keypair_export(
     let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
     let encoded = kp.export(encoding)?;
     Ok(encoded)
+}
+
+pub fn signature_keypair_publickey(kp_handle: Handle) -> Result<Handle, Error> {
+    let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
+    let handle = kp.public_key()?;
+    Ok(handle)
 }
 
 pub fn signature_keypair_builder_close(handle: Handle) -> Result<(), Error> {

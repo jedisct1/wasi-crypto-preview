@@ -1,4 +1,5 @@
 use parking_lot::Mutex;
+use ring::signature::KeyPair as _;
 use std::sync::Arc;
 use zeroize::Zeroize;
 
@@ -51,6 +52,10 @@ impl RSASignatureKeyPair {
     #[allow(dead_code)]
     pub fn generate(_alg: SignatureAlgorithm) -> Result<Self, Error> {
         bail!("Unimplemented")
+    }
+
+    pub fn raw_public_key(&self) -> &[u8] {
+        self.ring_kp.public_key().as_ref()
     }
 }
 
@@ -141,5 +146,9 @@ impl RSASignaturePublicKey {
             raw: raw.to_vec(),
         };
         Ok(pk)
+    }
+
+    pub fn as_raw(&self) -> Result<&[u8], Error> {
+        Ok(&self.raw)
     }
 }

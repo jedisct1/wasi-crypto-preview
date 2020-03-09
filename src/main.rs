@@ -67,6 +67,11 @@ fn main() {
 
     dbg!(sig.len());
 
+    let pk = signature_keypair_publickey(kp).unwrap();
+    dbg!(pk);
+    let pk_bin = signature_publickey_export(pk, PublicKeyEncoding::Raw);
+    dbg!(pk_bin);
+
     signature_op_close(op_handle).unwrap();
     signature_keypair_builder_close(kp_builder).unwrap();
     signature_keypair_close(kp).unwrap();

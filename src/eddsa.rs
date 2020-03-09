@@ -1,4 +1,5 @@
 use parking_lot::Mutex;
+use ring::signature::KeyPair as _;
 use std::sync::Arc;
 use zeroize::Zeroize;
 
@@ -47,6 +48,10 @@ impl EdDSASignatureKeyPair {
         let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)
             .map_err(|_| anyhow!("RNG error"))?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
+    }
+
+    pub fn raw_public_key(&self) -> &[u8] {
+        self.ring_kp.public_key().as_ref()
     }
 }
 
@@ -136,5 +141,9 @@ impl EdDSASignaturePublicKey {
             raw: raw.to_vec(),
         };
         Ok(pk)
+    }
+
+    pub fn as_raw(&self) -> Result<&[u8], Error> {
+        Ok(&self.raw)
     }
 }
