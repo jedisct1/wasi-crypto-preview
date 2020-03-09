@@ -9,12 +9,14 @@ mod rsa;
 mod signature;
 mod signature_keypair;
 mod signature_op;
+mod signature_publickey;
 
 use error::*;
 use handles::*;
 use signature::*;
 use signature_keypair::*;
 use signature_op::*;
+use signature_publickey::*;
 
 pub struct WasiCryptoCtx {
     pub signature_op_manager: HandlesManager<SignatureOp>,
@@ -22,6 +24,7 @@ pub struct WasiCryptoCtx {
     pub signature_keypair_manager: HandlesManager<SignatureKeyPair>,
     pub signature_state_manager: HandlesManager<ExclusiveSignatureState>,
     pub signature_manager: HandlesManager<Signature>,
+    pub signature_publickey_manager: HandlesManager<SignaturePublicKey>,
 }
 
 // These maps should be stored in a WASI context
@@ -32,6 +35,7 @@ lazy_static! {
         signature_keypair_manager: HandlesManager::new(0x02),
         signature_state_manager: HandlesManager::new(0x03),
         signature_manager: HandlesManager::new(0x04),
+        signature_publickey_manager: HandlesManager::new(0x05)
     };
 }
 

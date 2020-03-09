@@ -12,13 +12,6 @@ pub enum KeyPairEncoding {
     PKCS8 = 2,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum SignatureKeyPairBuilder {
-    ECDSA(ECDSASignatureKeyPairBuilder),
-    EdDSA(EdDSASignatureKeyPairBuilder),
-    RSA(RSASignatureKeyPairBuilder),
-}
-
 #[derive(Clone, Debug)]
 pub enum SignatureKeyPair {
     ECDSA(ECDSASignatureKeyPair),
@@ -27,7 +20,7 @@ pub enum SignatureKeyPair {
 }
 
 impl SignatureKeyPair {
-    pub fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, Error> {
+    fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, Error> {
         let encoded = match encoding {
             KeyPairEncoding::PKCS8 => match self {
                 SignatureKeyPair::ECDSA(kp) => kp.as_pkcs8()?.to_vec(),
@@ -38,37 +31,70 @@ impl SignatureKeyPair {
         };
         Ok(encoded)
     }
+
+    fn generate(kp_builder_handle: Handle) -> Result<Handle, Error> {
+        let kp_builder = WASI_CRYPTO_CTX
+            .signature_keypair_builder_manager
+            .get(kp_builder_handle)?;
+        let handle = match kp_builder {
+            SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.generate()?,
+            SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.generate()?,
+            SignatureKeyPairBuilder::RSA(kp_builder) => kp_builder.generate()?,
+        };
+        Ok(handle)
+    }
+
+    fn import(
+        kp_builder_handle: Handle,
+        encoded: &[u8],
+        encoding: KeyPairEncoding,
+    ) -> Result<Handle, Error> {
+        let kp_builder = WASI_CRYPTO_CTX
+            .signature_keypair_builder_manager
+            .get(kp_builder_handle)?;
+        let handle = match kp_builder {
+            SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
+            SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
+            SignatureKeyPairBuilder::RSA(kp_builder) => kp_builder.import(encoded, encoding)?,
+        };
+        Ok(handle)
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum SignatureKeyPairBuilder {
+    ECDSA(ECDSASignatureKeyPairBuilder),
+    EdDSA(EdDSASignatureKeyPairBuilder),
+    RSA(RSASignatureKeyPairBuilder),
+}
+
+impl SignatureKeyPairBuilder {
+    fn open(op_handle: Handle) -> Result<Handle, Error> {
+        let signature_op = WASI_CRYPTO_CTX.signature_op_manager.get(op_handle)?;
+        let kp_builder = match signature_op {
+            SignatureOp::ECDSA(_) => SignatureKeyPairBuilder::ECDSA(
+                ECDSASignatureKeyPairBuilder::new(signature_op.alg()),
+            ),
+            SignatureOp::EdDSA(_) => SignatureKeyPairBuilder::EdDSA(
+                EdDSASignatureKeyPairBuilder::new(signature_op.alg()),
+            ),
+            SignatureOp::RSA(_) => {
+                SignatureKeyPairBuilder::RSA(RSASignatureKeyPairBuilder::new(signature_op.alg()))
+            }
+        };
+        let handle = WASI_CRYPTO_CTX
+            .signature_keypair_builder_manager
+            .register(kp_builder)?;
+        Ok(handle)
+    }
 }
 
 pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error> {
-    let signature_op = WASI_CRYPTO_CTX.signature_op_manager.get(op_handle)?;
-    let kp_builder = match signature_op {
-        SignatureOp::ECDSA(_) => {
-            SignatureKeyPairBuilder::ECDSA(ECDSASignatureKeyPairBuilder::new(signature_op.alg()))
-        }
-        SignatureOp::EdDSA(_) => {
-            SignatureKeyPairBuilder::EdDSA(EdDSASignatureKeyPairBuilder::new(signature_op.alg()))
-        }
-        SignatureOp::RSA(_) => {
-            SignatureKeyPairBuilder::RSA(RSASignatureKeyPairBuilder::new(signature_op.alg()))
-        }
-    };
-    let handle = WASI_CRYPTO_CTX
-        .signature_keypair_builder_manager
-        .register(kp_builder)?;
-    Ok(handle)
+    SignatureKeyPairBuilder::open(op_handle)
 }
 
 pub fn signature_keypair_generate(kp_builder_handle: Handle) -> Result<Handle, Error> {
-    let kp_builder = WASI_CRYPTO_CTX
-        .signature_keypair_builder_manager
-        .get(kp_builder_handle)?;
-    let handle = match kp_builder {
-        SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.generate()?,
-        SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.generate()?,
-        SignatureKeyPairBuilder::RSA(kp_builder) => kp_builder.generate()?,
-    };
-    Ok(handle)
+    SignatureKeyPair::generate(kp_builder_handle)
 }
 
 pub fn signature_keypair_import(
@@ -76,15 +102,7 @@ pub fn signature_keypair_import(
     encoded: &[u8],
     encoding: KeyPairEncoding,
 ) -> Result<Handle, Error> {
-    let kp_builder = WASI_CRYPTO_CTX
-        .signature_keypair_builder_manager
-        .get(kp_builder_handle)?;
-    let handle = match kp_builder {
-        SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
-        SignatureKeyPairBuilder::EdDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
-        SignatureKeyPairBuilder::RSA(kp_builder) => kp_builder.import(encoded, encoding)?,
-    };
-    Ok(handle)
+    SignatureKeyPair::import(kp_builder_handle, encoded, encoding)
 }
 
 pub fn signature_keypair_from_id(_kp_builder_handle: Handle, _id: &[u8]) -> Result<Handle, Error> {

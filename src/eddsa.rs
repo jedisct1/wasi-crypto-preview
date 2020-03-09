@@ -122,3 +122,19 @@ impl EdDSASignatureState {
         Ok(signature)
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct EdDSASignaturePublicKey {
+    pub alg: SignatureAlgorithm,
+    pub raw: Vec<u8>,
+}
+
+impl EdDSASignaturePublicKey {
+    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, Error> {
+        let pk = EdDSASignaturePublicKey {
+            alg,
+            raw: raw.to_vec(),
+        };
+        Ok(pk)
+    }
+}

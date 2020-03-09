@@ -90,13 +90,32 @@ pub struct ExclusiveSignatureState {
 }
 
 impl ExclusiveSignatureState {
-    pub fn new(signature_state: SignatureState) -> Self {
+    fn new(signature_state: SignatureState) -> Self {
         ExclusiveSignatureState {
             state: Arc::new(signature_state),
         }
     }
 
-    pub fn update(&mut self, input: &[u8]) -> Result<(), Error> {
+    fn open(kp_handle: Handle) -> Result<Handle, Error> {
+        let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
+        let signature_state = match kp {
+            SignatureKeyPair::ECDSA(kp) => {
+                ExclusiveSignatureState::new(SignatureState::ECDSA(ECDSASignatureState::new(kp)))
+            }
+            SignatureKeyPair::EdDSA(kp) => {
+                ExclusiveSignatureState::new(SignatureState::EdDSA(EdDSASignatureState::new(kp)))
+            }
+            SignatureKeyPair::RSA(kp) => {
+                ExclusiveSignatureState::new(SignatureState::RSA(RSASignatureState::new(kp)))
+            }
+        };
+        let handle = WASI_CRYPTO_CTX
+            .signature_state_manager
+            .register(signature_state)?;
+        Ok(handle)
+    }
+
+    fn update(&mut self, input: &[u8]) -> Result<(), Error> {
         match self.state.as_ref() {
             SignatureState::ECDSA(state) => state.update(input),
             SignatureState::EdDSA(state) => state.update(input),
@@ -104,7 +123,7 @@ impl ExclusiveSignatureState {
         }
     }
 
-    pub fn sign(&mut self) -> Result<Signature, Error> {
+    fn sign(&mut self) -> Result<Signature, Error> {
         let signature = match self.state.as_ref() {
             SignatureState::ECDSA(state) => Signature::ECDSA(state.sign()?),
             SignatureState::EdDSA(state) => Signature::EdDSA(state.sign()?),
@@ -114,38 +133,8 @@ impl ExclusiveSignatureState {
     }
 }
 
-pub fn signature_state_open(kp_handle: Handle) -> Result<Handle, Error> {
-    let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
-    let signature_state = match kp {
-        SignatureKeyPair::ECDSA(kp) => {
-            ExclusiveSignatureState::new(SignatureState::ECDSA(ECDSASignatureState::new(kp)))
-        }
-        SignatureKeyPair::EdDSA(kp) => {
-            ExclusiveSignatureState::new(SignatureState::EdDSA(EdDSASignatureState::new(kp)))
-        }
-        SignatureKeyPair::RSA(kp) => {
-            ExclusiveSignatureState::new(SignatureState::RSA(RSASignatureState::new(kp)))
-        }
-    };
-    let handle = WASI_CRYPTO_CTX
-        .signature_state_manager
-        .register(signature_state)?;
-    Ok(handle)
-}
-
-pub fn signature_state_update(state_handle: Handle, input: &[u8]) -> Result<(), Error> {
-    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
-    state.update(input)
-}
-
-pub fn signature_state_sign(state_handle: Handle) -> Result<Handle, Error> {
-    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
-    let signature = state.sign()?;
-    let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
-    Ok(handle)
-}
-
 #[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SignatureEncoding {
     Raw = 1,
     Hex = 2,
@@ -177,6 +166,22 @@ pub fn signature_import(
         SignatureEncoding::Raw => Signature::from_raw(signature_op.alg(), encoded)?,
         _ => bail!("Unimplemented"),
     };
+    let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
+    Ok(handle)
+}
+
+pub fn signature_state_open(kp_handle: Handle) -> Result<Handle, Error> {
+    ExclusiveSignatureState::open(kp_handle)
+}
+
+pub fn signature_state_update(state_handle: Handle, input: &[u8]) -> Result<(), Error> {
+    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
+    state.update(input)
+}
+
+pub fn signature_state_sign(state_handle: Handle) -> Result<Handle, Error> {
+    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
+    let signature = state.sign()?;
     let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
     Ok(handle)
 }
