@@ -94,6 +94,12 @@ impl AsRef<[u8]> for RSASignature {
         &self.0
     }
 }
+
+impl RSASignature {
+    pub fn new(encoded: Vec<u8>) -> Self {
+        RSASignature(encoded)
+    }
+}
 #[derive(Debug)]
 pub struct RSASignatureState {
     pub kp: RSASignatureKeyPair,
@@ -114,7 +120,7 @@ impl RSASignatureState {
     }
 
     pub fn sign(&self) -> Result<RSASignature, Error> {
-        let mut rng = ring::rand::SystemRandom::new();
+        let rng = ring::rand::SystemRandom::new();
         let input = self.input.lock();
         let mut signature_u8 = vec![];
         let padding_alg = match self.kp.alg {
@@ -126,10 +132,53 @@ impl RSASignatureState {
         };
         self.kp
             .ring_kp
-            .sign(padding_alg, &mut rng, &input, &mut signature_u8)
+            .sign(padding_alg, &rng, &input, &mut signature_u8)
             .map_err(|_| anyhow!("Unable to sign"))?;
         let signature = RSASignature(signature_u8);
         Ok(signature)
+    }
+}
+
+#[derive(Debug)]
+pub struct RSASignatureVerificationState {
+    pub pk: RSASignaturePublicKey,
+    pub input: Mutex<Vec<u8>>,
+}
+
+impl RSASignatureVerificationState {
+    pub fn new(pk: RSASignaturePublicKey) -> Self {
+        RSASignatureVerificationState {
+            pk,
+            input: Mutex::new(vec![]),
+        }
+    }
+
+    pub fn update(&self, input: &[u8]) -> Result<(), Error> {
+        self.input.lock().extend_from_slice(input);
+        Ok(())
+    }
+
+    pub fn verify(&self, signature: &RSASignature) -> Result<(), Error> {
+        let ring_alg = match self.pk.alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
+                &ring::signature::RSA_PKCS1_2048_8192_SHA256
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384 => {
+                &ring::signature::RSA_PKCS1_2048_8192_SHA384
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => {
+                &ring::signature::RSA_PKCS1_2048_8192_SHA512
+            }
+            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+                &ring::signature::RSA_PKCS1_3072_8192_SHA384
+            }
+            _ => bail!("Unsupported"),
+        };
+        let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
+        ring_pk
+            .verify(self.input.lock().as_ref(), signature.as_ref())
+            .map_err(|_| anyhow!("Signature didn't verify"))?;
+        Ok(())
     }
 }
 

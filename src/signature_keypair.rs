@@ -8,6 +8,7 @@ use super::signature_publickey::*;
 use super::WASI_CRYPTO_CTX;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u16)]
 pub enum KeyPairEncoding {
     Raw = 1,
     PKCS8 = 2,

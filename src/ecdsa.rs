@@ -116,11 +116,20 @@ pub struct ECDSASignatureState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ECDSASignature(pub Vec<u8>);
+pub struct ECDSASignature {
+    pub encoding: SignatureEncoding,
+    pub encoded: Vec<u8>,
+}
 
 impl AsRef<[u8]> for ECDSASignature {
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        &self.encoded
+    }
+}
+
+impl ECDSASignature {
+    pub fn new(encoding: SignatureEncoding, encoded: Vec<u8>) -> Self {
+        ECDSASignature { encoding, encoded }
     }
 }
 
@@ -140,15 +149,58 @@ impl ECDSASignatureState {
     pub fn sign(&self) -> Result<ECDSASignature, Error> {
         let rng = ring::rand::SystemRandom::new();
         let input = self.input.lock();
-        let signature_u8 = self
+        let encoded_signature = self
             .kp
             .ring_kp
             .sign(&rng, &input)
             .map_err(|_| anyhow!("Unable to sign"))?
             .as_ref()
             .to_vec();
-        let signature = ECDSASignature(signature_u8);
+        let signature = ECDSASignature::new(SignatureEncoding::Raw, encoded_signature);
         Ok(signature)
+    }
+}
+
+#[derive(Debug)]
+pub struct ECDSASignatureVerificationState {
+    pub pk: ECDSASignaturePublicKey,
+    pub input: Mutex<Vec<u8>>,
+}
+
+impl ECDSASignatureVerificationState {
+    pub fn new(pk: ECDSASignaturePublicKey) -> Self {
+        ECDSASignatureVerificationState {
+            pk,
+            input: Mutex::new(vec![]),
+        }
+    }
+
+    pub fn update(&self, input: &[u8]) -> Result<(), Error> {
+        self.input.lock().extend_from_slice(input);
+        Ok(())
+    }
+
+    pub fn verify(&self, signature: &ECDSASignature) -> Result<(), Error> {
+        let ring_alg = match (self.pk.alg, signature.encoding) {
+            (SignatureAlgorithm::ECDSA_P256_SHA256, SignatureEncoding::Raw) => {
+                &ring::signature::ECDSA_P256_SHA256_FIXED
+            }
+            (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::Raw) => {
+                &ring::signature::ECDSA_P384_SHA384_FIXED
+            }
+            (SignatureAlgorithm::ECDSA_P256_SHA256, SignatureEncoding::DER) => {
+                &ring::signature::ECDSA_P256_SHA256_ASN1
+            }
+            (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::DER) => {
+                &ring::signature::ECDSA_P384_SHA384_ASN1
+            }
+            _ => bail!("Unsupported"),
+        };
+        let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
+        ring_pk
+            .verify(self.input.lock().as_ref(), signature.as_ref())
+            .map_err(|_| anyhow!("Signature didn't verify"))?;
+        Ok(())
     }
 }
 

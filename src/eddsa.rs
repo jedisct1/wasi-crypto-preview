@@ -101,6 +101,12 @@ impl AsRef<[u8]> for EdDSASignature {
     }
 }
 
+impl EdDSASignature {
+    pub fn new(encoded: Vec<u8>) -> Self {
+        EdDSASignature(encoded)
+    }
+}
+
 #[derive(Debug)]
 pub struct EdDSASignatureState {
     pub kp: EdDSASignatureKeyPair,
@@ -128,6 +134,37 @@ impl EdDSASignatureState {
     }
 }
 
+#[derive(Debug)]
+pub struct EdDSASignatureVerificationState {
+    pub pk: EdDSASignaturePublicKey,
+    pub input: Mutex<Vec<u8>>,
+}
+
+impl EdDSASignatureVerificationState {
+    pub fn new(pk: EdDSASignaturePublicKey) -> Self {
+        EdDSASignatureVerificationState {
+            pk,
+            input: Mutex::new(vec![]),
+        }
+    }
+
+    pub fn update(&self, input: &[u8]) -> Result<(), Error> {
+        self.input.lock().extend_from_slice(input);
+        Ok(())
+    }
+
+    pub fn verify(&self, signature: &EdDSASignature) -> Result<(), Error> {
+        let ring_alg = match self.pk.alg {
+            SignatureAlgorithm::Ed25519 => &ring::signature::ED25519,
+            _ => bail!("Unsupported"),
+        };
+        let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
+        ring_pk
+            .verify(self.input.lock().as_ref(), signature.as_ref())
+            .map_err(|_| anyhow!("Signature didn't verify"))?;
+        Ok(())
+    }
+}
 #[derive(Clone, Debug)]
 pub struct EdDSASignaturePublicKey {
     pub alg: SignatureAlgorithm,
