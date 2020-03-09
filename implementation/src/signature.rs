@@ -280,16 +280,6 @@ pub fn signature_verification_state_open(pk_handle: Handle) -> Result<Handle, Er
     ExclusiveSignatureVerificationState::open(pk_handle)
 }
 
-pub fn signature_verification_state_verify(
-    verification_state_handle: Handle,
-    signature_handle: Handle,
-) -> Result<(), Error> {
-    let state = WASI_CRYPTO_CTX
-        .signature_verification_state_manager
-        .get(verification_state_handle)?;
-    state.verify(signature_handle)
-}
-
 pub fn signature_verification_state_update(
     verification_state_handle: Handle,
     input: &[u8],
@@ -298,6 +288,16 @@ pub fn signature_verification_state_update(
         .signature_verification_state_manager
         .get(verification_state_handle)?;
     state.update(input)
+}
+
+pub fn signature_verification_state_verify(
+    verification_state_handle: Handle,
+    signature_handle: Handle,
+) -> Result<(), Error> {
+    let state = WASI_CRYPTO_CTX
+        .signature_verification_state_manager
+        .get(verification_state_handle)?;
+    state.verify(signature_handle)
 }
 
 pub fn signature_verification_state_close(handle: Handle) -> Result<(), Error> {

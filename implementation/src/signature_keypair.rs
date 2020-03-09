@@ -12,6 +12,8 @@ use super::WASI_CRYPTO_CTX;
 pub enum KeyPairEncoding {
     Raw = 1,
     PKCS8 = 2,
+    DER = 3,
+    PEM = 4,
 }
 
 #[derive(Clone, Debug)]
@@ -114,6 +116,12 @@ pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error
     SignatureKeyPairBuilder::open(op_handle)
 }
 
+pub fn signature_keypair_builder_close(handle: Handle) -> Result<(), Error> {
+    WASI_CRYPTO_CTX
+        .signature_keypair_builder_manager
+        .close(handle)
+}
+
 pub fn signature_keypair_generate(kp_builder_handle: Handle) -> Result<Handle, Error> {
     SignatureKeyPair::generate(kp_builder_handle)
 }
@@ -126,7 +134,10 @@ pub fn signature_keypair_import(
     SignatureKeyPair::import(kp_builder_handle, encoded, encoding)
 }
 
-pub fn signature_keypair_from_id(_kp_builder_handle: Handle, _id: &[u8]) -> Result<Handle, Error> {
+pub fn signature_keypair_from_id(
+    _kp_builder_handle: Handle,
+    _kp_id: &[u8],
+) -> Result<Handle, Error> {
     bail!(CryptoError::NotAvailable)
 }
 
@@ -148,12 +159,6 @@ pub fn signature_keypair_publickey(kp_handle: Handle) -> Result<Handle, Error> {
     let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
     let handle = kp.public_key()?;
     Ok(handle)
-}
-
-pub fn signature_keypair_builder_close(handle: Handle) -> Result<(), Error> {
-    WASI_CRYPTO_CTX
-        .signature_keypair_builder_manager
-        .close(handle)
 }
 
 pub fn signature_keypair_close(handle: Handle) -> Result<(), Error> {
