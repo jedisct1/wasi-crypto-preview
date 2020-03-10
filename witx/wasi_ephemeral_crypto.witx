@@ -212,7 +212,7 @@
   (@interface func (export "signature_publickey_verify")
     (param $pk $signature_publickey)
     (result $error $errno)
-  )  
+  )
 
 ;;; Destroys a public key
   (@interface func (export "signature_publickey_close")
