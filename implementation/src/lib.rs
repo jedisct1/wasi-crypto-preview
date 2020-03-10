@@ -20,7 +20,7 @@ use signature_publickey::*;
 pub use error::{CryptoError, WasiCryptoError};
 pub use handles::Handle;
 pub use signature::SignatureEncoding;
-pub use signature_keypair::KeyPairEncoding;
+pub use signature_keypair::{KeyPairEncoding, Version};
 pub use signature_publickey::PublicKeyEncoding;
 
 pub use signature::{

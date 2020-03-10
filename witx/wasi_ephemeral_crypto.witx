@@ -31,7 +31,7 @@
     $base64_original
     $base64_original_nopadding
     $base64_urlsafe
-    $base64_urlsafe_nopadding    
+    $base64_urlsafe_nopadding
   )
 )
 
@@ -121,7 +121,7 @@
     (result $error $errno)
     (result $handle $signature_keypair)
   )
-  
+
 ;;; Import a key pair
 ;;; This function may return errno.notavailable if the encoding
 ;;; scheme is not supported, or errno.invalidkey if the key cannot
@@ -185,16 +185,16 @@
   (@interface func (export "signature_keypair_publickey")
     (param $kp $signature_keypair)
     (result $error $errno)
-    (result $pk $signature_publickey)    
+    (result $pk $signature_publickey)
   )
 
 ;;; Destroys a key pair and wipe memory accordingly
   (@interface func (export "signature_keypair_close")
     (param $kp $signature_keypair)
     (result $error $errno)
-  )  
+  )
 
-;;; Import a public key encoded 
+;;; Import a public key encoded
 ;;; Return errno.notavailable if this operation is not supported by
 ;;; the host, if exporting to the given format is not implemented or
 ;;; if the format is incompatible with the key type.
@@ -204,7 +204,7 @@
     (param $encoded_len $size)
     (param $encoding $publickey_encoding)
     (result $error $errno)
-    (result $pk $signature_publickey)    
+    (result $pk $signature_publickey)
   )
 
 ;;; Destroys a public key
@@ -272,7 +272,7 @@
     (param $input (@witx const_pointer u8))
     (param $input_len $size)
     (result $error $errno)
-  )  
+  )
 
 ;;; Verify that the given signature is valid for the data collected
 ;;; up to this point.
@@ -286,11 +286,11 @@
   (@interface func (export "signature_verification_state_close")
     (param $state $signature_verification_state)
     (result $error $errno)
-  )  
+  )
 
 ;;; Destroy a signature
   (@interface func (export "signature_close")
     (param $signature $signature)
     (result $error $errno)
-  )  
+  )
 )
