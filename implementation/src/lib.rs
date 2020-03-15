@@ -25,6 +25,8 @@ pub use signature::SignatureEncoding;
 pub use signature_keypair::{KeyPairEncoding, Version};
 pub use signature_publickey::PublicKeyEncoding;
 
+pub use array_output::array_output_pull;
+
 pub use signature::{
     signature_close, signature_export, signature_import, signature_state_close,
     signature_state_open, signature_state_sign, signature_state_update,
