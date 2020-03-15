@@ -74,7 +74,8 @@ impl EdDSASignatureKeyPairBuilder {
     pub fn generate(&self) -> Result<Handle, Error> {
         let kp = EdDSASignatureKeyPair::generate(self.alg)?;
         let handle = WASI_CRYPTO_CTX
-            .signature_keypair_manager
+            .handles
+            .signature_keypair
             .register(SignatureKeyPair::EdDSA(kp))?;
         Ok(handle)
     }
@@ -86,7 +87,8 @@ impl EdDSASignatureKeyPairBuilder {
         };
         let kp = EdDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
         let handle = WASI_CRYPTO_CTX
-            .signature_keypair_manager
+            .handles
+            .signature_keypair
             .register(SignatureKeyPair::EdDSA(kp))?;
         Ok(handle)
     }

@@ -24,7 +24,8 @@ impl ArrayOutput {
     pub fn register(data: Vec<u8>) -> Result<Handle, Error> {
         let array_output = ArrayOutput::new(data);
         let handle = WASI_CRYPTO_CTX
-            .array_output_manager
+            .handles
+            .array_output
             .register(array_output)?;
         Ok(handle)
     }
@@ -38,11 +39,13 @@ impl Read for ArrayOutput {
 
 pub fn array_output_pull(array_output_handle: Handle, buf: &mut [u8]) -> Result<usize, Error> {
     let array_output = WASI_CRYPTO_CTX
-        .array_output_manager
+        .handles
+        .array_output
         .get(array_output_handle)?;
     let size = array_output.pull(buf)?;
     WASI_CRYPTO_CTX
-        .array_output_manager
+        .handles
+        .array_output
         .close(array_output_handle)?;
     Ok(size)
 }

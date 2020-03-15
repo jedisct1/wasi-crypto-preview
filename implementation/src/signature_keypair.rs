@@ -48,7 +48,8 @@ impl SignatureKeyPair {
 
     fn generate(kp_builder_handle: Handle) -> Result<Handle, Error> {
         let kp_builder = WASI_CRYPTO_CTX
-            .signature_keypair_builder_manager
+            .handles
+            .signature_keypair_builder
             .get(kp_builder_handle)?;
         let handle = match kp_builder {
             SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.generate()?,
@@ -64,7 +65,8 @@ impl SignatureKeyPair {
         encoding: KeyPairEncoding,
     ) -> Result<Handle, Error> {
         let kp_builder = WASI_CRYPTO_CTX
-            .signature_keypair_builder_manager
+            .handles
+            .signature_keypair_builder
             .get(kp_builder_handle)?;
         let handle = match kp_builder {
             SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.import(encoded, encoding)?,
@@ -89,7 +91,7 @@ impl SignatureKeyPair {
                 SignaturePublicKey::RSA(RSASignaturePublicKey::from_raw(kp.alg, raw_pk)?)
             }
         };
-        let handle = WASI_CRYPTO_CTX.signature_publickey_manager.register(pk)?;
+        let handle = WASI_CRYPTO_CTX.handles.signature_publickey.register(pk)?;
         Ok(handle)
     }
 }
@@ -103,7 +105,7 @@ pub enum SignatureKeyPairBuilder {
 
 impl SignatureKeyPairBuilder {
     fn open(op_handle: Handle) -> Result<Handle, Error> {
-        let signature_op = WASI_CRYPTO_CTX.signature_op_manager.get(op_handle)?;
+        let signature_op = WASI_CRYPTO_CTX.handles.signature_op.get(op_handle)?;
         let kp_builder = match signature_op {
             SignatureOp::ECDSA(_) => SignatureKeyPairBuilder::ECDSA(
                 ECDSASignatureKeyPairBuilder::new(signature_op.alg()),
@@ -116,7 +118,8 @@ impl SignatureKeyPairBuilder {
             }
         };
         let handle = WASI_CRYPTO_CTX
-            .signature_keypair_builder_manager
+            .handles
+            .signature_keypair_builder
             .register(kp_builder)?;
         Ok(handle)
     }
@@ -128,7 +131,8 @@ pub fn signature_keypair_builder_open(op_handle: Handle) -> Result<Handle, Error
 
 pub fn signature_keypair_builder_close(handle: Handle) -> Result<(), Error> {
     WASI_CRYPTO_CTX
-        .signature_keypair_builder_manager
+        .handles
+        .signature_keypair_builder
         .close(handle)
 }
 
@@ -153,7 +157,7 @@ pub fn signature_keypair_from_id(
 }
 
 pub fn signature_keypair_id(kp_handle: Handle) -> Result<(Handle, Version), Error> {
-    let _kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
+    let _kp = WASI_CRYPTO_CTX.handles.signature_keypair.get(kp_handle)?;
     bail!(CryptoError::UnsupportedOperation)
 }
 
@@ -169,18 +173,18 @@ pub fn signature_keypair_export(
     kp_handle: Handle,
     encoding: KeyPairEncoding,
 ) -> Result<Handle, Error> {
-    let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
+    let kp = WASI_CRYPTO_CTX.handles.signature_keypair.get(kp_handle)?;
     let encoded = kp.export(encoding)?;
     let array_output_handle = ArrayOutput::register(encoded)?;
     Ok(array_output_handle)
 }
 
 pub fn signature_keypair_publickey(kp_handle: Handle) -> Result<Handle, Error> {
-    let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
+    let kp = WASI_CRYPTO_CTX.handles.signature_keypair.get(kp_handle)?;
     let handle = kp.public_key()?;
     Ok(handle)
 }
 
 pub fn signature_keypair_close(handle: Handle) -> Result<(), Error> {
-    WASI_CRYPTO_CTX.signature_keypair_manager.close(handle)
+    WASI_CRYPTO_CTX.handles.signature_keypair.close(handle)
 }

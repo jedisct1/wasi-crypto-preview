@@ -35,7 +35,7 @@ impl SignaturePublicKey {
             PublicKeyEncoding::Raw => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
         }
-        let signature_op = WASI_CRYPTO_CTX.signature_op_manager.get(signature_op)?;
+        let signature_op = WASI_CRYPTO_CTX.handles.signature_op.get(signature_op)?;
         let pk =
             match signature_op {
                 SignatureOp::ECDSA(_) => SignaturePublicKey::ECDSA(
@@ -49,7 +49,7 @@ impl SignaturePublicKey {
                     encoded,
                 )?),
             };
-        let handle = WASI_CRYPTO_CTX.signature_publickey_manager.register(pk)?;
+        let handle = WASI_CRYPTO_CTX.handles.signature_publickey.register(pk)?;
         Ok(handle)
     }
 
@@ -58,7 +58,7 @@ impl SignaturePublicKey {
             PublicKeyEncoding::Raw => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
         }
-        let pk = WASI_CRYPTO_CTX.signature_publickey_manager.get(pk)?;
+        let pk = WASI_CRYPTO_CTX.handles.signature_publickey.get(pk)?;
         let raw_pk = match pk {
             SignaturePublicKey::ECDSA(pk) => pk.as_raw()?.to_vec(),
             SignaturePublicKey::EdDSA(pk) => pk.as_raw()?.to_vec(),
@@ -94,5 +94,5 @@ pub fn signature_publickey_verify(pk: Handle) -> Result<(), Error> {
 }
 
 pub fn signature_publickey_close(handle: Handle) -> Result<(), Error> {
-    WASI_CRYPTO_CTX.signature_publickey_manager.close(handle)
+    WASI_CRYPTO_CTX.handles.signature_publickey.close(handle)
 }

@@ -46,7 +46,8 @@ impl SignatureOp {
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let handle = WASI_CRYPTO_CTX
-            .signature_op_manager
+            .handles
+            .signature_op
             .register(signature_op)?;
         Ok(handle)
     }
@@ -57,5 +58,5 @@ pub fn signature_op_open(alg_str: &str) -> Result<Handle, Error> {
 }
 
 pub fn signature_op_close(handle: Handle) -> Result<(), Error> {
-    WASI_CRYPTO_CTX.signature_op_manager.close(handle)
+    WASI_CRYPTO_CTX.handles.signature_op.close(handle)
 }

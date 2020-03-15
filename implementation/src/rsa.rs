@@ -80,7 +80,8 @@ impl RSASignatureKeyPairBuilder {
         };
         let kp = RSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
         let handle = WASI_CRYPTO_CTX
-            .signature_keypair_manager
+            .handles
+            .signature_keypair
             .register(SignatureKeyPair::RSA(kp))?;
         Ok(handle)
     }

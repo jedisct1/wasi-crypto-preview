@@ -127,7 +127,7 @@ impl ExclusiveSignatureState {
     }
 
     fn open(kp_handle: Handle) -> Result<Handle, Error> {
-        let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
+        let kp = WASI_CRYPTO_CTX.handles.signature_keypair.get(kp_handle)?;
         let signature_state = match kp {
             SignatureKeyPair::ECDSA(kp) => {
                 ExclusiveSignatureState::new(SignatureState::ECDSA(ECDSASignatureState::new(kp)))
@@ -140,7 +140,8 @@ impl ExclusiveSignatureState {
             }
         };
         let handle = WASI_CRYPTO_CTX
-            .signature_state_manager
+            .handles
+            .signature_state
             .register(signature_state)?;
         Ok(handle)
     }
@@ -195,7 +196,7 @@ impl ExclusiveSignatureVerificationState {
     }
 
     fn open(pk_handle: Handle) -> Result<Handle, Error> {
-        let pk = WASI_CRYPTO_CTX.signature_publickey_manager.get(pk_handle)?;
+        let pk = WASI_CRYPTO_CTX.handles.signature_publickey.get(pk_handle)?;
         let signature_verification_state = match pk {
             SignaturePublicKey::ECDSA(pk) => ExclusiveSignatureVerificationState::new(
                 SignatureVerificationState::ECDSA(ECDSASignatureVerificationState::new(pk)),
@@ -208,7 +209,8 @@ impl ExclusiveSignatureVerificationState {
             ),
         };
         let handle = WASI_CRYPTO_CTX
-            .signature_verification_state_manager
+            .handles
+            .signature_verification_state
             .register(signature_verification_state)?;
         Ok(handle)
     }
@@ -222,7 +224,7 @@ impl ExclusiveSignatureVerificationState {
     }
 
     fn verify(&self, signature_handle: Handle) -> Result<(), Error> {
-        let signature = WASI_CRYPTO_CTX.signature_manager.get(signature_handle)?;
+        let signature = WASI_CRYPTO_CTX.handles.signature.get(signature_handle)?;
         match self.state.as_ref() {
             SignatureVerificationState::ECDSA(state) => state.verify(signature.as_ecdsa()?),
             SignatureVerificationState::EdDSA(state) => state.verify(signature.as_eddsa()?),
@@ -239,7 +241,7 @@ pub fn signature_export(
         SignatureEncoding::Raw => {}
         _ => bail!(CryptoError::UnsupportedEncoding),
     }
-    let signature = WASI_CRYPTO_CTX.signature_manager.get(signature_handle)?;
+    let signature = WASI_CRYPTO_CTX.handles.signature.get(signature_handle)?;
     let array_output_handle = ArrayOutput::register(signature.as_ref().to_vec())?;
     Ok(array_output_handle)
 }
@@ -249,12 +251,12 @@ pub fn signature_import(
     encoding: SignatureEncoding,
     encoded: &[u8],
 ) -> Result<Handle, Error> {
-    let signature_op = WASI_CRYPTO_CTX.signature_op_manager.get(op_handle)?;
+    let signature_op = WASI_CRYPTO_CTX.handles.signature_op.get(op_handle)?;
     let signature = match encoding {
         SignatureEncoding::Raw => Signature::from_raw(signature_op.alg(), encoded)?,
         _ => bail!(CryptoError::UnsupportedEncoding),
     };
-    let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
+    let handle = WASI_CRYPTO_CTX.handles.signature.register(signature)?;
     Ok(handle)
 }
 
@@ -263,19 +265,19 @@ pub fn signature_state_open(kp_handle: Handle) -> Result<Handle, Error> {
 }
 
 pub fn signature_state_update(state_handle: Handle, input: &[u8]) -> Result<(), Error> {
-    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
+    let mut state = WASI_CRYPTO_CTX.handles.signature_state.get(state_handle)?;
     state.update(input)
 }
 
 pub fn signature_state_sign(state_handle: Handle) -> Result<Handle, Error> {
-    let mut state = WASI_CRYPTO_CTX.signature_state_manager.get(state_handle)?;
+    let mut state = WASI_CRYPTO_CTX.handles.signature_state.get(state_handle)?;
     let signature = state.sign()?;
-    let handle = WASI_CRYPTO_CTX.signature_manager.register(signature)?;
+    let handle = WASI_CRYPTO_CTX.handles.signature.register(signature)?;
     Ok(handle)
 }
 
 pub fn signature_state_close(handle: Handle) -> Result<(), Error> {
-    WASI_CRYPTO_CTX.signature_state_manager.close(handle)
+    WASI_CRYPTO_CTX.handles.signature_state.close(handle)
 }
 
 pub fn signature_verification_state_open(pk_handle: Handle) -> Result<Handle, Error> {
@@ -287,7 +289,8 @@ pub fn signature_verification_state_update(
     input: &[u8],
 ) -> Result<(), Error> {
     let mut state = WASI_CRYPTO_CTX
-        .signature_verification_state_manager
+        .handles
+        .signature_verification_state
         .get(verification_state_handle)?;
     state.update(input)
 }
@@ -297,17 +300,19 @@ pub fn signature_verification_state_verify(
     signature_handle: Handle,
 ) -> Result<(), Error> {
     let state = WASI_CRYPTO_CTX
-        .signature_verification_state_manager
+        .handles
+        .signature_verification_state
         .get(verification_state_handle)?;
     state.verify(signature_handle)
 }
 
 pub fn signature_verification_state_close(handle: Handle) -> Result<(), Error> {
     WASI_CRYPTO_CTX
-        .signature_verification_state_manager
+        .handles
+        .signature_verification_state
         .close(handle)
 }
 
 pub fn signature_close(handle: Handle) -> Result<(), Error> {
-    WASI_CRYPTO_CTX.signature_manager.close(handle)
+    WASI_CRYPTO_CTX.handles.signature.close(handle)
 }
