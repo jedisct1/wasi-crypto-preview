@@ -1,3 +1,4 @@
+use super::array_output::*;
 use super::ecdsa::*;
 use super::eddsa::*;
 use super::error::*;
@@ -82,8 +83,10 @@ pub fn signature_publickey_import(
 pub fn signature_publickey_export(
     pk: Handle,
     encoding: PublicKeyEncoding,
-) -> Result<Vec<u8>, Error> {
-    SignaturePublicKey::export(pk, encoding)
+) -> Result<Handle, Error> {
+    let encoded = SignaturePublicKey::export(pk, encoding)?;
+    let array_output_handle = ArrayOutput::register(encoded)?;
+    Ok(array_output_handle)
 }
 
 pub fn signature_publickey_verify(pk: Handle) -> Result<(), Error> {

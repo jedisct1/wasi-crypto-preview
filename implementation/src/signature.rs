@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use super::array_output::*;
 use super::ecdsa::*;
 use super::eddsa::*;
 use super::error::*;
@@ -51,21 +52,21 @@ impl Signature {
     fn from_raw(alg: SignatureAlgorithm, encoded: &[u8]) -> Result<Self, Error> {
         let signature = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => {
-                ensure!(encoded.len() == 64, "Unexpected signature length");
+                ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
                 Signature::ECDSA(ECDSASignature::new(
                     SignatureEncoding::Raw,
                     encoded.to_vec(),
                 ))
             }
             SignatureAlgorithm::ECDSA_P384_SHA384 => {
-                ensure!(encoded.len() == 96, "Unexpected signature length");
+                ensure!(encoded.len() == 96, CryptoError::InvalidSignature);
                 Signature::ECDSA(ECDSASignature::new(
                     SignatureEncoding::Raw,
                     encoded.to_vec(),
                 ))
             }
             SignatureAlgorithm::Ed25519 => {
-                ensure!(encoded.len() == 64, "Unexpected signature length");
+                ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
                 Signature::EdDSA(EdDSASignature::new(encoded.to_vec()))
             }
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
@@ -233,13 +234,14 @@ impl ExclusiveSignatureVerificationState {
 pub fn signature_export(
     signature_handle: Handle,
     encoding: SignatureEncoding,
-) -> Result<Vec<u8>, Error> {
+) -> Result<Handle, Error> {
     match encoding {
         SignatureEncoding::Raw => {}
         _ => bail!(CryptoError::UnsupportedEncoding),
     }
     let signature = WASI_CRYPTO_CTX.signature_manager.get(signature_handle)?;
-    Ok(signature.as_ref().to_vec())
+    let array_output_handle = ArrayOutput::register(signature.as_ref().to_vec())?;
+    Ok(array_output_handle)
 }
 
 pub fn signature_import(

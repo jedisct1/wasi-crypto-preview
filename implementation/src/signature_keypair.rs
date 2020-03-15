@@ -1,3 +1,4 @@
+use super::array_output::*;
 use super::ecdsa::*;
 use super::eddsa::*;
 use super::error::*;
@@ -151,7 +152,7 @@ pub fn signature_keypair_from_id(
     bail!(CryptoError::UnsupportedOperation)
 }
 
-pub fn signature_keypair_id(kp_handle: Handle) -> Result<(Vec<u8>, Version), Error> {
+pub fn signature_keypair_id(kp_handle: Handle) -> Result<(Handle, Version), Error> {
     let _kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
     bail!(CryptoError::UnsupportedOperation)
 }
@@ -167,10 +168,11 @@ pub fn signature_keypair_invalidate(
 pub fn signature_keypair_export(
     kp_handle: Handle,
     encoding: KeyPairEncoding,
-) -> Result<Vec<u8>, Error> {
+) -> Result<Handle, Error> {
     let kp = WASI_CRYPTO_CTX.signature_keypair_manager.get(kp_handle)?;
     let encoded = kp.export(encoding)?;
-    Ok(encoded)
+    let array_output_handle = ArrayOutput::register(encoded)?;
+    Ok(array_output_handle)
 }
 
 pub fn signature_keypair_publickey(kp_handle: Handle) -> Result<Handle, Error> {

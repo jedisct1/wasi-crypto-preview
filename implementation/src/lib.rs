@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
+mod array_output;
 mod ecdsa;
 mod eddsa;
 mod error;
@@ -11,6 +12,7 @@ mod signature_keypair;
 mod signature_op;
 mod signature_publickey;
 
+use array_output::*;
 use handles::*;
 use signature::*;
 use signature_keypair::*;
@@ -52,18 +54,20 @@ pub struct WasiCryptoCtx {
     pub signature_manager: HandlesManager<Signature>,
     pub signature_publickey_manager: HandlesManager<SignaturePublicKey>,
     pub signature_verification_state_manager: HandlesManager<ExclusiveSignatureVerificationState>,
+    pub array_output_manager: HandlesManager<ArrayOutput>,
 }
 
 // These maps should be stored in a WASI context
 lazy_static! {
     static ref WASI_CRYPTO_CTX: WasiCryptoCtx = WasiCryptoCtx {
-        signature_op_manager: HandlesManager::new(0x00),
-        signature_keypair_builder_manager: HandlesManager::new(0x01),
-        signature_keypair_manager: HandlesManager::new(0x02),
-        signature_state_manager: HandlesManager::new(0x03),
-        signature_manager: HandlesManager::new(0x04),
-        signature_publickey_manager: HandlesManager::new(0x05),
-        signature_verification_state_manager: HandlesManager::new(0x06),
+        array_output_manager: HandlesManager::new(0x00),
+        signature_op_manager: HandlesManager::new(0x01),
+        signature_keypair_builder_manager: HandlesManager::new(0x02),
+        signature_keypair_manager: HandlesManager::new(0x03),
+        signature_state_manager: HandlesManager::new(0x04),
+        signature_manager: HandlesManager::new(0x05),
+        signature_publickey_manager: HandlesManager::new(0x06),
+        signature_verification_state_manager: HandlesManager::new(0x07),
     };
 }
 
