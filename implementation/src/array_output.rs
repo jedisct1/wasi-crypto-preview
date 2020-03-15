@@ -2,7 +2,7 @@ use std::io::{Cursor, Read};
 
 use super::error::*;
 use super::handles::*;
-use super::WASI_CRYPTO_CTX;
+use super::{HandleManagers, WasiCryptoCtx};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ArrayOutput(Cursor<Vec<u8>>);
@@ -21,12 +21,9 @@ impl ArrayOutput {
         ArrayOutput(Cursor::new(data))
     }
 
-    pub fn register(data: Vec<u8>) -> Result<Handle, Error> {
+    pub fn register(handles: &HandleManagers, data: Vec<u8>) -> Result<Handle, Error> {
         let array_output = ArrayOutput::new(data);
-        let handle = WASI_CRYPTO_CTX
-            .handles
-            .array_output
-            .register(array_output)?;
+        let handle = handles.array_output.register(array_output)?;
         Ok(handle)
     }
 }
@@ -37,15 +34,15 @@ impl Read for ArrayOutput {
     }
 }
 
-pub fn array_output_pull(array_output_handle: Handle, buf: &mut [u8]) -> Result<usize, Error> {
-    let array_output = WASI_CRYPTO_CTX
-        .handles
-        .array_output
-        .get(array_output_handle)?;
-    let size = array_output.pull(buf)?;
-    WASI_CRYPTO_CTX
-        .handles
-        .array_output
-        .close(array_output_handle)?;
-    Ok(size)
+impl WasiCryptoCtx {
+    pub fn array_output_pull(
+        &self,
+        array_output_handle: Handle,
+        buf: &mut [u8],
+    ) -> Result<usize, Error> {
+        let array_output = self.handles.array_output.get(array_output_handle)?;
+        let size = array_output.pull(buf)?;
+        self.handles.array_output.close(array_output_handle)?;
+        Ok(size)
+    }
 }
