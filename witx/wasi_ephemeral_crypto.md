@@ -4,7 +4,11 @@
 ### Variants
 - <a href="#crypto_errno.success" name="crypto_errno.success"></a> `success`
 
-- <a href="#crypto_errno.unsupported_operation" name="crypto_errno.unsupported_operation"></a> `unsupported_operation`
+- <a href="#crypto_errno.not_implemented" name="crypto_errno.not_implemented"></a> `not_implemented`
+
+- <a href="#crypto_errno.unsupported_feature" name="crypto_errno.unsupported_feature"></a> `unsupported_feature`
+
+- <a href="#crypto_errno.prohibited_operation" name="crypto_errno.prohibited_operation"></a> `prohibited_operation`
 
 - <a href="#crypto_errno.unsupported_encoding" name="crypto_errno.unsupported_encoding"></a> `unsupported_encoding`
 
