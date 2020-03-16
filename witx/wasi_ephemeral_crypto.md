@@ -206,7 +206,7 @@ Destroy a key pair builder.
 
 #### <a href="#signature_keypair_generate" name="signature_keypair_generate"></a> `signature_keypair_generate(kp_builder: signature_keypair_builder) -> (crypto_errno, signature_keypair)`
 Generate a new key pair.
-This function may return crypto_errno.unsupported_operation if key
+This function may return crypto_errno.unsupported_feature if key
 generation is not supported by the host for the chosen algorithm.
 
 ##### Params
@@ -244,8 +244,9 @@ cannot be decoded.
 ---
 
 #### <a href="#signature_keypair_id" name="signature_keypair_id"></a> `signature_keypair_id(kp: signature_keypair, kp_id: ConstPointer<u8>, kp_id_max_len: size) -> (crypto_errno, size, version)`
+[OPTIONAL IMPORT]
 Return the key identifier and version, if these are available
-or $crypto_errno.unsupported_operation if not.
+or $crypto_errno.unsupported_feature if not.
 
 ##### Params
 - <a href="#signature_keypair_id.kp" name="signature_keypair_id.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
@@ -265,8 +266,9 @@ or $crypto_errno.unsupported_operation if not.
 ---
 
 #### <a href="#signature_keypair_from_id" name="signature_keypair_from_id"></a> `signature_keypair_from_id(kp_builder: signature_keypair_builder, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> (crypto_errno, signature_keypair)`
+[OPTIONAL IMPORT]
 Create a key pair using an opaque key identifier.
-Return crypto_errno.unsupported_operation if this operation is not
+Return crypto_errno.unsupported_feature if this operation is not
 supported by the host, and crypto_errno.invalid_key if the identifier
 is invalid.
 The version can be an actual version number or $version.latest .
@@ -289,8 +291,9 @@ The version can be an actual version number or $version.latest .
 ---
 
 #### <a href="#signature_keypair_invalidate" name="signature_keypair_invalidate"></a> `signature_keypair_invalidate(kp_builder: signature_keypair_builder, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> crypto_errno`
+[OPTIONAL IMPORT]
 Invalidate a key pair given a key identifier and a version.
-Return crypto_errno.unsupported_operation if this operation is not
+Return crypto_errno.unsupported_feature if this operation is not
 supported by the host, and crypto_errno.invalid_key if the identifier
 is invalid.
 The version can be a actual version number, as well as
@@ -312,9 +315,10 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#signature_keypair_export" name="signature_keypair_export"></a> `signature_keypair_export(kp: signature_keypair, encoding: keypair_encoding) -> (crypto_errno, array_output)`
+[OPTIONAL IMPORT]
 Export the key pair as the given encoding format.
-May return crypto_errno.unsupported_operation if this operation is
-not supported or crypto_errno.unsupported_encoding if the encoding
+May return crypto_errno.prohibited_operation if this operation is
+not available or crypto_errno.unsupported_encoding if the encoding
 is not supported.
 
 ##### Params
@@ -358,8 +362,7 @@ Destroys a key pair and wipe memory accordingly.
 
 #### <a href="#signature_publickey_import" name="signature_publickey_import"></a> `signature_publickey_import(signature_op: signature_op, encoded: ConstPointer<u8>, encoded_len: size, encoding: publickey_encoding) -> (crypto_errno, signature_publickey)`
 Import a public key encoded.
-Return crypto_errno.unsupported_operation if this operation is not
-supported by the host and crypto_errno.unsupported_encoding if exporting
+Return crypto_errno.unsupported_encoding if exporting
 to the given format is not implemented or if the format is
 incompatible with the key type.
 
