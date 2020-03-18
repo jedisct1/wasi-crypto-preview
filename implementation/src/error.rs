@@ -45,7 +45,7 @@ impl From<CryptoError> for guest_types::CryptoErrno {
     fn from(e: CryptoError) -> Self {
         match e {
             CryptoError::Success => guest_types::CryptoErrno::Success,
-            CryptoError::GuestError(wiggle_runtime) => guest_types::CryptoErrno::GuestError,
+            CryptoError::GuestError(_wiggle_runtime) => guest_types::CryptoErrno::GuestError,
             CryptoError::NotImplemented => guest_types::CryptoErrno::NotImplemented,
             CryptoError::UnsupportedFeature => guest_types::CryptoErrno::UnsupportedFeature,
             CryptoError::ProhibitedOperation => guest_types::CryptoErrno::ProhibitedOperation,

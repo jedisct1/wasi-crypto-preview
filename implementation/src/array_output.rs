@@ -70,10 +70,12 @@ impl WasiCryptoCtx {
         buf_len: guest_types::Size,
     ) -> Result<usize, CryptoError> {
         let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
-        let buf: &mut [u8] = &mut *buf_ptr
-            .as_array(buf_len as _)
-            .as_raw(&mut guest_borrow)
-            .unwrap();
+        let buf: &mut [u8] = unsafe {
+            &mut *buf_ptr
+                .as_array(buf_len as _)
+                .as_raw(&mut guest_borrow)
+                .unwrap()
+        };
         self._array_output_pull(array_output_handle.into(), buf)
     }
 }
