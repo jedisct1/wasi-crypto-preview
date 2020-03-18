@@ -59,7 +59,6 @@ impl WasiCryptoCtx {
     }
 }
 
-/*
 #[test]
 fn test_signatures() {
     let ctx = WasiCryptoCtx::new();
@@ -87,4 +86,3 @@ fn test_signatures() {
         .unwrap();
     ctx.signature_close(signature_handle).unwrap();
 }
-*/

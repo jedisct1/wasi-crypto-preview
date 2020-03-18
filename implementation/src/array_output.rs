@@ -40,7 +40,10 @@ impl Read for ArrayOutput {
 }
 
 impl WasiCryptoCtx {
-    fn _array_output_len(&self, array_output_handle: Handle) -> Result<usize, CryptoError> {
+    pub(crate) fn _array_output_len(
+        &self,
+        array_output_handle: Handle,
+    ) -> Result<usize, CryptoError> {
         let array_output = self.handles.array_output.get(array_output_handle)?;
         Ok(array_output.len())
     }
@@ -52,7 +55,7 @@ impl WasiCryptoCtx {
         self._array_output_len(array_output_handle.into())
     }
 
-    fn _array_output_pull(
+    pub(crate) fn _array_output_pull(
         &self,
         array_output_handle: Handle,
         buf: &mut [u8],

@@ -3,7 +3,7 @@
 (typename $crypto_errno
   (enum u16
     $success
-    $guest_error    
+    $guest_error
     $not_implemented
     $unsupported_feature
     $prohibited_operation
@@ -82,6 +82,7 @@
   ;;; Return the length of an array_output object.
   (@interface func (export "array_output_len")
     (param $array_output $array_output)
+    (result $error $crypto_errno)
     (result $len $size)
   )
 
