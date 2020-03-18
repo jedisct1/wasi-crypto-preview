@@ -148,7 +148,7 @@
   ;;; or $crypto_errno.unsupported_feature if not.
   (@interface func (export "signature_keypair_id")
     (param $kp $signature_keypair)
-    (param $kp_id (@witx const_pointer u8))
+    (param $kp_id (@witx pointer u8))
     (param $kp_id_max_len $size)
     (result $error $crypto_errno)
     (result $kp_id_len $size)

@@ -27,6 +27,9 @@ wiggle::from_witx!({
     ctx: WasiCryptoCtx
 });
 
+#[allow(unused)]
+static __: &'static str = include_str!("../../witx/wasi_ephemeral_crypto2.witx");
+
 pub struct HandleManagers {
     pub signature_op: HandlesManager<SignatureOp>,
     pub signature_keypair_builder: HandlesManager<SignatureKeyPairBuilder>,

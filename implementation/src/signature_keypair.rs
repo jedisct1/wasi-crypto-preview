@@ -6,6 +6,7 @@ use super::handles::*;
 use super::rsa::*;
 use super::signature_op::*;
 use super::signature_publickey::*;
+use super::types as guest_types;
 use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -17,13 +18,35 @@ impl Version {
     pub const ALL: Version = Version(0xff00_0000_0000_0000);
 }
 
+impl From<guest_types::Version> for Version {
+    fn from(version: guest_types::Version) -> Self {
+        Version(version.into())
+    }
+}
+
+impl From<Version> for guest_types::Version {
+    fn from(version: Version) -> Self {
+        version.into()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(u16)]
 pub enum KeyPairEncoding {
-    Raw = 1,
-    PKCS8 = 2,
-    DER = 3,
-    PEM = 4,
+    Raw,
+    PKCS8,
+    DER,
+    PEM,
+}
+
+impl From<guest_types::KeypairEncoding> for KeyPairEncoding {
+    fn from(encoding: guest_types::KeypairEncoding) -> Self {
+        match encoding {
+            guest_types::KeypairEncoding::Raw => KeyPairEncoding::Raw,
+            guest_types::KeypairEncoding::Pkcs8 => KeyPairEncoding::PKCS8,
+            guest_types::KeypairEncoding::Der => KeyPairEncoding::DER,
+            guest_types::KeypairEncoding::Pem => KeyPairEncoding::PEM,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -168,7 +191,7 @@ impl CryptoCtx {
     pub fn signature_keypair_id(
         &self,
         kp_handle: Handle,
-    ) -> Result<(Handle, Version), CryptoError> {
+    ) -> Result<(Vec<u8>, Version), CryptoError> {
         let _kp = self.handles.signature_keypair.get(kp_handle)?;
         bail!(CryptoError::UnsupportedFeature)
     }
@@ -205,49 +228,86 @@ impl CryptoCtx {
 }
 
 impl WasiCryptoCtx {
-    pub fn signature_keypair_builder_open(&self, op_handle: Handle) -> Result<Handle, CryptoError> {
-        self.ctx.signature_keypair_builder_open(op_handle)
+    pub fn signature_keypair_builder_open(
+        &self,
+        op_handle: guest_types::SignatureOp,
+    ) -> Result<guest_types::SignatureKeypairBuilder, CryptoError> {
+        Ok(self
+            .ctx
+            .signature_keypair_builder_open(op_handle.into())?
+            .into())
     }
 
     pub fn signature_keypair_builder_close(
         &self,
-        kp_builder_handle: Handle,
+        kp_builder_handle: guest_types::SignatureKeypairBuilder,
     ) -> Result<(), CryptoError> {
-        self.ctx.signature_keypair_builder_close(kp_builder_handle)
+        self.ctx
+            .signature_keypair_builder_close(kp_builder_handle.into())
     }
 
     pub fn signature_keypair_generate(
         &self,
-        kp_builder_handle: Handle,
-    ) -> Result<Handle, CryptoError> {
-        self.ctx.signature_keypair_generate(kp_builder_handle)
+        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+    ) -> Result<guest_types::SignatureKeypair, CryptoError> {
+        Ok(self
+            .ctx
+            .signature_keypair_generate(kp_builder_handle.into())?
+            .into())
     }
 
     pub fn signature_keypair_import(
         &self,
-        kp_builder_handle: Handle,
-        encoded: &[u8],
-        encoding: KeyPairEncoding,
-    ) -> Result<Handle, CryptoError> {
-        self.ctx
-            .signature_keypair_import(kp_builder_handle, encoded, encoding)
+        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        encoded_ptr: wiggle_runtime::GuestPtr<u8>,
+        encoded_len: guest_types::Size,
+        encoding: guest_types::KeypairEncoding,
+    ) -> Result<guest_types::SignatureKeypair, CryptoError> {
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let encoded: &[u8] = unsafe {
+            &*encoded_ptr
+                .as_array(encoded_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .signature_keypair_import(kp_builder_handle.into(), encoded, encoding.into())?
+            .into())
     }
 
     pub fn signature_keypair_from_id(
         &self,
-        kp_builder_handle: Handle,
-        kp_id: &[u8],
-        kp_version: Version,
+        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        kp_id_ptr: wiggle_runtime::GuestPtr<u8>,
+        kp_id_len: guest_types::Size,
+        kp_version: guest_types::Version,
     ) -> Result<Handle, CryptoError> {
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let kp_id: &[u8] = unsafe {
+            &*kp_id_ptr
+                .as_array(kp_id_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
         self.ctx
-            .signature_keypair_from_id(kp_builder_handle, kp_id, kp_version)
+            .signature_keypair_from_id(kp_builder_handle.into(), kp_id, kp_version.into())
     }
 
     pub fn signature_keypair_id(
         &self,
-        kp_handle: Handle,
-    ) -> Result<(Handle, Version), CryptoError> {
-        self.ctx.signature_keypair_id(kp_handle)
+        kp_handle: guest_types::SignatureKeypair,
+        kp_id_ptr: wiggle_runtime::GuestPtr<u8>,
+        kp_id_max_len: guest_types::Size,
+    ) -> Result<(guest_types::Size, guest_types::Version), CryptoError> {
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let kp_id_buf: &mut [u8] = unsafe {
+            &mut *kp_id_ptr
+                .as_array(kp_id_max_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        let (kp_id, version) = self.ctx.signature_keypair_id(kp_handle.into())?;
+        ensure!(kp_id.len() <= kp_id_buf.len(), CryptoError::Overflow);
+        kp_id_buf.copy_from_slice(&kp_id);
+        Ok((kp_id.len(), version.into()))
     }
 
     pub fn signature_keypair_invalidate(
