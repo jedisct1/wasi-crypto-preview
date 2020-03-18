@@ -4,6 +4,7 @@ use super::error::*;
 use super::handles::*;
 use super::rsa::*;
 use super::signature::*;
+use super::types as guest_types;
 use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[derive(Clone, Copy, Debug)]
@@ -61,11 +62,19 @@ impl CryptoCtx {
 }
 
 impl WasiCryptoCtx {
-    pub fn signature_op_open(&self, alg_str: &str) -> Result<Handle, CryptoError> {
-        self.ctx.signature_op_open(alg_str)
+    pub fn signature_op_open(
+        &self,
+        alg_str: &wiggle_runtime::GuestPtr<str>,
+    ) -> Result<guest_types::SignatureOp, CryptoError> {
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
+        Ok(self.ctx.signature_op_open(alg_str)?.into())
     }
 
-    pub fn signature_op_close(&self, op_handle: Handle) -> Result<(), CryptoError> {
-        self.ctx.signature_op_close(op_handle)
+    pub fn signature_op_close(
+        &self,
+        op_handle: guest_types::SignatureOp,
+    ) -> Result<(), CryptoError> {
+        self.ctx.signature_op_close(op_handle.into())
     }
 }
