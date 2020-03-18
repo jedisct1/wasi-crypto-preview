@@ -22,7 +22,7 @@ impl SignatureOp {
         }
     }
 
-    fn open(handles: &HandleManagers, alg_str: &str) -> Result<Handle, Error> {
+    fn open(handles: &HandleManagers, alg_str: &str) -> Result<Handle, CryptoError> {
         let signature_op = match alg_str {
             "ECDSA_P256_SHA256" => {
                 SignatureOp::ECDSA(ECDSASignatureOp::new(SignatureAlgorithm::ECDSA_P256_SHA256))
@@ -51,11 +51,11 @@ impl SignatureOp {
 }
 
 impl WasiCryptoCtx {
-    pub fn signature_op_open(&self, alg_str: &str) -> Result<Handle, Error> {
+    pub fn signature_op_open(&self, alg_str: &str) -> Result<Handle, CryptoError> {
         SignatureOp::open(&self.handles, alg_str)
     }
 
-    pub fn signature_op_close(&self, handle: Handle) -> Result<(), Error> {
+    pub fn signature_op_close(&self, handle: Handle) -> Result<(), CryptoError> {
         self.handles.signature_op.close(handle)
     }
 }

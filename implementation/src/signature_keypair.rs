@@ -34,7 +34,7 @@ pub enum SignatureKeyPair {
 }
 
 impl SignatureKeyPair {
-    fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, Error> {
+    fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
         let encoded = match encoding {
             KeyPairEncoding::PKCS8 => match self {
                 SignatureKeyPair::ECDSA(kp) => kp.as_pkcs8()?.to_vec(),
@@ -46,7 +46,10 @@ impl SignatureKeyPair {
         Ok(encoded)
     }
 
-    fn generate(handles: &HandleManagers, kp_builder_handle: Handle) -> Result<Handle, Error> {
+    fn generate(
+        handles: &HandleManagers,
+        kp_builder_handle: Handle,
+    ) -> Result<Handle, CryptoError> {
         let kp_builder = handles.signature_keypair_builder.get(kp_builder_handle)?;
         let handle = match kp_builder {
             SignatureKeyPairBuilder::ECDSA(kp_builder) => kp_builder.generate(handles)?,
@@ -61,7 +64,7 @@ impl SignatureKeyPair {
         kp_builder_handle: Handle,
         encoded: &[u8],
         encoding: KeyPairEncoding,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         let kp_builder = handles.signature_keypair_builder.get(kp_builder_handle)?;
         let handle = match kp_builder {
             SignatureKeyPairBuilder::ECDSA(kp_builder) => {
@@ -77,7 +80,7 @@ impl SignatureKeyPair {
         Ok(handle)
     }
 
-    fn public_key(&self, handles: &HandleManagers) -> Result<Handle, Error> {
+    fn public_key(&self, handles: &HandleManagers) -> Result<Handle, CryptoError> {
         let pk = match self {
             SignatureKeyPair::ECDSA(kp) => {
                 let raw_pk = kp.raw_public_key();
@@ -105,7 +108,7 @@ pub enum SignatureKeyPairBuilder {
 }
 
 impl SignatureKeyPairBuilder {
-    fn open(handles: &HandleManagers, op_handle: Handle) -> Result<Handle, Error> {
+    fn open(handles: &HandleManagers, op_handle: Handle) -> Result<Handle, CryptoError> {
         let signature_op = handles.signature_op.get(op_handle)?;
         let kp_builder = match signature_op {
             SignatureOp::ECDSA(_) => SignatureKeyPairBuilder::ECDSA(
@@ -124,15 +127,18 @@ impl SignatureKeyPairBuilder {
 }
 
 impl WasiCryptoCtx {
-    pub fn signature_keypair_builder_open(&self, op_handle: Handle) -> Result<Handle, Error> {
+    pub fn signature_keypair_builder_open(&self, op_handle: Handle) -> Result<Handle, CryptoError> {
         SignatureKeyPairBuilder::open(&self.handles, op_handle)
     }
 
-    pub fn signature_keypair_builder_close(&self, handle: Handle) -> Result<(), Error> {
+    pub fn signature_keypair_builder_close(&self, handle: Handle) -> Result<(), CryptoError> {
         self.handles.signature_keypair_builder.close(handle)
     }
 
-    pub fn signature_keypair_generate(&self, kp_builder_handle: Handle) -> Result<Handle, Error> {
+    pub fn signature_keypair_generate(
+        &self,
+        kp_builder_handle: Handle,
+    ) -> Result<Handle, CryptoError> {
         SignatureKeyPair::generate(&self.handles, kp_builder_handle)
     }
 
@@ -141,7 +147,7 @@ impl WasiCryptoCtx {
         kp_builder_handle: Handle,
         encoded: &[u8],
         encoding: KeyPairEncoding,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         SignatureKeyPair::import(&self.handles, kp_builder_handle, encoded, encoding)
     }
 
@@ -150,11 +156,14 @@ impl WasiCryptoCtx {
         _kp_builder_handle: Handle,
         _kp_id: &[u8],
         _kp_version: Version,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         bail!(CryptoError::UnsupportedFeature)
     }
 
-    pub fn signature_keypair_id(&self, kp_handle: Handle) -> Result<(Handle, Version), Error> {
+    pub fn signature_keypair_id(
+        &self,
+        kp_handle: Handle,
+    ) -> Result<(Handle, Version), CryptoError> {
         let _kp = self.handles.signature_keypair.get(kp_handle)?;
         bail!(CryptoError::UnsupportedFeature)
     }
@@ -164,7 +173,7 @@ impl WasiCryptoCtx {
         _kp_builder_handle: Handle,
         _kp_id: &[u8],
         _kp_version: Version,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CryptoError> {
         bail!(CryptoError::UnsupportedFeature)
     }
 
@@ -172,20 +181,20 @@ impl WasiCryptoCtx {
         &self,
         kp_handle: Handle,
         encoding: KeyPairEncoding,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         let kp = self.handles.signature_keypair.get(kp_handle)?;
         let encoded = kp.export(encoding)?;
         let array_output_handle = ArrayOutput::register(&self.handles, encoded)?;
         Ok(array_output_handle)
     }
 
-    pub fn signature_keypair_publickey(&self, kp_handle: Handle) -> Result<Handle, Error> {
+    pub fn signature_keypair_publickey(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
         let kp = self.handles.signature_keypair.get(kp_handle)?;
         let handle = kp.public_key(&self.handles)?;
         Ok(handle)
     }
 
-    pub fn signature_keypair_close(&self, handle: Handle) -> Result<(), Error> {
+    pub fn signature_keypair_close(&self, handle: Handle) -> Result<(), CryptoError> {
         self.handles.signature_keypair.close(handle)
     }
 }

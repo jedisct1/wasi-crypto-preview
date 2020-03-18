@@ -31,7 +31,7 @@ impl SignaturePublicKey {
         signature_op: Handle,
         encoded: &[u8],
         encoding: PublicKeyEncoding,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         match encoding {
             PublicKeyEncoding::Raw => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
@@ -58,7 +58,7 @@ impl SignaturePublicKey {
         handles: &HandleManagers,
         pk: Handle,
         encoding: PublicKeyEncoding,
-    ) -> Result<Vec<u8>, Error> {
+    ) -> Result<Vec<u8>, CryptoError> {
         match encoding {
             PublicKeyEncoding::Raw => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
@@ -72,7 +72,7 @@ impl SignaturePublicKey {
         Ok(raw_pk)
     }
 
-    fn verify(_pk_handle: Handle) -> Result<(), Error> {
+    fn verify(_pk_handle: Handle) -> Result<(), CryptoError> {
         bail!(CryptoError::NotImplemented)
     }
 }
@@ -83,7 +83,7 @@ impl WasiCryptoCtx {
         signature_op: Handle,
         encoded: &[u8],
         encoding: PublicKeyEncoding,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         SignaturePublicKey::import(&self.handles, signature_op, encoded, encoding)
     }
 
@@ -91,17 +91,17 @@ impl WasiCryptoCtx {
         &self,
         pk: Handle,
         encoding: PublicKeyEncoding,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         let encoded = SignaturePublicKey::export(&self.handles, pk, encoding)?;
         let array_output_handle = ArrayOutput::register(&self.handles, encoded)?;
         Ok(array_output_handle)
     }
 
-    pub fn signature_publickey_verify(&self, pk: Handle) -> Result<(), Error> {
+    pub fn signature_publickey_verify(&self, pk: Handle) -> Result<(), CryptoError> {
         SignaturePublicKey::verify(pk)
     }
 
-    pub fn signature_publickey_close(&self, handle: Handle) -> Result<(), Error> {
+    pub fn signature_publickey_close(&self, handle: Handle) -> Result<(), CryptoError> {
         self.handles.signature_publickey.close(handle)
     }
 }

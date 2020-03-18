@@ -16,11 +16,16 @@ use signature_keypair::*;
 use signature_op::*;
 use signature_publickey::*;
 
-pub use error::{CryptoError, WasiCryptoError};
+pub use error::CryptoError;
 pub use handles::Handle;
 pub use signature::SignatureEncoding;
 pub use signature_keypair::{KeyPairEncoding, Version};
 pub use signature_publickey::PublicKeyEncoding;
+
+wiggle::from_witx!({
+    witx: ["../witx/wasi_ephemeral_crypto2.witx"],
+    ctx: WasiCryptoCtx
+});
 
 pub struct HandleManagers {
     pub signature_op: HandlesManager<SignatureOp>,
@@ -54,6 +59,7 @@ impl WasiCryptoCtx {
     }
 }
 
+/*
 #[test]
 fn test_signatures() {
     let ctx = WasiCryptoCtx::new();
@@ -81,3 +87,4 @@ fn test_signatures() {
         .unwrap();
     ctx.signature_close(signature_handle).unwrap();
 }
+*/

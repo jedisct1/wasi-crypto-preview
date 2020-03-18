@@ -49,7 +49,7 @@ impl PartialEq for Signature {
 impl Eq for Signature {}
 
 impl Signature {
-    fn from_raw(alg: SignatureAlgorithm, encoded: &[u8]) -> Result<Self, Error> {
+    fn from_raw(alg: SignatureAlgorithm, encoded: &[u8]) -> Result<Self, CryptoError> {
         let signature = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => {
                 ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
@@ -85,21 +85,21 @@ impl Signature {
         Ok(signature)
     }
 
-    fn as_ecdsa(&self) -> Result<&ECDSASignature, Error> {
+    fn as_ecdsa(&self) -> Result<&ECDSASignature, CryptoError> {
         match self {
             Signature::ECDSA(signature) => Ok(signature),
             _ => bail!(CryptoError::InvalidSignature),
         }
     }
 
-    fn as_eddsa(&self) -> Result<&EdDSASignature, Error> {
+    fn as_eddsa(&self) -> Result<&EdDSASignature, CryptoError> {
         match self {
             Signature::EdDSA(signature) => Ok(signature),
             _ => bail!(CryptoError::InvalidSignature),
         }
     }
 
-    fn as_rsa(&self) -> Result<&RSASignature, Error> {
+    fn as_rsa(&self) -> Result<&RSASignature, CryptoError> {
         match self {
             Signature::RSA(signature) => Ok(signature),
             _ => bail!(CryptoError::InvalidSignature),
@@ -126,7 +126,7 @@ impl ExclusiveSignatureState {
         }
     }
 
-    fn open(handles: &HandleManagers, kp_handle: Handle) -> Result<Handle, Error> {
+    fn open(handles: &HandleManagers, kp_handle: Handle) -> Result<Handle, CryptoError> {
         let kp = handles.signature_keypair.get(kp_handle)?;
         let signature_state = match kp {
             SignatureKeyPair::ECDSA(kp) => {
@@ -143,7 +143,7 @@ impl ExclusiveSignatureState {
         Ok(handle)
     }
 
-    fn update(&mut self, input: &[u8]) -> Result<(), Error> {
+    fn update(&mut self, input: &[u8]) -> Result<(), CryptoError> {
         match self.state.as_ref() {
             SignatureState::ECDSA(state) => state.update(input),
             SignatureState::EdDSA(state) => state.update(input),
@@ -151,7 +151,7 @@ impl ExclusiveSignatureState {
         }
     }
 
-    fn sign(&mut self) -> Result<Signature, Error> {
+    fn sign(&mut self) -> Result<Signature, CryptoError> {
         let signature = match self.state.as_ref() {
             SignatureState::ECDSA(state) => Signature::ECDSA(state.sign()?),
             SignatureState::EdDSA(state) => Signature::EdDSA(state.sign()?),
@@ -192,7 +192,7 @@ impl ExclusiveSignatureVerificationState {
         }
     }
 
-    fn open(handles: &HandleManagers, pk_handle: Handle) -> Result<Handle, Error> {
+    fn open(handles: &HandleManagers, pk_handle: Handle) -> Result<Handle, CryptoError> {
         let pk = handles.signature_publickey.get(pk_handle)?;
         let signature_verification_state = match pk {
             SignaturePublicKey::ECDSA(pk) => ExclusiveSignatureVerificationState::new(
@@ -211,7 +211,7 @@ impl ExclusiveSignatureVerificationState {
         Ok(handle)
     }
 
-    fn update(&mut self, input: &[u8]) -> Result<(), Error> {
+    fn update(&mut self, input: &[u8]) -> Result<(), CryptoError> {
         match self.state.as_ref() {
             SignatureVerificationState::ECDSA(state) => state.update(input),
             SignatureVerificationState::EdDSA(state) => state.update(input),
@@ -219,7 +219,11 @@ impl ExclusiveSignatureVerificationState {
         }
     }
 
-    fn verify(&self, handles: &HandleManagers, signature_handle: Handle) -> Result<(), Error> {
+    fn verify(
+        &self,
+        handles: &HandleManagers,
+        signature_handle: Handle,
+    ) -> Result<(), CryptoError> {
         let signature = handles.signature.get(signature_handle)?;
         match self.state.as_ref() {
             SignatureVerificationState::ECDSA(state) => state.verify(signature.as_ecdsa()?),
@@ -234,7 +238,7 @@ impl WasiCryptoCtx {
         &self,
         signature_handle: Handle,
         encoding: SignatureEncoding,
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         match encoding {
             SignatureEncoding::Raw => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
@@ -250,7 +254,7 @@ impl WasiCryptoCtx {
         op_handle: Handle,
         encoding: SignatureEncoding,
         encoded: &[u8],
-    ) -> Result<Handle, Error> {
+    ) -> Result<Handle, CryptoError> {
         let signature_op = self.handles.signature_op.get(op_handle)?;
         let signature = match encoding {
             SignatureEncoding::Raw => Signature::from_raw(signature_op.alg(), encoded)?,
@@ -260,27 +264,34 @@ impl WasiCryptoCtx {
         Ok(handle)
     }
 
-    pub fn signature_state_open(&self, kp_handle: Handle) -> Result<Handle, Error> {
+    pub fn signature_state_open(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
         ExclusiveSignatureState::open(&self.handles, kp_handle)
     }
 
-    pub fn signature_state_update(&self, state_handle: Handle, input: &[u8]) -> Result<(), Error> {
+    pub fn signature_state_update(
+        &self,
+        state_handle: Handle,
+        input: &[u8],
+    ) -> Result<(), CryptoError> {
         let mut state = self.handles.signature_state.get(state_handle)?;
         state.update(input)
     }
 
-    pub fn signature_state_sign(&self, state_handle: Handle) -> Result<Handle, Error> {
+    pub fn signature_state_sign(&self, state_handle: Handle) -> Result<Handle, CryptoError> {
         let mut state = self.handles.signature_state.get(state_handle)?;
         let signature = state.sign()?;
         let handle = self.handles.signature.register(signature)?;
         Ok(handle)
     }
 
-    pub fn signature_state_close(&self, handle: Handle) -> Result<(), Error> {
+    pub fn signature_state_close(&self, handle: Handle) -> Result<(), CryptoError> {
         self.handles.signature_state.close(handle)
     }
 
-    pub fn signature_verification_state_open(&self, pk_handle: Handle) -> Result<Handle, Error> {
+    pub fn signature_verification_state_open(
+        &self,
+        pk_handle: Handle,
+    ) -> Result<Handle, CryptoError> {
         ExclusiveSignatureVerificationState::open(&self.handles, pk_handle)
     }
 
@@ -288,7 +299,7 @@ impl WasiCryptoCtx {
         &self,
         verification_state_handle: Handle,
         input: &[u8],
-    ) -> Result<(), Error> {
+    ) -> Result<(), CryptoError> {
         let mut state = self
             .handles
             .signature_verification_state
@@ -300,7 +311,7 @@ impl WasiCryptoCtx {
         &self,
         verification_state_handle: Handle,
         signature_handle: Handle,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CryptoError> {
         let state = self
             .handles
             .signature_verification_state
@@ -308,11 +319,11 @@ impl WasiCryptoCtx {
         state.verify(&self.handles, signature_handle)
     }
 
-    pub fn signature_verification_state_close(&self, handle: Handle) -> Result<(), Error> {
+    pub fn signature_verification_state_close(&self, handle: Handle) -> Result<(), CryptoError> {
         self.handles.signature_verification_state.close(handle)
     }
 
-    pub fn signature_close(&self, handle: Handle) -> Result<(), Error> {
+    pub fn signature_close(&self, handle: Handle) -> Result<(), CryptoError> {
         self.handles.signature.close(handle)
     }
 }

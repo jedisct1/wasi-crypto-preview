@@ -3,6 +3,7 @@
 (typename $crypto_errno
   (enum u16
     $success
+    $guest_error    
     $not_implemented
     $unsupported_feature
     $prohibited_operation
