@@ -101,7 +101,35 @@ impl CryptoCtx {
         SignaturePublicKey::verify(pk)
     }
 
-    pub fn signature_publickey_close(&self, handle: Handle) -> Result<(), CryptoError> {
-        self.handles.signature_publickey.close(handle)
+    pub fn signature_publickey_close(&self, pk: Handle) -> Result<(), CryptoError> {
+        self.handles.signature_publickey.close(pk)
+    }
+}
+
+impl WasiCryptoCtx {
+    pub fn signature_publickey_import(
+        &self,
+        signature_op: Handle,
+        encoded: &[u8],
+        encoding: PublicKeyEncoding,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx
+            .signature_publickey_import(signature_op, encoded, encoding)
+    }
+
+    pub fn signature_publickey_export(
+        &self,
+        pk: Handle,
+        encoding: PublicKeyEncoding,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx.signature_publickey_export(pk, encoding)
+    }
+
+    pub fn signature_publickey_verify(&self, pk: Handle) -> Result<(), CryptoError> {
+        self.ctx.signature_publickey_verify(pk)
+    }
+
+    pub fn signature_publickey_close(&self, pk: Handle) -> Result<(), CryptoError> {
+        self.ctx.signature_publickey_close(pk)
     }
 }

@@ -40,15 +40,12 @@ impl Read for ArrayOutput {
 }
 
 impl CryptoCtx {
-    pub(crate) fn array_output_len(
-        &self,
-        array_output_handle: Handle,
-    ) -> Result<usize, CryptoError> {
+    pub fn array_output_len(&self, array_output_handle: Handle) -> Result<usize, CryptoError> {
         let array_output = self.handles.array_output.get(array_output_handle)?;
         Ok(array_output.len())
     }
 
-    pub(crate) fn array_output_pull(
+    pub fn array_output_pull(
         &self,
         array_output_handle: Handle,
         buf: &mut [u8],

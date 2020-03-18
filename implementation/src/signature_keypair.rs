@@ -131,8 +131,13 @@ impl CryptoCtx {
         SignatureKeyPairBuilder::open(&self.handles, op_handle)
     }
 
-    pub fn signature_keypair_builder_close(&self, handle: Handle) -> Result<(), CryptoError> {
-        self.handles.signature_keypair_builder.close(handle)
+    pub fn signature_keypair_builder_close(
+        &self,
+        kp_builder_handle: Handle,
+    ) -> Result<(), CryptoError> {
+        self.handles
+            .signature_keypair_builder
+            .close(kp_builder_handle)
     }
 
     pub fn signature_keypair_generate(
@@ -194,7 +199,80 @@ impl CryptoCtx {
         Ok(handle)
     }
 
-    pub fn signature_keypair_close(&self, handle: Handle) -> Result<(), CryptoError> {
-        self.handles.signature_keypair.close(handle)
+    pub fn signature_keypair_close(&self, kp_handle: Handle) -> Result<(), CryptoError> {
+        self.handles.signature_keypair.close(kp_handle)
+    }
+}
+
+impl WasiCryptoCtx {
+    pub fn signature_keypair_builder_open(&self, op_handle: Handle) -> Result<Handle, CryptoError> {
+        self.ctx.signature_keypair_builder_open(op_handle)
+    }
+
+    pub fn signature_keypair_builder_close(
+        &self,
+        kp_builder_handle: Handle,
+    ) -> Result<(), CryptoError> {
+        self.ctx.signature_keypair_builder_close(kp_builder_handle)
+    }
+
+    pub fn signature_keypair_generate(
+        &self,
+        kp_builder_handle: Handle,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx.signature_keypair_generate(kp_builder_handle)
+    }
+
+    pub fn signature_keypair_import(
+        &self,
+        kp_builder_handle: Handle,
+        encoded: &[u8],
+        encoding: KeyPairEncoding,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx
+            .signature_keypair_import(kp_builder_handle, encoded, encoding)
+    }
+
+    pub fn signature_keypair_from_id(
+        &self,
+        kp_builder_handle: Handle,
+        kp_id: &[u8],
+        kp_version: Version,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx
+            .signature_keypair_from_id(kp_builder_handle, kp_id, kp_version)
+    }
+
+    pub fn signature_keypair_id(
+        &self,
+        kp_handle: Handle,
+    ) -> Result<(Handle, Version), CryptoError> {
+        self.ctx.signature_keypair_id(kp_handle)
+    }
+
+    pub fn signature_keypair_invalidate(
+        &self,
+        kp_builder_handle: Handle,
+        kp_id: &[u8],
+        kp_version: Version,
+    ) -> Result<(), CryptoError> {
+        self.ctx
+            .signature_keypair_invalidate(kp_builder_handle, kp_id, kp_version)
+    }
+
+    pub fn signature_keypair_export(
+        &self,
+        kp_handle: Handle,
+        encoding: KeyPairEncoding,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx.signature_keypair_export(kp_handle, encoding)
+    }
+
+    pub fn signature_keypair_publickey(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
+        self.ctx.signature_keypair_publickey(kp_handle)
+    }
+
+    pub fn signature_keypair_close(&self, kp_handle: Handle) -> Result<(), CryptoError> {
+        self.ctx.signature_keypair_close(kp_handle)
     }
 }

@@ -319,11 +319,92 @@ impl CryptoCtx {
         state.verify(&self.handles, signature_handle)
     }
 
-    pub fn signature_verification_state_close(&self, handle: Handle) -> Result<(), CryptoError> {
-        self.handles.signature_verification_state.close(handle)
+    pub fn signature_verification_state_close(
+        &self,
+        verification_state_handle: Handle,
+    ) -> Result<(), CryptoError> {
+        self.handles
+            .signature_verification_state
+            .close(verification_state_handle)
     }
 
-    pub fn signature_close(&self, handle: Handle) -> Result<(), CryptoError> {
-        self.handles.signature.close(handle)
+    pub fn signature_close(&self, signature_handle: Handle) -> Result<(), CryptoError> {
+        self.handles.signature.close(signature_handle)
+    }
+}
+
+impl WasiCryptoCtx {
+    pub fn signature_export(
+        &self,
+        signature_handle: Handle,
+        encoding: SignatureEncoding,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx.signature_export(signature_handle, encoding)
+    }
+
+    pub fn signature_import(
+        &self,
+        op_handle: Handle,
+        encoding: SignatureEncoding,
+        encoded: &[u8],
+    ) -> Result<Handle, CryptoError> {
+        self.ctx.signature_import(op_handle, encoding, encoded)
+    }
+
+    pub fn signature_state_open(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
+        self.ctx.signature_state_open(kp_handle)
+    }
+
+    pub fn signature_state_update(
+        &self,
+        state_handle: Handle,
+        input: &[u8],
+    ) -> Result<(), CryptoError> {
+        self.ctx.signature_state_update(state_handle, input)
+    }
+
+    pub fn signature_state_sign(&self, state_handle: Handle) -> Result<Handle, CryptoError> {
+        self.ctx.signature_state_sign(state_handle)
+    }
+
+    pub fn signature_state_close(&self, state_handle: Handle) -> Result<(), CryptoError> {
+        self.ctx.signature_state_close(state_handle)
+    }
+
+    pub fn signature_verification_state_open(
+        &self,
+        pk_handle: Handle,
+    ) -> Result<Handle, CryptoError> {
+        self.ctx.signature_verification_state_open(pk_handle)
+    }
+
+    pub fn signature_verification_state_update(
+        &self,
+        verification_state_handle: Handle,
+        input: &[u8],
+    ) -> Result<(), CryptoError> {
+        self.ctx
+            .signature_verification_state_update(verification_state_handle, input)
+    }
+
+    pub fn signature_verification_state_verify(
+        &self,
+        verification_state_handle: Handle,
+        signature_handle: Handle,
+    ) -> Result<(), CryptoError> {
+        self.ctx
+            .signature_verification_state_verify(verification_state_handle, signature_handle)
+    }
+
+    pub fn signature_verification_state_close(
+        &self,
+        verification_state_handle: Handle,
+    ) -> Result<(), CryptoError> {
+        self.ctx
+            .signature_verification_state_close(verification_state_handle)
+    }
+
+    pub fn signature_close(&self, signature_handle: Handle) -> Result<(), CryptoError> {
+        self.ctx.signature_close(signature_handle)
     }
 }

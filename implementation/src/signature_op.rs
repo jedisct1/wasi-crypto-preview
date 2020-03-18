@@ -59,3 +59,13 @@ impl CryptoCtx {
         self.handles.signature_op.close(handle)
     }
 }
+
+impl WasiCryptoCtx {
+    pub fn signature_op_open(&self, alg_str: &str) -> Result<Handle, CryptoError> {
+        self.ctx.signature_op_open(alg_str)
+    }
+
+    pub fn signature_op_close(&self, op_handle: Handle) -> Result<(), CryptoError> {
+        self.ctx.signature_op_close(op_handle)
+    }
+}
