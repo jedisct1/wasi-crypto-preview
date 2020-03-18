@@ -5,7 +5,7 @@ use super::error::*;
 use super::handles::*;
 use super::rsa::*;
 use super::signature_op::*;
-use super::{HandleManagers, WasiCryptoCtx};
+use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u16)]
@@ -77,7 +77,7 @@ impl SignaturePublicKey {
     }
 }
 
-impl WasiCryptoCtx {
+impl CryptoCtx {
     pub fn signature_publickey_import(
         &self,
         signature_op: Handle,

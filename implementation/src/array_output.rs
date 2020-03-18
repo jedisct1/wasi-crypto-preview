@@ -3,7 +3,7 @@ use std::io::{Cursor, Read};
 use super::error::*;
 use super::handles::*;
 use super::types as guest_types;
-use super::{HandleManagers, WasiCryptoCtx};
+use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ArrayOutput(Cursor<Vec<u8>>);
@@ -39,8 +39,8 @@ impl Read for ArrayOutput {
     }
 }
 
-impl WasiCryptoCtx {
-    pub(crate) fn _array_output_len(
+impl CryptoCtx {
+    pub(crate) fn array_output_len(
         &self,
         array_output_handle: Handle,
     ) -> Result<usize, CryptoError> {
@@ -48,14 +48,7 @@ impl WasiCryptoCtx {
         Ok(array_output.len())
     }
 
-    pub fn array_output_len(
-        &self,
-        array_output_handle: guest_types::ArrayOutput,
-    ) -> Result<usize, CryptoError> {
-        self._array_output_len(array_output_handle.into())
-    }
-
-    pub(crate) fn _array_output_pull(
+    pub(crate) fn array_output_pull(
         &self,
         array_output_handle: Handle,
         buf: &mut [u8],
@@ -64,6 +57,15 @@ impl WasiCryptoCtx {
         let len = array_output.pull(buf)?;
         self.handles.array_output.close(array_output_handle)?;
         Ok(len)
+    }
+}
+
+impl WasiCryptoCtx {
+    pub fn array_output_len(
+        &self,
+        array_output_handle: guest_types::ArrayOutput,
+    ) -> Result<usize, CryptoError> {
+        self.ctx.array_output_len(array_output_handle.into())
     }
 
     pub fn array_output_pull(
@@ -79,6 +81,6 @@ impl WasiCryptoCtx {
                 .as_raw(&mut guest_borrow)
                 .unwrap()
         };
-        self._array_output_pull(array_output_handle.into(), buf)
+        self.ctx.array_output_pull(array_output_handle.into(), buf)
     }
 }

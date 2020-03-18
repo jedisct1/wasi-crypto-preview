@@ -4,7 +4,7 @@ use super::error::*;
 use super::handles::*;
 use super::rsa::*;
 use super::signature::*;
-use super::{HandleManagers, WasiCryptoCtx};
+use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[derive(Clone, Copy, Debug)]
 pub enum SignatureOp {
@@ -50,7 +50,7 @@ impl SignatureOp {
     }
 }
 
-impl WasiCryptoCtx {
+impl CryptoCtx {
     pub fn signature_op_open(&self, alg_str: &str) -> Result<Handle, CryptoError> {
         SignatureOp::open(&self.handles, alg_str)
     }

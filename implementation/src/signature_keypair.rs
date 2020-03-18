@@ -6,7 +6,7 @@ use super::handles::*;
 use super::rsa::*;
 use super::signature_op::*;
 use super::signature_publickey::*;
-use super::{HandleManagers, WasiCryptoCtx};
+use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Version(u64);
@@ -126,7 +126,7 @@ impl SignatureKeyPairBuilder {
     }
 }
 
-impl WasiCryptoCtx {
+impl CryptoCtx {
     pub fn signature_keypair_builder_open(&self, op_handle: Handle) -> Result<Handle, CryptoError> {
         SignatureKeyPairBuilder::open(&self.handles, op_handle)
     }

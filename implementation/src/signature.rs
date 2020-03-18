@@ -8,7 +8,7 @@ use super::handles::*;
 use super::rsa::*;
 use super::signature_keypair::*;
 use super::signature_publickey::*;
-use super::{HandleManagers, WasiCryptoCtx};
+use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -233,7 +233,7 @@ impl ExclusiveSignatureVerificationState {
     }
 }
 
-impl WasiCryptoCtx {
+impl CryptoCtx {
     pub fn signature_export(
         &self,
         signature_handle: Handle,
