@@ -14,8 +14,8 @@ pub enum PublicKeyEncoding {
     Hex,
     Base64Original,
     Base64OriginalNoPadding,
-    Base64URLSafe,
-    Base64URLSafeNoPadding,
+    Base64UrlSafe,
+    Base64UrlSafeNoPadding,
 }
 
 impl From<guest_types::PublickeyEncoding> for PublicKeyEncoding {
@@ -24,12 +24,12 @@ impl From<guest_types::PublickeyEncoding> for PublicKeyEncoding {
             guest_types::PublickeyEncoding::Raw => PublicKeyEncoding::Raw,
             guest_types::PublickeyEncoding::Hex => PublicKeyEncoding::Hex,
             guest_types::PublickeyEncoding::Base64Original => PublicKeyEncoding::Base64Original,
-            guest_types::PublickeyEncoding::Base64OriginalNopadding => {
+            guest_types::PublickeyEncoding::Base64OriginalNoPadding => {
                 PublicKeyEncoding::Base64OriginalNoPadding
             }
-            guest_types::PublickeyEncoding::Base64Urlsafe => PublicKeyEncoding::Base64URLSafe,
-            guest_types::PublickeyEncoding::Base64UrlsafeNopadding => {
-                PublicKeyEncoding::Base64URLSafeNoPadding
+            guest_types::PublickeyEncoding::Base64UrlSafe => PublicKeyEncoding::Base64UrlSafe,
+            guest_types::PublickeyEncoding::Base64UrlSafeNoPadding => {
+                PublicKeyEncoding::Base64UrlSafeNoPadding
             }
         }
     }

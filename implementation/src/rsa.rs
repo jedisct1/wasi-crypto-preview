@@ -80,7 +80,7 @@ impl RSASignatureKeyPairBuilder {
         encoding: KeyPairEncoding,
     ) -> Result<Handle, CryptoError> {
         match encoding {
-            KeyPairEncoding::PKCS8 => {}
+            KeyPairEncoding::Pkcs8 => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
         let kp = RSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;

@@ -13,7 +13,6 @@ use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(u16)]
 pub enum SignatureAlgorithm {
     ECDSA_P256_SHA256,
     ECDSA_P384_SHA384,
@@ -170,7 +169,7 @@ pub enum SignatureEncoding {
     Base64OriginalNoPadding,
     Base64URLSafe,
     Base64URLSafeNoPadding,
-    DER,
+    Der,
 }
 
 impl From<guest_types::SignatureEncoding> for SignatureEncoding {
@@ -179,14 +178,14 @@ impl From<guest_types::SignatureEncoding> for SignatureEncoding {
             guest_types::SignatureEncoding::Raw => SignatureEncoding::Raw,
             guest_types::SignatureEncoding::Hex => SignatureEncoding::Hex,
             guest_types::SignatureEncoding::Base64Original => SignatureEncoding::Base64Original,
-            guest_types::SignatureEncoding::Base64OriginalNopadding => {
+            guest_types::SignatureEncoding::Base64OriginalNoPadding => {
                 SignatureEncoding::Base64OriginalNoPadding
             }
-            guest_types::SignatureEncoding::Base64Urlsafe => SignatureEncoding::Base64URLSafe,
-            guest_types::SignatureEncoding::Base64UrlsafeNopadding => {
+            guest_types::SignatureEncoding::Base64UrlSafe => SignatureEncoding::Base64URLSafe,
+            guest_types::SignatureEncoding::Base64UrlSafeNoPadding => {
                 SignatureEncoding::Base64URLSafeNoPadding
             }
-            guest_types::SignatureEncoding::Der => SignatureEncoding::DER,
+            guest_types::SignatureEncoding::Der => SignatureEncoding::Der,
         }
     }
 }

@@ -103,7 +103,7 @@ impl ECDSASignatureKeyPairBuilder {
         encoding: KeyPairEncoding,
     ) -> Result<Handle, CryptoError> {
         match encoding {
-            KeyPairEncoding::PKCS8 => {}
+            KeyPairEncoding::Pkcs8 => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
         let kp = ECDSASignatureKeyPair::from_pkcs8(self.alg, encoded)?;
@@ -193,10 +193,10 @@ impl ECDSASignatureVerificationState {
             (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::Raw) => {
                 &ring::signature::ECDSA_P384_SHA384_FIXED
             }
-            (SignatureAlgorithm::ECDSA_P256_SHA256, SignatureEncoding::DER) => {
+            (SignatureAlgorithm::ECDSA_P256_SHA256, SignatureEncoding::Der) => {
                 &ring::signature::ECDSA_P256_SHA256_ASN1
             }
-            (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::DER) => {
+            (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::Der) => {
                 &ring::signature::ECDSA_P384_SHA384_ASN1
             }
             _ => bail!(CryptoError::UnsupportedAlgorithm),

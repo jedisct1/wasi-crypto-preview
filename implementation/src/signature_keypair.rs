@@ -33,18 +33,18 @@ impl From<Version> for guest_types::Version {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KeyPairEncoding {
     Raw,
-    PKCS8,
-    DER,
-    PEM,
+    Pkcs8,
+    Der,
+    Pem,
 }
 
 impl From<guest_types::KeypairEncoding> for KeyPairEncoding {
     fn from(encoding: guest_types::KeypairEncoding) -> Self {
         match encoding {
             guest_types::KeypairEncoding::Raw => KeyPairEncoding::Raw,
-            guest_types::KeypairEncoding::Pkcs8 => KeyPairEncoding::PKCS8,
-            guest_types::KeypairEncoding::Der => KeyPairEncoding::DER,
-            guest_types::KeypairEncoding::Pem => KeyPairEncoding::PEM,
+            guest_types::KeypairEncoding::Pkcs8 => KeyPairEncoding::Pkcs8,
+            guest_types::KeypairEncoding::Der => KeyPairEncoding::Der,
+            guest_types::KeypairEncoding::Pem => KeyPairEncoding::Pem,
         }
     }
 }
@@ -59,7 +59,7 @@ pub enum SignatureKeyPair {
 impl SignatureKeyPair {
     fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
         let encoded = match encoding {
-            KeyPairEncoding::PKCS8 => match self {
+            KeyPairEncoding::Pkcs8 => match self {
                 SignatureKeyPair::ECDSA(kp) => kp.as_pkcs8()?.to_vec(),
                 SignatureKeyPair::EdDSA(kp) => kp.as_pkcs8()?.to_vec(),
                 SignatureKeyPair::RSA(kp) => kp.as_pkcs8()?.to_vec(),
