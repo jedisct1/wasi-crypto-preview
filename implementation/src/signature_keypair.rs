@@ -281,15 +281,17 @@ impl WasiCryptoCtx {
         kp_id_ptr: wiggle_runtime::GuestPtr<u8>,
         kp_id_len: guest_types::Size,
         kp_version: guest_types::Version,
-    ) -> Result<Handle, CryptoError> {
+    ) -> Result<guest_types::SignatureKeypair, CryptoError> {
         let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
         let kp_id: &[u8] = unsafe {
             &*kp_id_ptr
                 .as_array(kp_id_len as _)
                 .as_raw(&mut guest_borrow)?
         };
-        self.ctx
-            .signature_keypair_from_id(kp_builder_handle.into(), kp_id, kp_version.into())
+        Ok(self
+            .ctx
+            .signature_keypair_from_id(kp_builder_handle.into(), kp_id, kp_version.into())?
+            .into())
     }
 
     pub fn signature_keypair_id(
@@ -312,27 +314,48 @@ impl WasiCryptoCtx {
 
     pub fn signature_keypair_invalidate(
         &self,
-        kp_builder_handle: Handle,
-        kp_id: &[u8],
-        kp_version: Version,
+        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        kp_id_ptr: wiggle_runtime::GuestPtr<u8>,
+        kp_id_len: guest_types::Size,
+        kp_version: guest_types::Version,
     ) -> Result<(), CryptoError> {
-        self.ctx
-            .signature_keypair_invalidate(kp_builder_handle, kp_id, kp_version)
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let kp_id: &[u8] = unsafe {
+            &*kp_id_ptr
+                .as_array(kp_id_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .signature_keypair_invalidate(kp_builder_handle.into(), kp_id, kp_version.into())?
+            .into())
     }
 
     pub fn signature_keypair_export(
         &self,
-        kp_handle: Handle,
-        encoding: KeyPairEncoding,
-    ) -> Result<Handle, CryptoError> {
-        self.ctx.signature_keypair_export(kp_handle, encoding)
+        kp_handle: guest_types::SignatureKeypair,
+        encoding: guest_types::KeypairEncoding,
+    ) -> Result<guest_types::ArrayOutput, CryptoError> {
+        Ok(self
+            .ctx
+            .signature_keypair_export(kp_handle.into(), encoding.into())?
+            .into())
     }
 
-    pub fn signature_keypair_publickey(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
-        self.ctx.signature_keypair_publickey(kp_handle)
+    pub fn signature_keypair_publickey(
+        &self,
+        kp_handle: guest_types::SignatureKeypair,
+    ) -> Result<guest_types::SignaturePublickey, CryptoError> {
+        Ok(self
+            .ctx
+            .signature_keypair_publickey(kp_handle.into())?
+            .into())
     }
 
-    pub fn signature_keypair_close(&self, kp_handle: Handle) -> Result<(), CryptoError> {
-        self.ctx.signature_keypair_close(kp_handle)
+    pub fn signature_keypair_close(
+        &self,
+        kp_handle: guest_types::SignatureKeypair,
+    ) -> Result<(), CryptoError> {
+        Ok(self.ctx.signature_keypair_close(kp_handle.into())?.into())
     }
 }
