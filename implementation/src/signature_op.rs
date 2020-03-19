@@ -64,7 +64,7 @@ impl CryptoCtx {
 impl WasiCryptoCtx {
     pub fn signature_op_open(
         &self,
-        alg_str: &wiggle_runtime::GuestPtr<str>,
+        alg_str: &wiggle_runtime::GuestPtr<'_, str>,
     ) -> Result<guest_types::SignatureOp, CryptoError> {
         let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
         let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };

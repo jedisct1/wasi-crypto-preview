@@ -259,7 +259,7 @@ impl WasiCryptoCtx {
     pub fn signature_keypair_import(
         &self,
         kp_builder_handle: guest_types::SignatureKeypairBuilder,
-        encoded_ptr: wiggle_runtime::GuestPtr<u8>,
+        encoded_ptr: wiggle_runtime::GuestPtr<'_, u8>,
         encoded_len: guest_types::Size,
         encoding: guest_types::KeypairEncoding,
     ) -> Result<guest_types::SignatureKeypair, CryptoError> {
@@ -278,7 +278,7 @@ impl WasiCryptoCtx {
     pub fn signature_keypair_from_id(
         &self,
         kp_builder_handle: guest_types::SignatureKeypairBuilder,
-        kp_id_ptr: wiggle_runtime::GuestPtr<u8>,
+        kp_id_ptr: wiggle_runtime::GuestPtr<'_, u8>,
         kp_id_len: guest_types::Size,
         kp_version: guest_types::Version,
     ) -> Result<guest_types::SignatureKeypair, CryptoError> {
@@ -297,7 +297,7 @@ impl WasiCryptoCtx {
     pub fn signature_keypair_id(
         &self,
         kp_handle: guest_types::SignatureKeypair,
-        kp_id_ptr: wiggle_runtime::GuestPtr<u8>,
+        kp_id_ptr: wiggle_runtime::GuestPtr<'_, u8>,
         kp_id_max_len: guest_types::Size,
     ) -> Result<(guest_types::Size, guest_types::Version), CryptoError> {
         let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
@@ -315,7 +315,7 @@ impl WasiCryptoCtx {
     pub fn signature_keypair_invalidate(
         &self,
         kp_builder_handle: guest_types::SignatureKeypairBuilder,
-        kp_id_ptr: wiggle_runtime::GuestPtr<u8>,
+        kp_id_ptr: wiggle_runtime::GuestPtr<'_, u8>,
         kp_id_len: guest_types::Size,
         kp_version: guest_types::Version,
     ) -> Result<(), CryptoError> {

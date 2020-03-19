@@ -68,7 +68,7 @@ impl WasiCryptoCtx {
     pub fn array_output_pull(
         &self,
         array_output_handle: guest_types::ArrayOutput,
-        buf_ptr: wiggle_runtime::GuestPtr<u8>,
+        buf_ptr: wiggle_runtime::GuestPtr<'_, u8>,
         buf_len: guest_types::Size,
     ) -> Result<usize, CryptoError> {
         let mut guest_borrow = wiggle_runtime::GuestBorrows::new();

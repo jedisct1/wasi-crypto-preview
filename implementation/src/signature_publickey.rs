@@ -127,7 +127,7 @@ impl WasiCryptoCtx {
     pub fn signature_publickey_import(
         &self,
         signature_op: guest_types::SignatureOp,
-        encoded_ptr: wiggle_runtime::GuestPtr<u8>,
+        encoded_ptr: wiggle_runtime::GuestPtr<'_, u8>,
         encoded_len: guest_types::Size,
         encoding: guest_types::PublickeyEncoding,
     ) -> Result<guest_types::SignaturePublickey, CryptoError> {
