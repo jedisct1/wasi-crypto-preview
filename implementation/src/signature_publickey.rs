@@ -37,9 +37,9 @@ impl From<guest_types::PublickeyEncoding> for PublicKeyEncoding {
 
 #[derive(Clone, Debug)]
 pub enum SignaturePublicKey {
-    ECDSA(ECDSASignaturePublicKey),
-    EdDSA(EdDSASignaturePublicKey),
-    RSA(RSASignaturePublicKey),
+    Ecdsa(EcdsaSignaturePublicKey),
+    Eddsa(EddsaSignaturePublicKey),
+    Rsa(RsaSignaturePublicKey),
 }
 
 impl SignaturePublicKey {
@@ -56,13 +56,13 @@ impl SignaturePublicKey {
         let signature_op = handles.signature_op.get(signature_op)?;
         let pk =
             match signature_op {
-                SignatureOp::ECDSA(_) => SignaturePublicKey::ECDSA(
-                    ECDSASignaturePublicKey::from_raw(signature_op.alg(), encoded)?,
+                SignatureOp::Ecdsa(_) => SignaturePublicKey::Ecdsa(
+                    EcdsaSignaturePublicKey::from_raw(signature_op.alg(), encoded)?,
                 ),
-                SignatureOp::EdDSA(_) => SignaturePublicKey::EdDSA(
-                    EdDSASignaturePublicKey::from_raw(signature_op.alg(), encoded)?,
+                SignatureOp::Eddsa(_) => SignaturePublicKey::Eddsa(
+                    EddsaSignaturePublicKey::from_raw(signature_op.alg(), encoded)?,
                 ),
-                SignatureOp::RSA(_) => SignaturePublicKey::RSA(RSASignaturePublicKey::from_raw(
+                SignatureOp::Rsa(_) => SignaturePublicKey::Rsa(RsaSignaturePublicKey::from_raw(
                     signature_op.alg(),
                     encoded,
                 )?),
@@ -82,9 +82,9 @@ impl SignaturePublicKey {
         }
         let pk = handles.signature_publickey.get(pk)?;
         let raw_pk = match pk {
-            SignaturePublicKey::ECDSA(pk) => pk.as_raw()?.to_vec(),
-            SignaturePublicKey::EdDSA(pk) => pk.as_raw()?.to_vec(),
-            SignaturePublicKey::RSA(pk) => pk.as_raw()?.to_vec(),
+            SignaturePublicKey::Ecdsa(pk) => pk.as_raw()?.to_vec(),
+            SignaturePublicKey::Eddsa(pk) => pk.as_raw()?.to_vec(),
+            SignaturePublicKey::Rsa(pk) => pk.as_raw()?.to_vec(),
         };
         Ok(raw_pk)
     }
