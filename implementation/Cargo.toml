@@ -12,4 +12,3 @@ thiserror = "1.0"
 wiggle = "0.1"
 wiggle-runtime = "0.1"
 zeroize = "1.1"
-
