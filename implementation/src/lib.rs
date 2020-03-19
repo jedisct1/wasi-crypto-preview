@@ -22,13 +22,13 @@ pub use signature::SignatureEncoding;
 pub use signature_keypair::{KeyPairEncoding, Version};
 pub use signature_publickey::PublicKeyEncoding;
 
+#[allow(unused)]
+static __: &'static str = include_str!("../../witx/wasi_ephemeral_crypto.witx");
+
 wiggle::from_witx!({
-    witx: ["../witx/wasi_ephemeral_crypto2.witx"],
+    witx: ["../witx/wasi_ephemeral_crypto.witx"],
     ctx: WasiCryptoCtx
 });
-
-#[allow(unused)]
-static __: &'static str = include_str!("../../witx/wasi_ephemeral_crypto2.witx");
 
 pub struct HandleManagers {
     pub signature_op: HandlesManager<SignatureOp>,

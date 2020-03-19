@@ -8,6 +8,7 @@ use super::handles::*;
 use super::rsa::*;
 use super::signature_keypair::*;
 use super::signature_publickey::*;
+use super::types as guest_types;
 use super::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
 #[allow(non_camel_case_types)]
@@ -161,16 +162,33 @@ impl ExclusiveSignatureState {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SignatureEncoding {
-    Raw = 1,
-    Hex = 2,
-    Base64Original = 3,
-    Base64OriginalNoPadding = 4,
-    Base64URLSafe = 5,
-    Base64URLSafeNoPadding = 6,
-    DER = 7,
+    Raw,
+    Hex,
+    Base64Original,
+    Base64OriginalNoPadding,
+    Base64URLSafe,
+    Base64URLSafeNoPadding,
+    DER,
+}
+
+impl From<guest_types::SignatureEncoding> for SignatureEncoding {
+    fn from(encoding: guest_types::SignatureEncoding) -> Self {
+        match encoding {
+            guest_types::SignatureEncoding::Raw => SignatureEncoding::Raw,
+            guest_types::SignatureEncoding::Hex => SignatureEncoding::Hex,
+            guest_types::SignatureEncoding::Base64Original => SignatureEncoding::Base64Original,
+            guest_types::SignatureEncoding::Base64OriginalNopadding => {
+                SignatureEncoding::Base64OriginalNoPadding
+            }
+            guest_types::SignatureEncoding::Base64Urlsafe => SignatureEncoding::Base64URLSafe,
+            guest_types::SignatureEncoding::Base64UrlsafeNopadding => {
+                SignatureEncoding::Base64URLSafeNoPadding
+            }
+            guest_types::SignatureEncoding::Der => SignatureEncoding::DER,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -336,75 +354,129 @@ impl CryptoCtx {
 impl WasiCryptoCtx {
     pub fn signature_export(
         &self,
-        signature_handle: Handle,
-        encoding: SignatureEncoding,
-    ) -> Result<Handle, CryptoError> {
-        self.ctx.signature_export(signature_handle, encoding)
+        signature_handle: guest_types::Signature,
+        encoding: guest_types::SignatureEncoding,
+    ) -> Result<guest_types::ArrayOutput, CryptoError> {
+        Ok(self
+            .ctx
+            .signature_export(signature_handle.into(), encoding.into())?
+            .into())
     }
 
     pub fn signature_import(
         &self,
-        op_handle: Handle,
-        encoding: SignatureEncoding,
-        encoded: &[u8],
-    ) -> Result<Handle, CryptoError> {
-        self.ctx.signature_import(op_handle, encoding, encoded)
+        op_handle: guest_types::SignatureOp,
+        encoding: guest_types::SignatureEncoding,
+        encoded_ptr: wiggle_runtime::GuestPtr<u8>,
+        encoded_len: guest_types::Size,
+    ) -> Result<guest_types::Signature, CryptoError> {
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let encoded: &[u8] = unsafe {
+            &*encoded_ptr
+                .as_array(encoded_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .signature_import(op_handle.into(), encoding.into(), encoded)?
+            .into())
     }
 
-    pub fn signature_state_open(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
-        self.ctx.signature_state_open(kp_handle)
+    pub fn signature_state_open(
+        &self,
+        kp_handle: guest_types::SignatureKeypair,
+    ) -> Result<guest_types::SignatureState, CryptoError> {
+        Ok(self.ctx.signature_state_open(kp_handle.into())?.into())
     }
 
     pub fn signature_state_update(
         &self,
-        state_handle: Handle,
-        input: &[u8],
+        state_handle: guest_types::SignatureState,
+        input_ptr: wiggle_runtime::GuestPtr<u8>,
+        input_len: guest_types::Size,
     ) -> Result<(), CryptoError> {
-        self.ctx.signature_state_update(state_handle, input)
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let input: &[u8] = unsafe {
+            &*input_ptr
+                .as_array(input_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .signature_state_update(state_handle.into(), input)?
+            .into())
     }
 
-    pub fn signature_state_sign(&self, state_handle: Handle) -> Result<Handle, CryptoError> {
-        self.ctx.signature_state_sign(state_handle)
+    pub fn signature_state_sign(
+        &self,
+        state_handle: guest_types::SignatureState,
+    ) -> Result<guest_types::ArrayOutput, CryptoError> {
+        Ok(self.ctx.signature_state_sign(state_handle.into())?.into())
     }
 
-    pub fn signature_state_close(&self, state_handle: Handle) -> Result<(), CryptoError> {
-        self.ctx.signature_state_close(state_handle)
+    pub fn signature_state_close(
+        &self,
+        state_handle: guest_types::SignatureState,
+    ) -> Result<(), CryptoError> {
+        Ok(self.ctx.signature_state_close(state_handle.into())?.into())
     }
 
     pub fn signature_verification_state_open(
         &self,
-        pk_handle: Handle,
-    ) -> Result<Handle, CryptoError> {
-        self.ctx.signature_verification_state_open(pk_handle)
+        pk_handle: guest_types::SignaturePublickey,
+    ) -> Result<guest_types::SignatureVerificationState, CryptoError> {
+        Ok(self
+            .ctx
+            .signature_verification_state_open(pk_handle.into())?
+            .into())
     }
 
     pub fn signature_verification_state_update(
         &self,
-        verification_state_handle: Handle,
-        input: &[u8],
+        verification_state_handle: guest_types::SignatureVerificationState,
+        input_ptr: wiggle_runtime::GuestPtr<u8>,
+        input_len: guest_types::Size,
     ) -> Result<(), CryptoError> {
-        self.ctx
-            .signature_verification_state_update(verification_state_handle, input)
+        let mut guest_borrow = wiggle_runtime::GuestBorrows::new();
+        let input: &[u8] = unsafe {
+            &*input_ptr
+                .as_array(input_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .signature_verification_state_update(verification_state_handle.into(), input)?
+            .into())
     }
 
     pub fn signature_verification_state_verify(
         &self,
-        verification_state_handle: Handle,
-        signature_handle: Handle,
+        verification_state_handle: guest_types::SignatureVerificationState,
+        signature_handle: guest_types::Signature,
     ) -> Result<(), CryptoError> {
-        self.ctx
-            .signature_verification_state_verify(verification_state_handle, signature_handle)
+        Ok(self
+            .ctx
+            .signature_verification_state_verify(
+                verification_state_handle.into(),
+                signature_handle.into(),
+            )?
+            .into())
     }
 
     pub fn signature_verification_state_close(
         &self,
-        verification_state_handle: Handle,
+        verification_state_handle: guest_types::SignatureVerificationState,
     ) -> Result<(), CryptoError> {
-        self.ctx
-            .signature_verification_state_close(verification_state_handle)
+        Ok(self
+            .ctx
+            .signature_verification_state_close(verification_state_handle.into())?
+            .into())
     }
 
-    pub fn signature_close(&self, signature_handle: Handle) -> Result<(), CryptoError> {
-        self.ctx.signature_close(signature_handle)
+    pub fn signature_close(
+        &self,
+        signature_handle: guest_types::Signature,
+    ) -> Result<(), CryptoError> {
+        Ok(self.ctx.signature_close(signature_handle.into())?.into())
     }
 }
