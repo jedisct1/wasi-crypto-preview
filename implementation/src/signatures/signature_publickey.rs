@@ -13,26 +13,20 @@ use std::convert::TryFrom;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PublicKeyEncoding {
     Raw,
-    Hex,
-    Base64Original,
-    Base64OriginalNoPadding,
-    Base64UrlSafe,
-    Base64UrlSafeNoPadding,
+    Der,
+    Pem,
+    Sec,
+    CompressedSec,
 }
 
 impl From<guest_types::PublickeyEncoding> for PublicKeyEncoding {
     fn from(encoding: guest_types::PublickeyEncoding) -> Self {
         match encoding {
             guest_types::PublickeyEncoding::Raw => PublicKeyEncoding::Raw,
-            guest_types::PublickeyEncoding::Hex => PublicKeyEncoding::Hex,
-            guest_types::PublickeyEncoding::Base64Original => PublicKeyEncoding::Base64Original,
-            guest_types::PublickeyEncoding::Base64OriginalNoPadding => {
-                PublicKeyEncoding::Base64OriginalNoPadding
-            }
-            guest_types::PublickeyEncoding::Base64UrlSafe => PublicKeyEncoding::Base64UrlSafe,
-            guest_types::PublickeyEncoding::Base64UrlSafeNoPadding => {
-                PublicKeyEncoding::Base64UrlSafeNoPadding
-            }
+            guest_types::PublickeyEncoding::Der => PublicKeyEncoding::Der,
+            guest_types::PublickeyEncoding::Pem => PublicKeyEncoding::Pem,
+            guest_types::PublickeyEncoding::Sec => PublicKeyEncoding::Sec,
+            guest_types::PublickeyEncoding::CompressedSec => PublicKeyEncoding::CompressedSec,
         }
     }
 }

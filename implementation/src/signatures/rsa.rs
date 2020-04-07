@@ -37,7 +37,10 @@ impl RsaSignatureKeyPair {
     }
 
     #[allow(dead_code)]
-    pub fn generate(_alg: SignatureAlgorithm) -> Result<Self, CryptoError> {
+    pub fn generate(
+        _alg: SignatureAlgorithm,
+        _options: Option<SignatureOptions>,
+    ) -> Result<Self, CryptoError> {
         bail!(CryptoError::NotImplemented)
     }
 

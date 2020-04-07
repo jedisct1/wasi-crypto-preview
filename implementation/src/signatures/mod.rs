@@ -69,7 +69,9 @@ fn test_signatures() {
 
     let ctx = CryptoCtx::new();
 
-    let kp_handle = ctx.signature_keypair_generate("ECDSA_P256_SHA256").unwrap();
+    let kp_handle = ctx
+        .signature_keypair_generate("ECDSA_P256_SHA256", None)
+        .unwrap();
     let pk_handle = ctx.signature_keypair_publickey(kp_handle).unwrap();
 
     let state_handle = ctx.signature_state_open(kp_handle).unwrap();

@@ -53,7 +53,10 @@ impl EcdsaSignatureKeyPair {
         Ok(&self.pkcs8)
     }
 
-    pub fn generate(alg: SignatureAlgorithm) -> Result<Self, CryptoError> {
+    pub fn generate(
+        alg: SignatureAlgorithm,
+        _options: Option<SignatureOptions>,
+    ) -> Result<Self, CryptoError> {
         let ring_alg = Self::ring_alg_from_alg(alg)?;
         let rng = ring::rand::SystemRandom::new();
         let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, &rng)

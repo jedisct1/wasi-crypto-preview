@@ -148,11 +148,6 @@ impl ExclusiveSignatureState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SignatureEncoding {
     Raw,
-    Hex,
-    Base64Original,
-    Base64OriginalNoPadding,
-    Base64URLSafe,
-    Base64URLSafeNoPadding,
     Der,
 }
 
@@ -160,15 +155,6 @@ impl From<guest_types::SignatureEncoding> for SignatureEncoding {
     fn from(encoding: guest_types::SignatureEncoding) -> Self {
         match encoding {
             guest_types::SignatureEncoding::Raw => SignatureEncoding::Raw,
-            guest_types::SignatureEncoding::Hex => SignatureEncoding::Hex,
-            guest_types::SignatureEncoding::Base64Original => SignatureEncoding::Base64Original,
-            guest_types::SignatureEncoding::Base64OriginalNoPadding => {
-                SignatureEncoding::Base64OriginalNoPadding
-            }
-            guest_types::SignatureEncoding::Base64UrlSafe => SignatureEncoding::Base64URLSafe,
-            guest_types::SignatureEncoding::Base64UrlSafeNoPadding => {
-                SignatureEncoding::Base64URLSafeNoPadding
-            }
             guest_types::SignatureEncoding::Der => SignatureEncoding::Der,
         }
     }

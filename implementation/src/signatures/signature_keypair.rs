@@ -51,20 +51,23 @@ impl SignatureKeyPair {
         Ok(encoded)
     }
 
-    fn generate(alg_str: &str) -> Result<SignatureKeyPair, CryptoError> {
+    fn generate(
+        alg_str: &str,
+        options: Option<SignatureOptions>,
+    ) -> Result<SignatureKeyPair, CryptoError> {
         let alg = SignatureAlgorithm::try_from(alg_str)?;
         let kp = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
-                SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::generate(alg)?)
+                SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::generate(alg, options)?)
             }
             SignatureAlgorithm::Ed25519 => {
-                SignatureKeyPair::Eddsa(EddsaSignatureKeyPair::generate(alg)?)
+                SignatureKeyPair::Eddsa(EddsaSignatureKeyPair::generate(alg, options)?)
             }
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
             | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
-                SignatureKeyPair::Rsa(RsaSignatureKeyPair::generate(alg)?)
+                SignatureKeyPair::Rsa(RsaSignatureKeyPair::generate(alg, options)?)
             }
         };
         Ok(kp)
@@ -113,8 +116,16 @@ impl SignatureKeyPair {
 }
 
 impl CryptoCtx {
-    pub fn signature_keypair_generate(&self, alg_str: &str) -> Result<Handle, CryptoError> {
-        let kp = SignatureKeyPair::generate(alg_str)?;
+    pub fn signature_keypair_generate(
+        &self,
+        alg_str: &str,
+        options_handle: Option<Handle>,
+    ) -> Result<Handle, CryptoError> {
+        let options = match options_handle {
+            None => None,
+            Some(options_handle) => Some(self.handles.signature_options.get(options_handle)?),
+        };
+        let kp = SignatureKeyPair::generate(alg_str, options)?;
         let handle = self.handles.signature_keypair.register(kp)?;
         Ok(handle)
     }
@@ -165,10 +176,18 @@ impl WasiCryptoCtx {
     pub fn signature_keypair_generate(
         &self,
         alg_str: &wiggle::GuestPtr<'_, str>,
+        options_handle: &guest_types::OptSignatureOptions,
     ) -> Result<guest_types::SignatureKeypair, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
-        Ok(self.ctx.signature_keypair_generate(alg_str)?.into())
+        let options_handle = match *options_handle {
+            guest_types::OptSignatureOptions::Some(options_handle) => Some(options_handle),
+            guest_types::OptSignatureOptions::None => None,
+        };
+        Ok(self
+            .ctx
+            .signature_keypair_generate(alg_str, options_handle.map(Into::into))?
+            .into())
     }
 
     pub fn signature_keypair_import(

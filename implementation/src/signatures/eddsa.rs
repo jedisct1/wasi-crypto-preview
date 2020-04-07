@@ -30,7 +30,10 @@ impl EddsaSignatureKeyPair {
         Ok(&self.pkcs8)
     }
 
-    pub fn generate(alg: SignatureAlgorithm) -> Result<Self, CryptoError> {
+    pub fn generate(
+        alg: SignatureAlgorithm,
+        _options: Option<SignatureOptions>,
+    ) -> Result<Self, CryptoError> {
         let rng = ring::rand::SystemRandom::new();
         let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)
             .map_err(|_| CryptoError::RNGError)?;
