@@ -6,8 +6,6 @@ use zeroize::Zeroize;
 use super::signature_keypair::*;
 use super::signature_op::*;
 use crate::error::*;
-use crate::handles::*;
-use crate::HandleManagers;
 
 #[derive(Clone, Copy, Debug)]
 pub struct RsaSignatureOp {
@@ -54,40 +52,21 @@ impl RsaSignatureKeyPair {
         bail!(CryptoError::NotImplemented)
     }
 
-    pub fn raw_public_key(&self) -> &[u8] {
-        self.ring_kp.public_key().as_ref()
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct RsaSignatureKeyPairBuilder {
-    pub alg: SignatureAlgorithm,
-}
-
-impl RsaSignatureKeyPairBuilder {
-    pub fn new(alg: SignatureAlgorithm) -> Self {
-        RsaSignatureKeyPairBuilder { alg }
-    }
-
-    pub fn generate(&self, _handles: &HandleManagers) -> Result<Handle, CryptoError> {
-        bail!(CryptoError::NotImplemented)
-    }
-
     pub fn import(
-        &self,
-        handles: &HandleManagers,
+        alg: SignatureAlgorithm,
         encoded: &[u8],
         encoding: KeyPairEncoding,
-    ) -> Result<Handle, CryptoError> {
+    ) -> Result<Self, CryptoError> {
         match encoding {
             KeyPairEncoding::Pkcs8 => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
-        let kp = RsaSignatureKeyPair::from_pkcs8(self.alg, encoded)?;
-        let handle = handles
-            .signature_keypair
-            .register(SignatureKeyPair::Rsa(kp))?;
-        Ok(handle)
+        let kp = RsaSignatureKeyPair::from_pkcs8(alg, encoded)?;
+        Ok(kp)
+    }
+
+    pub fn raw_public_key(&self) -> &[u8] {
+        self.ring_kp.public_key().as_ref()
     }
 }
 

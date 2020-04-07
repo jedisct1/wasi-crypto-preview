@@ -6,8 +6,6 @@ use zeroize::Zeroize;
 use super::signature_keypair::*;
 use super::signature_op::*;
 use crate::error::*;
-use crate::handles::*;
-use crate::HandleManagers;
 
 #[derive(Clone, Copy, Debug)]
 pub struct EddsaSignatureOp {
@@ -50,6 +48,19 @@ impl EddsaSignatureKeyPair {
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }
 
+    pub fn import(
+        alg: SignatureAlgorithm,
+        encoded: &[u8],
+        encoding: KeyPairEncoding,
+    ) -> Result<Self, CryptoError> {
+        match encoding {
+            KeyPairEncoding::Pkcs8 => {}
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        };
+        let kp = EddsaSignatureKeyPair::from_pkcs8(alg, encoded)?;
+        Ok(kp)
+    }
+
     pub fn raw_public_key(&self) -> &[u8] {
         self.ring_kp.public_key().as_ref()
     }
@@ -58,42 +69,6 @@ impl EddsaSignatureKeyPair {
 impl Drop for EddsaSignatureKeyPair {
     fn drop(&mut self) {
         self.pkcs8.zeroize();
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct EddsaSignatureKeyPairBuilder {
-    pub alg: SignatureAlgorithm,
-}
-
-impl EddsaSignatureKeyPairBuilder {
-    pub fn new(alg: SignatureAlgorithm) -> Self {
-        EddsaSignatureKeyPairBuilder { alg }
-    }
-
-    pub fn generate(&self, handles: &HandleManagers) -> Result<Handle, CryptoError> {
-        let kp = EddsaSignatureKeyPair::generate(self.alg)?;
-        let handle = handles
-            .signature_keypair
-            .register(SignatureKeyPair::Eddsa(kp))?;
-        Ok(handle)
-    }
-
-    pub fn import(
-        &self,
-        handles: &HandleManagers,
-        encoded: &[u8],
-        encoding: KeyPairEncoding,
-    ) -> Result<Handle, CryptoError> {
-        match encoding {
-            KeyPairEncoding::Pkcs8 => {}
-            _ => bail!(CryptoError::UnsupportedEncoding),
-        };
-        let kp = EddsaSignatureKeyPair::from_pkcs8(self.alg, encoded)?;
-        let handle = handles
-            .signature_keypair
-            .register(SignatureKeyPair::Eddsa(kp))?;
-        Ok(handle)
     }
 }
 

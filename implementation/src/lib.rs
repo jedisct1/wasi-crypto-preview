@@ -32,7 +32,7 @@ wiggle::from_witx!({
 
 pub struct HandleManagers {
     pub signature_op: HandlesManager<SignatureOp>,
-    pub signature_keypair_builder: HandlesManager<SignatureKeyPairBuilder>,
+    pub signature_keypair_manager: HandlesManager<SignatureKeyPairManager>,
     pub signature_keypair: HandlesManager<SignatureKeyPair>,
     pub signature_state: HandlesManager<ExclusiveSignatureState>,
     pub signature: HandlesManager<Signature>,
@@ -57,7 +57,7 @@ impl CryptoCtx {
             handles: HandleManagers {
                 array_output: HandlesManager::new(0x00),
                 signature_op: HandlesManager::new(0x01),
-                signature_keypair_builder: HandlesManager::new(0x02),
+                signature_keypair_manager: HandlesManager::new(0x02),
                 signature_keypair: HandlesManager::new(0x03),
                 signature_state: HandlesManager::new(0x04),
                 signature: HandlesManager::new(0x05),

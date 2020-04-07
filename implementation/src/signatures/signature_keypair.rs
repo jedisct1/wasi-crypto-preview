@@ -10,7 +10,7 @@ use crate::types as guest_types;
 use crate::version::Version;
 use crate::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KeyPairEncoding {
@@ -51,37 +51,48 @@ impl SignatureKeyPair {
         Ok(encoded)
     }
 
-    fn generate(
-        handles: &HandleManagers,
-        kp_builder_handle: Handle,
-    ) -> Result<Handle, CryptoError> {
-        let kp_builder = handles.signature_keypair_builder.get(kp_builder_handle)?;
-        let handle = match kp_builder {
-            SignatureKeyPairBuilder::Ecdsa(kp_builder) => kp_builder.generate(handles)?,
-            SignatureKeyPairBuilder::Eddsa(kp_builder) => kp_builder.generate(handles)?,
-            SignatureKeyPairBuilder::Rsa(kp_builder) => kp_builder.generate(handles)?,
+    fn generate(handles: &HandleManagers, alg_str: &str) -> Result<Handle, CryptoError> {
+        let alg = SignatureAlgorithm::try_from(alg_str)?;
+        let kp = match alg {
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
+                SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::generate(alg)?)
+            }
+            SignatureAlgorithm::Ed25519 => {
+                SignatureKeyPair::Eddsa(EddsaSignatureKeyPair::generate(alg)?)
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+                SignatureKeyPair::Rsa(RsaSignatureKeyPair::generate(alg)?)
+            }
         };
+        let handle = handles.signature_keypair.register(kp)?;
         Ok(handle)
     }
 
     fn import(
         handles: &HandleManagers,
-        kp_builder_handle: Handle,
+        alg_str: &str,
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Handle, CryptoError> {
-        let kp_builder = handles.signature_keypair_builder.get(kp_builder_handle)?;
-        let handle = match kp_builder {
-            SignatureKeyPairBuilder::Ecdsa(kp_builder) => {
-                kp_builder.import(handles, encoded, encoding)?
+        let alg = SignatureAlgorithm::try_from(alg_str)?;
+        let kp = match alg {
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
+                SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
-            SignatureKeyPairBuilder::Eddsa(kp_builder) => {
-                kp_builder.import(handles, encoded, encoding)?
+            SignatureAlgorithm::Ed25519 => {
+                SignatureKeyPair::Eddsa(EddsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
-            SignatureKeyPairBuilder::Rsa(kp_builder) => {
-                kp_builder.import(handles, encoded, encoding)?
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+                SignatureKeyPair::Rsa(RsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
         };
+        let handle = handles.signature_keypair.register(kp)?;
         Ok(handle)
     }
 
@@ -105,60 +116,29 @@ impl SignatureKeyPair {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum SignatureKeyPairBuilder {
-    Ecdsa(EcdsaSignatureKeyPairBuilder),
-    Eddsa(EddsaSignatureKeyPairBuilder),
-    Rsa(RsaSignatureKeyPairBuilder),
-}
-
-impl SignatureKeyPairBuilder {
-    fn open(handles: &HandleManagers, op_handle: Handle) -> Result<Handle, CryptoError> {
-        let signature_op = handles.signature_op.get(op_handle)?;
-        let kp_builder = match signature_op {
-            SignatureOp::Ecdsa(_) => SignatureKeyPairBuilder::Ecdsa(
-                EcdsaSignatureKeyPairBuilder::new(signature_op.alg()),
-            ),
-            SignatureOp::Eddsa(_) => SignatureKeyPairBuilder::Eddsa(
-                EddsaSignatureKeyPairBuilder::new(signature_op.alg()),
-            ),
-            SignatureOp::Rsa(_) => {
-                SignatureKeyPairBuilder::Rsa(RsaSignatureKeyPairBuilder::new(signature_op.alg()))
-            }
-        };
-        let handle = handles.signature_keypair_builder.register(kp_builder)?;
-        Ok(handle)
-    }
-}
-
 impl CryptoCtx {
-    pub fn signature_keypair_builder_open(&self, op_handle: Handle) -> Result<Handle, CryptoError> {
-        SignatureKeyPairBuilder::open(&self.handles, op_handle)
+    pub fn signature_keypair_builder_open(&self) -> Result<Handle, CryptoError> {
+        bail!(CryptoError::UnsupportedFeature)
     }
 
     pub fn signature_keypair_builder_close(
         &self,
-        kp_builder_handle: Handle,
+        _kp_builder_handle: Handle,
     ) -> Result<(), CryptoError> {
-        self.handles
-            .signature_keypair_builder
-            .close(kp_builder_handle)
+        bail!(CryptoError::UnsupportedFeature)
     }
 
-    pub fn signature_keypair_generate(
-        &self,
-        kp_builder_handle: Handle,
-    ) -> Result<Handle, CryptoError> {
-        SignatureKeyPair::generate(&self.handles, kp_builder_handle)
+    pub fn signature_keypair_generate(&self, alg_str: &str) -> Result<Handle, CryptoError> {
+        SignatureKeyPair::generate(&self.handles, alg_str)
     }
 
     pub fn signature_keypair_import(
         &self,
-        kp_builder_handle: Handle,
+        alg_str: &str,
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Handle, CryptoError> {
-        SignatureKeyPair::import(&self.handles, kp_builder_handle, encoded, encoding)
+        SignatureKeyPair::import(&self.handles, alg_str, encoded, encoding)
     }
 
     pub fn signature_keypair_from_id(
@@ -212,12 +192,8 @@ impl CryptoCtx {
 impl WasiCryptoCtx {
     pub fn signature_keypair_builder_open(
         &self,
-        op_handle: guest_types::SignatureOp,
     ) -> Result<guest_types::SignatureKeypairBuilder, CryptoError> {
-        Ok(self
-            .ctx
-            .signature_keypair_builder_open(op_handle.into())?
-            .into())
+        Ok(self.ctx.signature_keypair_builder_open()?.into())
     }
 
     pub fn signature_keypair_builder_close(
@@ -230,22 +206,22 @@ impl WasiCryptoCtx {
 
     pub fn signature_keypair_generate(
         &self,
-        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        alg_str: &wiggle::GuestPtr<'_, str>,
     ) -> Result<guest_types::SignatureKeypair, CryptoError> {
-        Ok(self
-            .ctx
-            .signature_keypair_generate(kp_builder_handle.into())?
-            .into())
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
+        Ok(self.ctx.signature_keypair_generate(alg_str)?.into())
     }
 
     pub fn signature_keypair_import(
         &self,
-        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        alg_str: &wiggle::GuestPtr<'_, str>,
         encoded_ptr: &wiggle::GuestPtr<'_, u8>,
         encoded_len: guest_types::Size,
         encoding: guest_types::KeypairEncoding,
     ) -> Result<guest_types::SignatureKeypair, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let encoded: &[u8] = unsafe {
             &*encoded_ptr
                 .as_array(encoded_len as _)
@@ -253,7 +229,7 @@ impl WasiCryptoCtx {
         };
         Ok(self
             .ctx
-            .signature_keypair_import(kp_builder_handle.into(), encoded, encoding.into())?
+            .signature_keypair_import(alg_str, encoded, encoding.into())?
             .into())
     }
 
@@ -341,3 +317,6 @@ impl WasiCryptoCtx {
         Ok(self.ctx.signature_keypair_close(kp_handle.into())?.into())
     }
 }
+
+#[derive(Copy, Clone, Debug)]
+pub struct SignatureKeyPairManager;

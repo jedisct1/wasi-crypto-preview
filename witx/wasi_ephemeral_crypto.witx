@@ -115,7 +115,6 @@
 
   ;;; Create a context to construct a key pair.
   (@interface func (export "signature_keypair_builder_open")
-    (param $signature_op $signature_op)
     (result $error $crypto_errno)
     (result $handle $signature_keypair_builder)
   )
@@ -130,7 +129,7 @@
   ;;; This function may return crypto_errno.unsupported_feature if key
   ;;; generation is not supported by the host for the chosen algorithm.
   (@interface func (export "signature_keypair_generate")
-    (param $kp_builder $signature_keypair_builder)
+    (param $algorithm string)
     (result $error $crypto_errno)
     (result $handle $signature_keypair)
   )
@@ -140,7 +139,7 @@
   ;;; encoding scheme is not supported, or crypto_errno.invalid_key if the key
   ;;; cannot be decoded.
   (@interface func (export "signature_keypair_import")
-    (param $kp_builder $signature_keypair_builder)
+    (param $algorithm string)
     (param $encoded (@witx const_pointer u8))
     (param $encoded_len $size)
     (param $encoding $keypair_encoding)

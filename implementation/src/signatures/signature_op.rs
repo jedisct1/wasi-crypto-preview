@@ -1,7 +1,6 @@
 use super::ecdsa::*;
 use super::eddsa::*;
 use super::rsa::*;
-use super::signature::*;
 use crate::error::*;
 use crate::handles::*;
 use crate::types as guest_types;
@@ -57,8 +56,9 @@ impl SignatureOp {
     fn open(handles: &HandleManagers, alg_str: &str) -> Result<Handle, CryptoError> {
         let alg = SignatureAlgorithm::try_from(alg_str)?;
         let signature_op = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 => SignatureOp::Ecdsa(EcdsaSignatureOp::new(alg)),
-            SignatureAlgorithm::ECDSA_P384_SHA384 => SignatureOp::Ecdsa(EcdsaSignatureOp::new(alg)),
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
+                SignatureOp::Ecdsa(EcdsaSignatureOp::new(alg))
+            }
             SignatureAlgorithm::Ed25519 => SignatureOp::Eddsa(EddsaSignatureOp::new(alg)),
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
@@ -66,7 +66,6 @@ impl SignatureOp {
             | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
                 SignatureOp::Rsa(RsaSignatureOp::new(alg))
             }
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let handle = handles.signature_op.register(signature_op)?;
         Ok(handle)
