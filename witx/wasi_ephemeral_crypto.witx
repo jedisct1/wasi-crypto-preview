@@ -23,7 +23,7 @@
     $too_many_handles
     $key_not_supported
     $key_required
-    $invalid_tag    
+    $invalid_tag
   )
 )
 
