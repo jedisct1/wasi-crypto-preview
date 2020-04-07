@@ -117,13 +117,13 @@ impl SignatureKeyPair {
 }
 
 impl CryptoCtx {
-    pub fn signature_keypair_builder_open(&self) -> Result<Handle, CryptoError> {
+    pub fn signature_keypair_manager_open(&self) -> Result<Handle, CryptoError> {
         bail!(CryptoError::UnsupportedFeature)
     }
 
-    pub fn signature_keypair_builder_close(
+    pub fn signature_keypair_manager_close(
         &self,
-        _kp_builder_handle: Handle,
+        _kp_manager_handle: Handle,
     ) -> Result<(), CryptoError> {
         bail!(CryptoError::UnsupportedFeature)
     }
@@ -143,7 +143,7 @@ impl CryptoCtx {
 
     pub fn signature_keypair_from_id(
         &self,
-        _kp_builder_handle: Handle,
+        _kp_manager_handle: Handle,
         _kp_id: &[u8],
         _kp_version: Version,
     ) -> Result<Handle, CryptoError> {
@@ -160,7 +160,7 @@ impl CryptoCtx {
 
     pub fn signature_keypair_invalidate(
         &self,
-        _kp_builder_handle: Handle,
+        _kp_manager_handle: Handle,
         _kp_id: &[u8],
         _kp_version: Version,
     ) -> Result<(), CryptoError> {
@@ -190,18 +190,18 @@ impl CryptoCtx {
 }
 
 impl WasiCryptoCtx {
-    pub fn signature_keypair_builder_open(
+    pub fn signature_keypair_manager_open(
         &self,
-    ) -> Result<guest_types::SignatureKeypairBuilder, CryptoError> {
-        Ok(self.ctx.signature_keypair_builder_open()?.into())
+    ) -> Result<guest_types::SignatureKeypairManager, CryptoError> {
+        Ok(self.ctx.signature_keypair_manager_open()?.into())
     }
 
-    pub fn signature_keypair_builder_close(
+    pub fn signature_keypair_manager_close(
         &self,
-        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        kp_manager_handle: guest_types::SignatureKeypairManager,
     ) -> Result<(), CryptoError> {
         self.ctx
-            .signature_keypair_builder_close(kp_builder_handle.into())
+            .signature_keypair_manager_close(kp_manager_handle.into())
     }
 
     pub fn signature_keypair_generate(
@@ -235,7 +235,7 @@ impl WasiCryptoCtx {
 
     pub fn signature_keypair_from_id(
         &self,
-        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        kp_manager_handle: guest_types::SignatureKeypairManager,
         kp_id_ptr: &wiggle::GuestPtr<'_, u8>,
         kp_id_len: guest_types::Size,
         kp_version: guest_types::Version,
@@ -248,7 +248,7 @@ impl WasiCryptoCtx {
         };
         Ok(self
             .ctx
-            .signature_keypair_from_id(kp_builder_handle.into(), kp_id, kp_version.into())?
+            .signature_keypair_from_id(kp_manager_handle.into(), kp_id, kp_version.into())?
             .into())
     }
 
@@ -272,7 +272,7 @@ impl WasiCryptoCtx {
 
     pub fn signature_keypair_invalidate(
         &self,
-        kp_builder_handle: guest_types::SignatureKeypairBuilder,
+        kp_manager_handle: guest_types::SignatureKeypairManager,
         kp_id_ptr: &wiggle::GuestPtr<'_, u8>,
         kp_id_len: guest_types::Size,
         kp_version: guest_types::Version,
@@ -285,7 +285,7 @@ impl WasiCryptoCtx {
         };
         Ok(self
             .ctx
-            .signature_keypair_invalidate(kp_builder_handle.into(), kp_id, kp_version.into())?
+            .signature_keypair_invalidate(kp_manager_handle.into(), kp_id, kp_version.into())?
             .into())
     }
 

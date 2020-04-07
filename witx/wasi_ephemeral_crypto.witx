@@ -74,7 +74,7 @@
 
 (typename $array_output (handle))
 (typename $signature_op (handle))
-(typename $signature_keypair_builder (handle))
+(typename $signature_keypair_manager (handle))
 (typename $signature_keypair (handle))
 (typename $signature_state (handle))
 (typename $signature (handle))
@@ -114,14 +114,14 @@
   )
 
   ;;; Create a context to construct a key pair.
-  (@interface func (export "signature_keypair_builder_open")
+  (@interface func (export "signature_keypair_manager_open")
     (result $error $crypto_errno)
-    (result $handle $signature_keypair_builder)
+    (result $handle $signature_keypair_manager)
   )
 
   ;;; Destroy a key pair builder.
-  (@interface func (export "signature_keypair_builder_close")
-    (param $kp_builder $signature_keypair_builder)
+  (@interface func (export "signature_keypair_manager_close")
+    (param $kp_manager $signature_keypair_manager)
     (result $error $crypto_errno)
   )
 
@@ -166,7 +166,7 @@
   ;;; is invalid.
   ;;; The version can be an actual version number or $version.latest .
   (@interface func (export "signature_keypair_from_id")
-    (param $kp_builder $signature_keypair_builder)
+    (param $kp_manager $signature_keypair_manager)
     (param $kp_id (@witx const_pointer u8))
     (param $kp_id_len $size)
     (param $kp_version $version)
@@ -182,7 +182,7 @@
   ;;; The version can be a actual version number, as well as
   ;;; $version.latest or $version.all .
   (@interface func (export "signature_keypair_invalidate")
-    (param $kp_builder $signature_keypair_builder)
+    (param $kp_manager $signature_keypair_manager)
     (param $kp_id (@witx const_pointer u8))
     (param $kp_id_len $size)
     (param $kp_version $version)
