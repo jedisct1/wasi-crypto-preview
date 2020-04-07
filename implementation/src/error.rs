@@ -21,9 +21,13 @@ pub enum CryptoError {
     UnsupportedEncoding,
     #[error("Unsupported algorithm")]
     UnsupportedAlgorithm,
+    #[error("Unsupported option")]
+    UnsupportedOption,
     #[error("Invalid key")]
     InvalidKey,
     #[error("Verification failed")]
+    InvalidLength,
+    #[error("Invalid length")]
     VerificationFailed,
     #[error("RNG error")]
     RNGError,
@@ -41,6 +45,12 @@ pub enum CryptoError {
     InternalError,
     #[error("Too many open handles")]
     TooManyHandles,
+    #[error("Selected algorithm doesn't support a key")]
+    KeyNotSupported,
+    #[error("Selected algorithm requires a key")]
+    KeyRequired,
+    #[error("Authentication tag did not verify")]
+    InvalidTag,
 }
 
 impl From<TryFromIntError> for CryptoError {
@@ -59,7 +69,9 @@ impl From<CryptoError> for guest_types::CryptoErrno {
             CryptoError::ProhibitedOperation => guest_types::CryptoErrno::ProhibitedOperation,
             CryptoError::UnsupportedEncoding => guest_types::CryptoErrno::UnsupportedEncoding,
             CryptoError::UnsupportedAlgorithm => guest_types::CryptoErrno::UnsupportedAlgorithm,
+            CryptoError::UnsupportedOption => guest_types::CryptoErrno::UnsupportedOption,
             CryptoError::InvalidKey => guest_types::CryptoErrno::InvalidKey,
+            CryptoError::InvalidLength => guest_types::CryptoErrno::InvalidLength,
             CryptoError::VerificationFailed => guest_types::CryptoErrno::VerificationFailed,
             CryptoError::RNGError => guest_types::CryptoErrno::RngError,
             CryptoError::AlgorithmFailure => guest_types::CryptoErrno::AlgorithmFailure,
@@ -69,6 +81,9 @@ impl From<CryptoError> for guest_types::CryptoErrno {
             CryptoError::Overflow => guest_types::CryptoErrno::Overflow,
             CryptoError::InternalError => guest_types::CryptoErrno::InternalError,
             CryptoError::TooManyHandles => guest_types::CryptoErrno::TooManyHandles,
+            CryptoError::KeyNotSupported => guest_types::CryptoErrno::KeyNotSupported,
+            CryptoError::KeyRequired => guest_types::CryptoErrno::KeyRequired,
+            CryptoError::InvalidTag => guest_types::CryptoErrno::InvalidTag,
         }
     }
 }

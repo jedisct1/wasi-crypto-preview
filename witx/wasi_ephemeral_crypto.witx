@@ -9,7 +9,9 @@
     $prohibited_operation
     $unsupported_encoding
     $unsupported_algorithm
+    $unsupported_option
     $invalid_key
+    $invalid_length
     $verification_failed
     $rng_error
     $algorithm_failure
@@ -19,6 +21,9 @@
     $overflow
     $internal_error
     $too_many_handles
+    $key_not_supported
+    $key_required
+    $invalid_tag    
   )
 )
 
