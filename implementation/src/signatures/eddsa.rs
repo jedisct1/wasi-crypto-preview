@@ -4,19 +4,8 @@ use std::sync::Arc;
 use zeroize::Zeroize;
 
 use super::signature_keypair::*;
-use super::signature_op::*;
+use super::*;
 use crate::error::*;
-
-#[derive(Clone, Copy, Debug)]
-pub struct EddsaSignatureOp {
-    pub alg: SignatureAlgorithm,
-}
-
-impl EddsaSignatureOp {
-    pub fn new(alg: SignatureAlgorithm) -> Self {
-        EddsaSignatureOp { alg }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct EddsaSignatureKeyPair {

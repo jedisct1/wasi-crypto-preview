@@ -4,19 +4,8 @@ use std::sync::Arc;
 use zeroize::Zeroize;
 
 use super::signature_keypair::*;
-use super::signature_op::*;
+use super::*;
 use crate::error::*;
-
-#[derive(Clone, Copy, Debug)]
-pub struct RsaSignatureOp {
-    pub alg: SignatureAlgorithm,
-}
-
-impl RsaSignatureOp {
-    pub fn new(alg: SignatureAlgorithm) -> Self {
-        RsaSignatureOp { alg }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct RsaSignatureKeyPair {

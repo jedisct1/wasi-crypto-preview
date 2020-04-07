@@ -5,19 +5,8 @@ use zeroize::Zeroize;
 
 use super::signature::*;
 use super::signature_keypair::*;
-use super::signature_op::*;
+use super::*;
 use crate::error::*;
-
-#[derive(Clone, Copy, Debug)]
-pub struct EcdsaSignatureOp {
-    pub alg: SignatureAlgorithm,
-}
-
-impl EcdsaSignatureOp {
-    pub fn new(alg: SignatureAlgorithm) -> Self {
-        EcdsaSignatureOp { alg }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct EcdsaSignatureKeyPair {

@@ -73,13 +73,19 @@
 (typename $size (@witx usize))
 
 (typename $array_output (handle))
-(typename $signature_op (handle))
+(typename $signature_options (handle))
 (typename $signature_keypair_manager (handle))
 (typename $signature_keypair (handle))
 (typename $signature_state (handle))
 (typename $signature (handle))
 (typename $signature_publickey (handle))
 (typename $signature_verification_state (handle))
+(typename $symmetric_options (handle))
+(typename $symmetric_state (handle))
+(typename $symmetric_key (handle))
+
+(typename $opt_signature_options_u (enum u8 $some $none))
+(typename $opt_signature_options (union $opt_signature_options_u (field $some $signature_options) (empty $none)))
 
 (module $wasi_ephemeral_crypto
   (import "memory" (memory))
@@ -100,21 +106,9 @@
     (result $error $crypto_errno)
   )
 
-  ;;; Create a context for a signature-related operation.
-  (@interface func (export "signature_op_open")
-    (param $algorithm string)
-    (result $error $crypto_errno)
-    (result $signature_op $signature_op)
-  )
-
-  ;;; Destroy the signature context.
-  (@interface func (export "signature_op_close")
-    (param $signature_op $signature_op)
-    (result $error $crypto_errno)
-  )
-
   ;;; Create a context to construct a key pair.
   (@interface func (export "signature_keypair_manager_open")
+    (param $options $opt_signature_options)
     (result $error $crypto_errno)
     (result $handle $signature_keypair_manager)
   )
@@ -219,7 +213,7 @@
   ;;; to the given format is not implemented or if the format is
   ;;; incompatible with the key type.
   (@interface func (export "signature_publickey_import")
-    (param $signature_op $signature_op)
+    (param $algorithm string)
     (param $encoded (@witx const_pointer u8))
     (param $encoded_len $size)
     (param $encoding $publickey_encoding)
@@ -253,7 +247,7 @@
   ;;; Return crypto_errno.invalid_signature if the signature is incompatible
   ;;; with the current content.
   (@interface func (export "signature_import")
-    (param $signature_op $signature_op)
+    (param $algorithm string)
     (param $encoding $signature_encoding)
     (param $encoded (@witx const_pointer u8))
     (param $encoded_len $size)

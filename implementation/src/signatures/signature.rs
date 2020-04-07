@@ -1,11 +1,12 @@
+use std::convert::TryFrom;
 use std::sync::Arc;
 
 use super::ecdsa::*;
 use super::eddsa::*;
 use super::rsa::*;
 use super::signature_keypair::*;
-use super::signature_op::*;
 use super::signature_publickey::*;
+use super::*;
 use crate::array_output::*;
 use crate::error::*;
 use crate::handles::*;
@@ -58,16 +59,10 @@ impl Signature {
                 ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
                 Signature::Eddsa(EddsaSignature::new(encoded.to_vec()))
             }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
-                Signature::Rsa(RsaSignature::new(encoded.to_vec()))
-            }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384 => {
-                Signature::Rsa(RsaSignature::new(encoded.to_vec()))
-            }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => {
-                Signature::Rsa(RsaSignature::new(encoded.to_vec()))
-            }
-            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
                 Signature::Rsa(RsaSignature::new(encoded.to_vec()))
             }
         };
@@ -257,13 +252,13 @@ impl CryptoCtx {
 
     pub fn signature_import(
         &self,
-        op_handle: Handle,
+        alg_str: &str,
         encoding: SignatureEncoding,
         encoded: &[u8],
     ) -> Result<Handle, CryptoError> {
-        let signature_op = self.handles.signature_op.get(op_handle)?;
+        let alg = SignatureAlgorithm::try_from(alg_str)?;
         let signature = match encoding {
-            SignatureEncoding::Raw => Signature::from_raw(signature_op.alg(), encoded)?,
+            SignatureEncoding::Raw => Signature::from_raw(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
         let handle = self.handles.signature.register(signature)?;
@@ -353,12 +348,13 @@ impl WasiCryptoCtx {
 
     pub fn signature_import(
         &self,
-        op_handle: guest_types::SignatureOp,
+        alg_str: &wiggle::GuestPtr<'_, str>,
         encoding: guest_types::SignatureEncoding,
         encoded_ptr: &wiggle::GuestPtr<'_, u8>,
         encoded_len: guest_types::Size,
     ) -> Result<guest_types::Signature, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let encoded: &[u8] = unsafe {
             &*encoded_ptr
                 .as_array(encoded_len as _)
@@ -366,7 +362,7 @@ impl WasiCryptoCtx {
         };
         Ok(self
             .ctx
-            .signature_import(op_handle.into(), encoding.into(), encoded)?
+            .signature_import(alg_str, encoding.into(), encoded)?
             .into())
     }
 

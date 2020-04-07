@@ -1,12 +1,14 @@
 use super::ecdsa::*;
 use super::eddsa::*;
 use super::rsa::*;
-use super::signature_op::*;
+use super::*;
 use crate::array_output::*;
 use crate::error::*;
 use crate::handles::*;
 use crate::types as guest_types;
 use crate::{CryptoCtx, HandleManagers, WasiCryptoCtx};
+
+use std::convert::TryFrom;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PublicKeyEncoding {
@@ -44,31 +46,29 @@ pub enum SignaturePublicKey {
 
 impl SignaturePublicKey {
     fn import(
-        handles: &HandleManagers,
-        signature_op: Handle,
+        alg: SignatureAlgorithm,
         encoded: &[u8],
         encoding: PublicKeyEncoding,
-    ) -> Result<Handle, CryptoError> {
+    ) -> Result<SignaturePublicKey, CryptoError> {
         match encoding {
             PublicKeyEncoding::Raw => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
         }
-        let signature_op = handles.signature_op.get(signature_op)?;
-        let pk =
-            match signature_op {
-                SignatureOp::Ecdsa(_) => SignaturePublicKey::Ecdsa(
-                    EcdsaSignaturePublicKey::from_raw(signature_op.alg(), encoded)?,
-                ),
-                SignatureOp::Eddsa(_) => SignaturePublicKey::Eddsa(
-                    EddsaSignaturePublicKey::from_raw(signature_op.alg(), encoded)?,
-                ),
-                SignatureOp::Rsa(_) => SignaturePublicKey::Rsa(RsaSignaturePublicKey::from_raw(
-                    signature_op.alg(),
-                    encoded,
-                )?),
-            };
-        let handle = handles.signature_publickey.register(pk)?;
-        Ok(handle)
+        let pk = match alg {
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
+                SignaturePublicKey::Ecdsa(EcdsaSignaturePublicKey::from_raw(alg, encoded)?)
+            }
+            SignatureAlgorithm::Ed25519 => {
+                SignaturePublicKey::Eddsa(EddsaSignaturePublicKey::from_raw(alg, encoded)?)
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+                SignaturePublicKey::Rsa(RsaSignaturePublicKey::from_raw(alg, encoded)?)
+            }
+        };
+        Ok(pk)
     }
 
     fn export(
@@ -97,11 +97,14 @@ impl SignaturePublicKey {
 impl CryptoCtx {
     pub fn signature_publickey_import(
         &self,
-        signature_op: Handle,
+        alg_str: &str,
         encoded: &[u8],
         encoding: PublicKeyEncoding,
     ) -> Result<Handle, CryptoError> {
-        SignaturePublicKey::import(&self.handles, signature_op, encoded, encoding)
+        let alg = SignatureAlgorithm::try_from(alg_str)?;
+        let pk = SignaturePublicKey::import(alg, encoded, encoding)?;
+        let handle = self.handles.signature_publickey.register(pk)?;
+        Ok(handle)
     }
 
     pub fn signature_publickey_export(
@@ -126,12 +129,13 @@ impl CryptoCtx {
 impl WasiCryptoCtx {
     pub fn signature_publickey_import(
         &self,
-        signature_op: guest_types::SignatureOp,
+        alg_str: &wiggle::GuestPtr<'_, str>,
         encoded_ptr: &wiggle::GuestPtr<'_, u8>,
         encoded_len: guest_types::Size,
         encoding: guest_types::PublickeyEncoding,
     ) -> Result<guest_types::SignaturePublickey, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let encoded: &[u8] = unsafe {
             &*encoded_ptr
                 .as_array(encoded_len as _)
@@ -139,7 +143,7 @@ impl WasiCryptoCtx {
         };
         Ok(self
             .ctx
-            .signature_publickey_import(signature_op.into(), encoded, encoding.into())?
+            .signature_publickey_import(alg_str, encoded, encoding.into())?
             .into())
     }
 

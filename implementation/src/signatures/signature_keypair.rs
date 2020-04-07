@@ -1,14 +1,14 @@
 use super::ecdsa::*;
 use super::eddsa::*;
 use super::rsa::*;
-use super::signature_op::*;
 use super::signature_publickey::*;
+use super::*;
 use crate::array_output::*;
 use crate::error::*;
 use crate::handles::*;
 use crate::types as guest_types;
 use crate::version::Version;
-use crate::{CryptoCtx, HandleManagers, WasiCryptoCtx};
+use crate::{CryptoCtx, WasiCryptoCtx};
 
 use std::convert::{TryFrom, TryInto};
 
@@ -51,7 +51,7 @@ impl SignatureKeyPair {
         Ok(encoded)
     }
 
-    fn generate(handles: &HandleManagers, alg_str: &str) -> Result<Handle, CryptoError> {
+    fn generate(alg_str: &str) -> Result<SignatureKeyPair, CryptoError> {
         let alg = SignatureAlgorithm::try_from(alg_str)?;
         let kp = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
@@ -67,16 +67,14 @@ impl SignatureKeyPair {
                 SignatureKeyPair::Rsa(RsaSignatureKeyPair::generate(alg)?)
             }
         };
-        let handle = handles.signature_keypair.register(kp)?;
-        Ok(handle)
+        Ok(kp)
     }
 
     fn import(
-        handles: &HandleManagers,
         alg_str: &str,
         encoded: &[u8],
         encoding: KeyPairEncoding,
-    ) -> Result<Handle, CryptoError> {
+    ) -> Result<SignatureKeyPair, CryptoError> {
         let alg = SignatureAlgorithm::try_from(alg_str)?;
         let kp = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
@@ -92,11 +90,10 @@ impl SignatureKeyPair {
                 SignatureKeyPair::Rsa(RsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
         };
-        let handle = handles.signature_keypair.register(kp)?;
-        Ok(handle)
+        Ok(kp)
     }
 
-    fn public_key(&self, handles: &HandleManagers) -> Result<Handle, CryptoError> {
+    fn public_key(&self) -> Result<SignaturePublicKey, CryptoError> {
         let pk = match self {
             SignatureKeyPair::Ecdsa(kp) => {
                 let raw_pk = kp.raw_public_key();
@@ -111,25 +108,15 @@ impl SignatureKeyPair {
                 SignaturePublicKey::Rsa(RsaSignaturePublicKey::from_raw(kp.alg, raw_pk)?)
             }
         };
-        let handle = handles.signature_publickey.register(pk)?;
-        Ok(handle)
+        Ok(pk)
     }
 }
 
 impl CryptoCtx {
-    pub fn signature_keypair_manager_open(&self) -> Result<Handle, CryptoError> {
-        bail!(CryptoError::UnsupportedFeature)
-    }
-
-    pub fn signature_keypair_manager_close(
-        &self,
-        _kp_manager_handle: Handle,
-    ) -> Result<(), CryptoError> {
-        bail!(CryptoError::UnsupportedFeature)
-    }
-
     pub fn signature_keypair_generate(&self, alg_str: &str) -> Result<Handle, CryptoError> {
-        SignatureKeyPair::generate(&self.handles, alg_str)
+        let kp = SignatureKeyPair::generate(alg_str)?;
+        let handle = self.handles.signature_keypair.register(kp)?;
+        Ok(handle)
     }
 
     pub fn signature_keypair_import(
@@ -138,16 +125,9 @@ impl CryptoCtx {
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Handle, CryptoError> {
-        SignatureKeyPair::import(&self.handles, alg_str, encoded, encoding)
-    }
-
-    pub fn signature_keypair_from_id(
-        &self,
-        _kp_manager_handle: Handle,
-        _kp_id: &[u8],
-        _kp_version: Version,
-    ) -> Result<Handle, CryptoError> {
-        bail!(CryptoError::UnsupportedFeature)
+        let kp = SignatureKeyPair::import(alg_str, encoded, encoding)?;
+        let handle = self.handles.signature_keypair.register(kp)?;
+        Ok(handle)
     }
 
     pub fn signature_keypair_id(
@@ -155,15 +135,6 @@ impl CryptoCtx {
         kp_handle: Handle,
     ) -> Result<(Vec<u8>, Version), CryptoError> {
         let _kp = self.handles.signature_keypair.get(kp_handle)?;
-        bail!(CryptoError::UnsupportedFeature)
-    }
-
-    pub fn signature_keypair_invalidate(
-        &self,
-        _kp_manager_handle: Handle,
-        _kp_id: &[u8],
-        _kp_version: Version,
-    ) -> Result<(), CryptoError> {
         bail!(CryptoError::UnsupportedFeature)
     }
 
@@ -180,7 +151,8 @@ impl CryptoCtx {
 
     pub fn signature_keypair_publickey(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
         let kp = self.handles.signature_keypair.get(kp_handle)?;
-        let handle = kp.public_key(&self.handles)?;
+        let pk = kp.public_key()?;
+        let handle = self.handles.signature_publickey.register(pk)?;
         Ok(handle)
     }
 
@@ -190,20 +162,6 @@ impl CryptoCtx {
 }
 
 impl WasiCryptoCtx {
-    pub fn signature_keypair_manager_open(
-        &self,
-    ) -> Result<guest_types::SignatureKeypairManager, CryptoError> {
-        Ok(self.ctx.signature_keypair_manager_open()?.into())
-    }
-
-    pub fn signature_keypair_manager_close(
-        &self,
-        kp_manager_handle: guest_types::SignatureKeypairManager,
-    ) -> Result<(), CryptoError> {
-        self.ctx
-            .signature_keypair_manager_close(kp_manager_handle.into())
-    }
-
     pub fn signature_keypair_generate(
         &self,
         alg_str: &wiggle::GuestPtr<'_, str>,
@@ -233,25 +191,6 @@ impl WasiCryptoCtx {
             .into())
     }
 
-    pub fn signature_keypair_from_id(
-        &self,
-        kp_manager_handle: guest_types::SignatureKeypairManager,
-        kp_id_ptr: &wiggle::GuestPtr<'_, u8>,
-        kp_id_len: guest_types::Size,
-        kp_version: guest_types::Version,
-    ) -> Result<guest_types::SignatureKeypair, CryptoError> {
-        let mut guest_borrow = wiggle::GuestBorrows::new();
-        let kp_id: &[u8] = unsafe {
-            &*kp_id_ptr
-                .as_array(kp_id_len as _)
-                .as_raw(&mut guest_borrow)?
-        };
-        Ok(self
-            .ctx
-            .signature_keypair_from_id(kp_manager_handle.into(), kp_id, kp_version.into())?
-            .into())
-    }
-
     pub fn signature_keypair_id(
         &self,
         kp_handle: guest_types::SignatureKeypair,
@@ -268,25 +207,6 @@ impl WasiCryptoCtx {
         ensure!(kp_id.len() <= kp_id_buf.len(), CryptoError::Overflow);
         kp_id_buf.copy_from_slice(&kp_id);
         Ok((kp_id.len().try_into()?, version.into()))
-    }
-
-    pub fn signature_keypair_invalidate(
-        &self,
-        kp_manager_handle: guest_types::SignatureKeypairManager,
-        kp_id_ptr: &wiggle::GuestPtr<'_, u8>,
-        kp_id_len: guest_types::Size,
-        kp_version: guest_types::Version,
-    ) -> Result<(), CryptoError> {
-        let mut guest_borrow = wiggle::GuestBorrows::new();
-        let kp_id: &[u8] = unsafe {
-            &*kp_id_ptr
-                .as_array(kp_id_len as _)
-                .as_raw(&mut guest_borrow)?
-        };
-        Ok(self
-            .ctx
-            .signature_keypair_invalidate(kp_manager_handle.into(), kp_id, kp_version.into())?
-            .into())
     }
 
     pub fn signature_keypair_export(

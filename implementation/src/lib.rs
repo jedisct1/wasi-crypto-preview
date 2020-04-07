@@ -31,14 +31,15 @@ wiggle::from_witx!({
 });
 
 pub struct HandleManagers {
-    pub signature_op: HandlesManager<SignatureOp>,
+    pub array_output: HandlesManager<ArrayOutput>,
+    pub signature_options: HandlesManager<SignatureOptions>,
     pub signature_keypair_manager: HandlesManager<SignatureKeyPairManager>,
     pub signature_keypair: HandlesManager<SignatureKeyPair>,
     pub signature_state: HandlesManager<ExclusiveSignatureState>,
     pub signature: HandlesManager<Signature>,
     pub signature_publickey: HandlesManager<SignaturePublicKey>,
     pub signature_verification_state: HandlesManager<ExclusiveSignatureVerificationState>,
-    pub array_output: HandlesManager<ArrayOutput>,
+    pub symmetric_options: HandlesManager<SymmetricOptions>,
     pub symmetric_op: HandlesManager<SymmetricOp>,
     pub symmetric_key: HandlesManager<SymmetricKey>,
 }
@@ -56,15 +57,16 @@ impl CryptoCtx {
         CryptoCtx {
             handles: HandleManagers {
                 array_output: HandlesManager::new(0x00),
-                signature_op: HandlesManager::new(0x01),
+                signature_options: HandlesManager::new(0x01),
                 signature_keypair_manager: HandlesManager::new(0x02),
                 signature_keypair: HandlesManager::new(0x03),
                 signature_state: HandlesManager::new(0x04),
                 signature: HandlesManager::new(0x05),
                 signature_publickey: HandlesManager::new(0x06),
                 signature_verification_state: HandlesManager::new(0x07),
-                symmetric_op: HandlesManager::new(0x08),
-                symmetric_key: HandlesManager::new(0x09),
+                symmetric_options: HandlesManager::new(0x08),
+                symmetric_op: HandlesManager::new(0x09),
+                symmetric_key: HandlesManager::new(0x0a),
             },
         }
     }

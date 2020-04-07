@@ -23,7 +23,7 @@ pub struct SymmetricOptions {
     parallelism: Option<u64>,
 }
 
-impl Options for SymmetricOptions {
+impl OptionsLike for SymmetricOptions {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -124,13 +124,9 @@ impl CryptoCtx {
         &self,
         alg_str: &str,
         key: Option<&SymmetricKey>,
-        options: Box<dyn Options>,
+        options: SymmetricOptions,
     ) -> Result<Handle, CryptoError> {
-        let options = options
-            .as_any()
-            .downcast_ref()
-            .ok_or(CryptoError::InvalidHandle)?;
-        SymmetricOp::open(&self.handles, alg_str, key, options)
+        SymmetricOp::open(&self.handles, alg_str, key, &options)
     }
 
     pub fn symmetric_op_close(&self, handle: Handle) -> Result<(), CryptoError> {
