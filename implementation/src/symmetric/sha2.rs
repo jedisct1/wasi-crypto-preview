@@ -12,8 +12,8 @@ pub struct Sha2SymmetricState {
 impl Sha2SymmetricState {
     pub fn new(
         alg: SymmetricAlgorithm,
-        key: Option<SymmetricKey>,
-        _options: &SymmetricOptions,
+        key: Option<&SymmetricKey>,
+        _options: Option<SymmetricOptions>,
     ) -> Result<Self, CryptoError> {
         if key.is_some() {
             return Err(CryptoError::KeyNotSupported);

@@ -94,7 +94,7 @@ impl SymmetricState {
     fn open(
         alg_str: &str,
         key: Option<&SymmetricKey>,
-        options: &SymmetricOptions,
+        options: Option<SymmetricOptions>,
     ) -> Result<SymmetricState, CryptoError> {
         let alg = SymmetricAlgorithm::try_from(alg_str)?;
         let symmetric_state = match alg {
@@ -118,6 +118,22 @@ impl SymmetricState {
         };
         Ok(())
     }
+
+    fn squeeze(&mut self, len: usize) -> Result<Vec<u8>, CryptoError> {
+        let out = match self {
+            SymmetricState::Sha2(state) => state.squeeze(len)?,
+            SymmetricState::HmacSha2(state) => state.squeeze(len)?,
+        };
+        Ok(out)
+    }
+
+    fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
+        let tag = match self {
+            SymmetricState::Sha2(state) => state.squeeze_tag()?,
+            SymmetricState::HmacSha2(state) => state.squeeze_tag()?,
+        };
+        Ok(tag)
+    }
 }
 
 impl CryptoCtx {
@@ -125,9 +141,9 @@ impl CryptoCtx {
         &self,
         alg_str: &str,
         key: Option<&SymmetricKey>,
-        options: SymmetricOptions,
+        options: Option<SymmetricOptions>,
     ) -> Result<Handle, CryptoError> {
-        let symmetric_state = SymmetricState::open(alg_str, key, &options)?;
+        let symmetric_state = SymmetricState::open(alg_str, key, options)?;
         let handle = self.handles.symmetric_state.register(symmetric_state)?;
         Ok(handle)
     }
@@ -136,12 +152,28 @@ impl CryptoCtx {
         self.handles.symmetric_state.close(state_handle)
     }
 
-    fn absorb(&self, state_handle: Handle, data: &[u8]) -> Result<(), CryptoError> {
-        let state = self.handles.symmetric_state.get(state_handle)?;
-        match state {
-            SymmetricState::Sha2(mut state) => state.absorb(data)?,
-            SymmetricState::HmacSha2(mut state) => state.absorb(data)?,
-        };
-        Ok(())
+    pub fn symmetric_state_absorb(
+        &self,
+        state_handle: Handle,
+        data: &[u8],
+    ) -> Result<(), CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        symmetric_state.absorb(data)
+    }
+
+    pub fn symmetric_state_squeeze(
+        &self,
+        state_handle: Handle,
+        len: usize,
+    ) -> Result<Vec<u8>, CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        symmetric_state.squeeze(len)
+    }
+
+    pub fn symmetric_state_squeeze_tag(&self, state_handle: Handle) -> Result<Handle, CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let tag = symmetric_state.squeeze_tag()?;
+        let handle = self.handles.symmetric_tag.register(tag)?;
+        Ok(handle)
     }
 }
