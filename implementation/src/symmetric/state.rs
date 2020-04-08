@@ -192,7 +192,7 @@ impl CryptoCtx {
     }
 
     pub fn symmetric_encrypt(
-        &mut self,
+        &self,
         state_handle: Handle,
         data: &[u8],
     ) -> Result<Vec<u8>, CryptoError> {
@@ -201,7 +201,7 @@ impl CryptoCtx {
     }
 
     pub fn symmetric_encrypt_detached(
-        &mut self,
+        &self,
         state_handle: Handle,
         data: &[u8],
     ) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
@@ -210,7 +210,7 @@ impl CryptoCtx {
     }
 
     pub fn symmetric_decrypt(
-        &mut self,
+        &self,
         state_handle: Handle,
         data: &[u8],
     ) -> Result<Vec<u8>, CryptoError> {
@@ -219,7 +219,7 @@ impl CryptoCtx {
     }
 
     pub fn symmetric_decrypt_detached(
-        &mut self,
+        &self,
         state_handle: Handle,
         data: &[u8],
         raw_tag: &[u8],

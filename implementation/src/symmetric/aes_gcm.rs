@@ -119,10 +119,9 @@ impl AesGcmSymmetricState {
             SymmetricAlgorithm::Aes256Gcm => &ring::aead::AES_256_GCM,
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
-        let nonce_vec = options
-            .ok_or(CryptoError::NonceRequired)?
-            .nonce
-            .ok_or(CryptoError::NonceRequired)?;
+        let options = options.ok_or(CryptoError::NonceRequired)?;
+        let inner = options.inner.lock();
+        let nonce_vec = inner.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
         let mut nonce = [0u8; ring::aead::NONCE_LEN];
         nonce.copy_from_slice(&nonce_vec);
         let nonce_sequence = AesGcmNonceSequence::new(nonce);
@@ -157,10 +156,9 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
 
     fn encrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
         let mut out = data.to_vec();
-        let inner = self.inner.lock();
-        let ring_ad = ring::aead::Aad::from(&inner.ad);
-        self.inner
-            .lock()
+        let mut inner = self.inner.lock();
+        let ring_ad = ring::aead::Aad::from(inner.ad.clone());
+        inner
             .ring_sealing_key
             .seal_in_place_append_tag(ring_ad, &mut out)
             .map_err(|_| CryptoError::AlgorithmFailure)?;
@@ -169,11 +167,9 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
 
     fn encrypt_detached(&mut self, data: &[u8]) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
         let mut out = data.to_vec();
-        let inner = self.inner.lock();
-        let ring_ad = ring::aead::Aad::from(&inner.ad);
-        let ring_tag = self
-            .inner
-            .lock()
+        let mut inner = self.inner.lock();
+        let ring_ad = ring::aead::Aad::from(inner.ad.clone());
+        let ring_tag = inner
             .ring_sealing_key
             .seal_in_place_separate_tag(ring_ad, &mut out)
             .map_err(|_| CryptoError::AlgorithmFailure)?;
@@ -183,11 +179,9 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
 
     fn decrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
         let mut out = data.to_vec();
-        let inner = self.inner.lock();
-        let ring_ad = ring::aead::Aad::from(&inner.ad);
-        let out_len = self
-            .inner
-            .lock()
+        let mut inner = self.inner.lock();
+        let ring_ad = ring::aead::Aad::from(inner.ad.clone());
+        let out_len = inner
             .ring_opening_key
             .open_in_place(ring_ad, &mut out)
             .map_err(|_| CryptoError::AlgorithmFailure)?
@@ -199,11 +193,9 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
     fn decrypt_detached(&mut self, data: &[u8], raw_tag: &[u8]) -> Result<Vec<u8>, CryptoError> {
         let mut out = data.to_vec();
         out.extend_from_slice(raw_tag);
-        let inner = self.inner.lock();
-        let ring_ad = ring::aead::Aad::from(&inner.ad);
-        let out_len = self
-            .inner
-            .lock()
+        let mut inner = self.inner.lock();
+        let ring_ad = ring::aead::Aad::from(inner.ad.clone());
+        let out_len = inner
             .ring_opening_key
             .open_in_place(ring_ad, &mut out)
             .map_err(|_| CryptoError::AlgorithmFailure)?

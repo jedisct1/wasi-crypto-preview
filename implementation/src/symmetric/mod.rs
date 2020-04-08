@@ -11,16 +11,18 @@ use crate::options::*;
 use crate::CryptoCtx;
 use aes_gcm::*;
 use hmac_sha2::*;
+use parking_lot::Mutex;
 use sha2::*;
 use std::any::Any;
 use std::convert::TryFrom;
+use std::sync::Arc;
 
 pub use key::SymmetricKey;
 pub use state::SymmetricState;
 pub use tag::SymmetricTag;
 
-#[derive(Clone, Debug, Default)]
-pub struct SymmetricOptions {
+#[derive(Debug, Default)]
+pub struct SymmetricOptionsInner {
     context: Option<Vec<u8>>,
     salt: Option<Vec<u8>>,
     nonce: Option<Vec<u8>>,
@@ -29,16 +31,30 @@ pub struct SymmetricOptions {
     parallelism: Option<u64>,
 }
 
+#[derive(Clone, Debug)]
+pub struct SymmetricOptions {
+    inner: Arc<Mutex<SymmetricOptionsInner>>,
+}
+
+impl Default for SymmetricOptions {
+    fn default() -> Self {
+        SymmetricOptions {
+            inner: Default::default(),
+        }
+    }
+}
+
 impl OptionsLike for SymmetricOptions {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
     fn set(&mut self, name: &str, value: &[u8]) -> Result<(), CryptoError> {
+        let mut inner = self.inner.lock();
         let option = match name.to_lowercase().as_str() {
-            "context" => &mut self.context,
-            "salt" => &mut self.salt,
-            "nonce" => &mut self.nonce,
+            "context" => &mut inner.context,
+            "salt" => &mut inner.salt,
+            "nonce" => &mut inner.nonce,
             _ => bail!(CryptoError::UnsupportedOption),
         };
         *option = Some(value.to_vec());
@@ -46,10 +62,11 @@ impl OptionsLike for SymmetricOptions {
     }
 
     fn set_u64(&mut self, name: &str, value: u64) -> Result<(), CryptoError> {
+        let mut inner = self.inner.lock();
         let option = match name.to_lowercase().as_str() {
-            "memory_limit" => &mut self.memory_limit,
-            "ops_limit" => &mut self.ops_limit,
-            "parallelism" => &mut self.parallelism,
+            "memory_limit" => &mut inner.memory_limit,
+            "ops_limit" => &mut inner.ops_limit,
+            "parallelism" => &mut inner.parallelism,
             _ => bail!(CryptoError::UnsupportedOption),
         };
         *option = Some(value);
@@ -136,8 +153,23 @@ fn test_encryption() {
     let msg = b"test";
     let nonce = [42u8; 12];
     let key_handle = ctx.symmetric_key_generate("AES-256-GCM", None).unwrap();
+
     let options_handle = ctx.options_open(OptionsType::Symmetric).unwrap();
     ctx.options_set(options_handle, "nonce", &nonce).unwrap();
-    ctx.symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
+
+    let symmetric_state = ctx
+        .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
+    let ciphertext_with_tag = ctx.symmetric_encrypt(symmetric_state, msg).unwrap();
+    ctx.symmetric_state_close(symmetric_state).unwrap();
+
+    let symmetric_state = ctx
+        .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
+        .unwrap();
+    let msg2 = ctx
+        .symmetric_decrypt(symmetric_state, &ciphertext_with_tag)
+        .unwrap();
+    assert_eq!(msg, &msg2[..]);
+
+    ctx.symmetric_state_close(symmetric_state).unwrap();
 }
