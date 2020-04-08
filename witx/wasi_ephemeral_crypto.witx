@@ -25,6 +25,7 @@
     $key_required
     $invalid_tag
     $invalid_operation
+    $nonce_required
   )
 )
 

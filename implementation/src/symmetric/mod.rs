@@ -23,6 +23,7 @@ pub use tag::SymmetricTag;
 pub struct SymmetricOptions {
     context: Option<Vec<u8>>,
     salt: Option<Vec<u8>>,
+    nonce: Option<Vec<u8>>,
     memory_limit: Option<u64>,
     ops_limit: Option<u64>,
     parallelism: Option<u64>,
@@ -37,6 +38,7 @@ impl OptionsLike for SymmetricOptions {
         let option = match name.to_lowercase().as_str() {
             "context" => &mut self.context,
             "salt" => &mut self.salt,
+            "nonce" => &mut self.nonce,
             _ => bail!(CryptoError::UnsupportedOption),
         };
         *option = Some(value.to_vec());

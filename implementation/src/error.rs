@@ -53,6 +53,8 @@ pub enum CryptoError {
     InvalidTag,
     #[error("Operation invalid for the selected algorithm")]
     InvalidOperation,
+    #[error("Nonce required")]
+    NonceRequired,
 }
 
 impl From<TryFromIntError> for CryptoError {
@@ -87,6 +89,7 @@ impl From<CryptoError> for guest_types::CryptoErrno {
             CryptoError::KeyRequired => guest_types::CryptoErrno::KeyRequired,
             CryptoError::InvalidTag => guest_types::CryptoErrno::InvalidTag,
             CryptoError::InvalidOperation => guest_types::CryptoErrno::InvalidOperation,
+            CryptoError::NonceRequired => guest_types::CryptoErrno::NonceRequired,
         }
     }
 }
