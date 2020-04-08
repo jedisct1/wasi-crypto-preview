@@ -23,6 +23,9 @@ impl SymmetricKey {
             SymmetricAlgorithm::HmacSha256 | SymmetricAlgorithm::HmacSha512 => {
                 SymmetricKey::HmacSha2(HmacSha2SymmetricKey::generate(alg, options)?)
             }
+            SymmetricAlgorithm::Aes128Gcm | SymmetricAlgorithm::Aes256Gcm => {
+                SymmetricKey::AesGcm(AesGcmSymmetricKey::generate(alg, options)?)
+            }
             _ => bail!(CryptoError::KeyNotSupported),
         };
         Ok(key)
@@ -33,6 +36,9 @@ impl SymmetricKey {
         let key = match alg {
             SymmetricAlgorithm::HmacSha256 | SymmetricAlgorithm::HmacSha512 => {
                 SymmetricKey::HmacSha2(HmacSha2SymmetricKey::import(alg, raw)?)
+            }
+            SymmetricAlgorithm::Aes128Gcm | SymmetricAlgorithm::Aes256Gcm => {
+                SymmetricKey::AesGcm(AesGcmSymmetricKey::import(alg, raw)?)
             }
             _ => bail!(CryptoError::KeyNotSupported),
         };

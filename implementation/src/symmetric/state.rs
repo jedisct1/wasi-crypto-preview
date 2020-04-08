@@ -67,7 +67,7 @@ impl SymmetricState {
                 SymmetricState::Sha2(Sha2SymmetricState::new(alg, None, options)?)
             }
             SymmetricAlgorithm::Aes128Gcm | SymmetricAlgorithm::Aes256Gcm => {
-                SymmetricState::AesGcm(AesGcmSymmetricState::new(alg, None, options)?)
+                SymmetricState::AesGcm(AesGcmSymmetricState::new(alg, key, options)?)
             }
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };

@@ -126,3 +126,18 @@ fn test_hmac() {
     ctx.symmetric_key_close(key_handle).unwrap();
     ctx.symmetric_tag_close(tag_handle).unwrap();
 }
+
+#[test]
+fn test_encryption() {
+    use crate::CryptoCtx;
+
+    let ctx = CryptoCtx::new();
+
+    let msg = b"test";
+    let nonce = [42u8; 12];
+    let key_handle = ctx.symmetric_key_generate("AES-256-GCM", None).unwrap();
+    let options_handle = ctx.options_open(OptionsType::Symmetric).unwrap();
+    ctx.options_set(options_handle, "nonce", &nonce).unwrap();
+    ctx.symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
+        .unwrap();
+}

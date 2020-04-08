@@ -96,6 +96,32 @@
 (module $wasi_ephemeral_crypto
   (import "memory" (memory))
 
+  (@interface func (export "options_open")
+    (param $options_type $options_type)
+    (result $error $crypto_errno)
+    (result $handle $options)
+  )
+
+  (@interface func (export "options_close")
+    (param $handle $options)
+    (result $error $crypto_errno)
+  )
+
+  (@interface func (export "options_set")
+    (param $handle $options)
+    (param $name string)
+    (param $value (@witx pointer u8))
+    (param $value_len $size)
+    (result $error $crypto_errno)
+  )
+
+  (@interface func (export "options_set_u64")
+    (param $handle $options)
+    (param $name string)
+    (param $value u64)
+    (result $error $crypto_errno)
+  )
+
   ;;; Return the length of an array_output object.
   (@interface func (export "array_output_len")
     (param $array_output $array_output)
