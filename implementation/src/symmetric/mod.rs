@@ -169,7 +169,23 @@ fn test_encryption() {
     let msg2 = ctx
         .symmetric_decrypt(symmetric_state, &ciphertext_with_tag)
         .unwrap();
+    ctx.symmetric_state_close(symmetric_state).unwrap();
     assert_eq!(msg, &msg2[..]);
 
+    let symmetric_state = ctx
+        .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
+        .unwrap();
+    let (ciphertext, tag) = ctx
+        .symmetric_encrypt_detached(symmetric_state, msg)
+        .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
+
+    let symmetric_state = ctx
+        .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
+        .unwrap();
+    let msg2 = ctx
+        .symmetric_decrypt_detached(symmetric_state, &ciphertext, tag.as_ref())
+        .unwrap();
+    ctx.symmetric_state_close(symmetric_state).unwrap();
+    assert_eq!(msg, &msg2[..]);
 }
