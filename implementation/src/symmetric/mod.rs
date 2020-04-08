@@ -1,3 +1,4 @@
+mod aes_gcm;
 mod hmac_sha2;
 mod key;
 mod sha2;
@@ -8,6 +9,7 @@ use crate::error::*;
 use crate::handles::*;
 use crate::options::*;
 use crate::CryptoCtx;
+use aes_gcm::*;
 use hmac_sha2::*;
 use sha2::*;
 use std::any::Any;
@@ -61,6 +63,8 @@ pub enum SymmetricAlgorithm {
     Sha256,
     Sha512,
     Sha512_256,
+    Aes128_Gcm,
+    Aes256_Gcm,
 }
 
 impl TryFrom<&str> for SymmetricAlgorithm {
@@ -73,6 +77,8 @@ impl TryFrom<&str> for SymmetricAlgorithm {
             "SHA-256" => Ok(SymmetricAlgorithm::Sha256),
             "SHA-512" => Ok(SymmetricAlgorithm::Sha512),
             "SHA-512/256" => Ok(SymmetricAlgorithm::Sha512_256),
+            "AES-128-GCM" => Ok(SymmetricAlgorithm::Aes128_Gcm),
+            "AES-256-GCM" => Ok(SymmetricAlgorithm::Aes256_Gcm),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }

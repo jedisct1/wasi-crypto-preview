@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.28"
+byteorder = "1.3.4"
 derivative = "2.1.0"
 parking_lot = "0.10.0"
 ring = "0.16.12"

@@ -3,12 +3,14 @@ use super::*;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SymmetricKey {
     HmacSha2(HmacSha2SymmetricKey),
+    AesGcm(AesGcmSymmetricKey),
 }
 
 impl SymmetricKey {
     pub fn alg(&self) -> SymmetricAlgorithm {
         match self {
             SymmetricKey::HmacSha2(key) => key.alg(),
+            SymmetricKey::AesGcm(key) => key.alg(),
         }
     }
 
@@ -40,6 +42,7 @@ impl SymmetricKey {
     pub fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
         let raw = match self {
             SymmetricKey::HmacSha2(key) => key.as_raw()?.to_vec(),
+            SymmetricKey::AesGcm(key) => key.as_raw()?.to_vec(),
         };
         Ok(raw)
     }

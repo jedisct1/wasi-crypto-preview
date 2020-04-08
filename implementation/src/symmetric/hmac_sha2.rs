@@ -81,6 +81,7 @@ impl HmacSha2SymmetricState {
         let key = match key {
             None => bail!(CryptoError::KeyRequired),
             Some(SymmetricKey::HmacSha2(key)) => key,
+            _ => bail!(CryptoError::InvalidKey),
         };
         let ring_alg = match alg {
             SymmetricAlgorithm::HmacSha256 => ring::hmac::HMAC_SHA256,
