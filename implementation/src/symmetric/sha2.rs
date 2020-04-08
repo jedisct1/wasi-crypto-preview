@@ -1,3 +1,4 @@
+use super::state::*;
 use super::*;
 
 #[derive(Clone, Derivative)]
@@ -26,17 +27,19 @@ impl Sha2SymmetricState {
         let ring_ctx = ring::digest::Context::new(ring_alg);
         Ok(Sha2SymmetricState { alg, ring_ctx })
     }
+}
 
-    pub fn alg(&self) -> SymmetricAlgorithm {
+impl SymmetricAlgorithmStateLike for Sha2SymmetricState {
+    fn alg(&self) -> SymmetricAlgorithm {
         self.alg
     }
 
-    pub fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
+    fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
         self.ring_ctx.update(data);
         Ok(())
     }
 
-    pub fn squeeze(&mut self, len: usize) -> Result<Vec<u8>, CryptoError> {
+    fn squeeze(&mut self, len: usize) -> Result<Vec<u8>, CryptoError> {
         let out = self.ring_ctx.clone().finish();
         ensure!(
             len > 0 && len <= out.as_ref().len(),
@@ -44,9 +47,5 @@ impl Sha2SymmetricState {
         );
         let out = out.as_ref()[..len].to_vec();
         Ok(out)
-    }
-
-    pub fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
-        bail!(CryptoError::InvalidOperation)
     }
 }

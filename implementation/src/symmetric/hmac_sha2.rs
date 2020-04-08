@@ -1,3 +1,4 @@
+use super::state::*;
 use super::*;
 
 use parking_lot::Mutex;
@@ -95,21 +96,19 @@ impl HmacSha2SymmetricState {
             ring_ctx: Arc::new(Mutex::new(ring_ctx)),
         })
     }
+}
 
-    pub fn alg(&self) -> SymmetricAlgorithm {
+impl SymmetricAlgorithmStateLike for HmacSha2SymmetricState {
+    fn alg(&self) -> SymmetricAlgorithm {
         self.alg
     }
 
-    pub fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
+    fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
         self.ring_ctx.lock().update(data);
         Ok(())
     }
 
-    pub fn squeeze(&mut self, _len: usize) -> Result<Vec<u8>, CryptoError> {
-        bail!(CryptoError::InvalidOperation)
-    }
-
-    pub fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
+    fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
         let raw = self.ring_ctx.lock().clone().sign().as_ref().to_vec();
         Ok(SymmetricTag::new(self.alg, raw))
     }

@@ -1,4 +1,5 @@
 use super::*;
+use state::*;
 
 use byteorder::{ByteOrder, LittleEndian};
 use parking_lot::Mutex;
@@ -61,8 +62,8 @@ impl AesGcmSymmetricKey {
         _options: Option<SymmetricOptions>,
     ) -> Result<AesGcmSymmetricKey, CryptoError> {
         let key_len = match alg {
-            SymmetricAlgorithm::Aes128_Gcm => ring::aead::AES_128_GCM.key_len(),
-            SymmetricAlgorithm::Aes256_Gcm => ring::aead::AES_256_GCM.key_len(),
+            SymmetricAlgorithm::Aes128Gcm => ring::aead::AES_128_GCM.key_len(),
+            SymmetricAlgorithm::Aes256Gcm => ring::aead::AES_256_GCM.key_len(),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let rng = ring::rand::SystemRandom::new();
@@ -79,17 +80,18 @@ impl AesGcmSymmetricKey {
 
 #[derive(Debug)]
 pub struct AesGcmNonceSequence {
-    nonce: [u8; 12],
+    nonce: [u8; ring::aead::NONCE_LEN],
 }
 
 impl AesGcmNonceSequence {
-    fn new(nonce: [u8; 12]) -> Self {
+    fn new(nonce: [u8; ring::aead::NONCE_LEN]) -> Self {
         AesGcmNonceSequence { nonce }
     }
 }
 
 impl ring::aead::NonceSequence for AesGcmNonceSequence {
     fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
+        debug_assert_eq!(self.nonce.len(), 12);
         let b0 = LittleEndian::read_u64(&self.nonce[..8]);
         let b1 = LittleEndian::read_u32(&self.nonce[8..]);
         let (b0, of) = b0.overflowing_add(1);
@@ -113,22 +115,22 @@ impl AesGcmSymmetricState {
             _ => bail!(CryptoError::InvalidKey),
         };
         let ring_alg = match alg {
-            SymmetricAlgorithm::Aes128_Gcm => &ring::aead::AES_128_GCM,
-            SymmetricAlgorithm::Aes256_Gcm => &ring::aead::AES_256_GCM,
+            SymmetricAlgorithm::Aes128Gcm => &ring::aead::AES_128_GCM,
+            SymmetricAlgorithm::Aes256Gcm => &ring::aead::AES_256_GCM,
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let nonce_vec = options
             .ok_or(CryptoError::NonceRequired)?
             .nonce
             .ok_or(CryptoError::NonceRequired)?;
-        let mut nonce = [0u8; 12];
+        let mut nonce = [0u8; ring::aead::NONCE_LEN];
         nonce.copy_from_slice(&nonce_vec);
         let nonce_sequence = AesGcmNonceSequence::new(nonce);
-        let ring_unbound_key = ring::aead::UnboundKey::new(&ring::aead::AES_128_GCM, key.as_raw()?)
+        let ring_unbound_key = ring::aead::UnboundKey::new(ring_alg, key.as_raw()?)
             .map_err(|_| CryptoError::InvalidKey)?;
         let ring_sealing_key = ring::aead::SealingKey::new(ring_unbound_key, nonce_sequence);
         let nonce_sequence = AesGcmNonceSequence::new(nonce);
-        let ring_unbound_key = ring::aead::UnboundKey::new(&ring::aead::AES_128_GCM, key.as_raw()?)
+        let ring_unbound_key = ring::aead::UnboundKey::new(ring_alg, key.as_raw()?)
             .map_err(|_| CryptoError::InvalidKey)?;
         let ring_opening_key = ring::aead::OpeningKey::new(ring_unbound_key, nonce_sequence);
         let inner = AesGcmSymmetricStateInner {
@@ -141,25 +143,19 @@ impl AesGcmSymmetricState {
             inner: Arc::new(Mutex::new(inner)),
         })
     }
+}
 
-    pub fn alg(&self) -> SymmetricAlgorithm {
+impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
+    fn alg(&self) -> SymmetricAlgorithm {
         self.alg
     }
 
-    pub fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
+    fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
         self.inner.lock().ad.extend_from_slice(data);
         Ok(())
     }
 
-    pub fn squeeze(&mut self, _len: usize) -> Result<Vec<u8>, CryptoError> {
-        bail!(CryptoError::InvalidOperation)
-    }
-
-    pub fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
-        bail!(CryptoError::InvalidOperation)
-    }
-
-    pub fn encrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn encrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
         let mut out = data.to_vec();
         let inner = self.inner.lock();
         let ring_ad = ring::aead::Aad::from(&inner.ad);
@@ -171,10 +167,7 @@ impl AesGcmSymmetricState {
         Ok(out)
     }
 
-    pub fn encrypt_detached(
-        &mut self,
-        data: &[u8],
-    ) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
+    fn encrypt_detached(&mut self, data: &[u8]) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
         let mut out = data.to_vec();
         let inner = self.inner.lock();
         let ring_ad = ring::aead::Aad::from(&inner.ad);
@@ -188,7 +181,7 @@ impl AesGcmSymmetricState {
         Ok((out, symmetric_tag))
     }
 
-    pub fn decrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn decrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
         let mut out = data.to_vec();
         let inner = self.inner.lock();
         let ring_ad = ring::aead::Aad::from(&inner.ad);
@@ -203,11 +196,7 @@ impl AesGcmSymmetricState {
         Ok(out)
     }
 
-    pub fn decrypt_detached(
-        &mut self,
-        data: &[u8],
-        raw_tag: &[u8],
-    ) -> Result<Vec<u8>, CryptoError> {
+    fn decrypt_detached(&mut self, data: &[u8], raw_tag: &[u8]) -> Result<Vec<u8>, CryptoError> {
         let mut out = data.to_vec();
         out.extend_from_slice(raw_tag);
         let inner = self.inner.lock();

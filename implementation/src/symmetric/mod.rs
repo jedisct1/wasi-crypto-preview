@@ -65,8 +65,8 @@ pub enum SymmetricAlgorithm {
     Sha256,
     Sha512,
     Sha512_256,
-    Aes128_Gcm,
-    Aes256_Gcm,
+    Aes128Gcm,
+    Aes256Gcm,
 }
 
 impl TryFrom<&str> for SymmetricAlgorithm {
@@ -79,8 +79,8 @@ impl TryFrom<&str> for SymmetricAlgorithm {
             "SHA-256" => Ok(SymmetricAlgorithm::Sha256),
             "SHA-512" => Ok(SymmetricAlgorithm::Sha512),
             "SHA-512/256" => Ok(SymmetricAlgorithm::Sha512_256),
-            "AES-128-GCM" => Ok(SymmetricAlgorithm::Aes128_Gcm),
-            "AES-256-GCM" => Ok(SymmetricAlgorithm::Aes256_Gcm),
+            "AES-128-GCM" => Ok(SymmetricAlgorithm::Aes128Gcm),
+            "AES-256-GCM" => Ok(SymmetricAlgorithm::Aes256Gcm),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }
@@ -103,4 +103,26 @@ fn test_hash() {
     ];
     assert_eq!(out, expected);
     ctx.symmetric_state_close(state_handle).unwrap();
+}
+
+#[test]
+fn test_hmac() {
+    use crate::CryptoCtx;
+
+    let ctx = CryptoCtx::new();
+
+    let key_handle = ctx.symmetric_key_generate("HMAC/SHA-512", None).unwrap();
+    let state_handle = ctx
+        .symmetric_state_open("HMAC/SHA-512", Some(key_handle), None)
+        .unwrap();
+    ctx.symmetric_state_absorb(state_handle, b"data").unwrap();
+    ctx.symmetric_state_absorb(state_handle, b"more_data")
+        .unwrap();
+    let tag_handle = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
+    let tag = ctx.symmetric_tag_export(tag_handle).unwrap();
+    ctx.symmetric_tag_verify(tag_handle, &tag).unwrap();
+
+    ctx.symmetric_state_close(state_handle).unwrap();
+    ctx.symmetric_key_close(key_handle).unwrap();
+    ctx.symmetric_tag_close(tag_handle).unwrap();
 }
