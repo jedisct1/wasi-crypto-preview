@@ -83,11 +83,11 @@ fn test_signatures() {
         .unwrap();
     ctx.signature_verification_state_verify(verification_state_handle, signature_handle)
         .unwrap();
+
     ctx.signature_verification_state_close(verification_state_handle)
         .unwrap();
-
     ctx.signature_state_close(state_handle).unwrap();
     ctx.signature_keypair_close(kp_handle).unwrap();
-    ctx.signature_publickey_close(kp_handle).unwrap();
+    ctx.signature_publickey_close(pk_handle).unwrap();
     ctx.signature_close(signature_handle).unwrap();
 }

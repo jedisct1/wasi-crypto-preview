@@ -93,7 +93,7 @@ impl SymmetricState {
 
     fn open(
         alg_str: &str,
-        key: Option<&SymmetricKey>,
+        key: Option<SymmetricKey>,
         options: Option<SymmetricOptions>,
     ) -> Result<SymmetricState, CryptoError> {
         let alg = SymmetricAlgorithm::try_from(alg_str)?;
@@ -140,9 +140,19 @@ impl CryptoCtx {
     pub fn symmetric_state_open(
         &self,
         alg_str: &str,
-        key: Option<&SymmetricKey>,
-        options: Option<SymmetricOptions>,
+        key_handle: Option<Handle>,
+        options_handle: Option<Handle>,
     ) -> Result<Handle, CryptoError> {
+        let key = match key_handle {
+            None => None,
+            Some(symmetric_key_handle) => {
+                Some(self.handles.symmetric_key.get(symmetric_key_handle)?)
+            }
+        };
+        let options = match options_handle {
+            None => None,
+            Some(options_handle) => Some(self.handles.symmetric_options.get(options_handle)?),
+        };
         let symmetric_state = SymmetricState::open(alg_str, key, options)?;
         let handle = self.handles.symmetric_state.register(symmetric_state)?;
         Ok(handle)
@@ -176,4 +186,21 @@ impl CryptoCtx {
         let handle = self.handles.symmetric_tag.register(tag)?;
         Ok(handle)
     }
+}
+
+#[test]
+fn test_hmac() {
+    use crate::CryptoCtx;
+
+    let ctx = CryptoCtx::new();
+
+    let key_handle = ctx.symmetric_key_generate("HMAC/SHA-512", None).unwrap();
+    let state_handle = ctx
+        .symmetric_state_open("HMAC/SHA-512", Some(key_handle), None)
+        .unwrap();
+    ctx.symmetric_state_absorb(state_handle, b"data").unwrap();
+    ctx.symmetric_state_absorb(state_handle, b"more_data")
+        .unwrap();
+    let tag = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
+    ctx.symmetric_state_close(state_handle).unwrap();
 }

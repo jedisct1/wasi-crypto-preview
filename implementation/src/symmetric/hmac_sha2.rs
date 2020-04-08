@@ -71,10 +71,10 @@ impl HmacSha2SymmetricKey {
 impl HmacSha2SymmetricState {
     pub fn new(
         alg: SymmetricAlgorithm,
-        key: Option<&SymmetricKey>,
+        key: Option<SymmetricKey>,
         _options: Option<SymmetricOptions>,
     ) -> Result<Self, CryptoError> {
-        let key: &HmacSha2SymmetricKey = match key {
+        let key = match key {
             None => bail!(CryptoError::KeyRequired),
             Some(SymmetricKey::HmacSha2(key)) => key,
         };
