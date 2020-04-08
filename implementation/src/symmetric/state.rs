@@ -153,7 +153,9 @@ impl CryptoCtx {
         };
         let options = match options_handle {
             None => None,
-            Some(options_handle) => Some(self.handles.symmetric_options.get(options_handle)?),
+            Some(options_handle) => {
+                Some(self.handles.options.get(options_handle)?.into_symmetric()?)
+            }
         };
         let symmetric_state = SymmetricState::open(alg_str, key, options)?;
         let handle = self.handles.symmetric_state.register(symmetric_state)?;

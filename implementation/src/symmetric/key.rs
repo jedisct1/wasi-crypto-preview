@@ -56,7 +56,9 @@ impl CryptoCtx {
     ) -> Result<Handle, CryptoError> {
         let options = match options_handle {
             None => None,
-            Some(options_handle) => Some(self.handles.symmetric_options.get(options_handle)?),
+            Some(options_handle) => {
+                Some(self.handles.options.get(options_handle)?.into_symmetric()?)
+            }
         };
         let key = SymmetricKey::generate(alg_str, options)?;
         let handle = self.handles.symmetric_key.register(key)?;

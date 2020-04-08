@@ -41,11 +41,11 @@ impl CryptoCtx {
 impl WasiCryptoCtx {
     pub fn signature_keypair_manager_open(
         &self,
-        options_handle: &guest_types::OptSignatureOptions,
+        options_handle: &guest_types::OptOptions,
     ) -> Result<guest_types::SignatureKeypairManager, CryptoError> {
         let options_handle = match *options_handle {
-            guest_types::OptSignatureOptions::Some(options_handle) => Some(options_handle),
-            guest_types::OptSignatureOptions::None => None,
+            guest_types::OptOptions::Some(options_handle) => Some(options_handle),
+            guest_types::OptOptions::None => None,
         };
         Ok(self
             .ctx

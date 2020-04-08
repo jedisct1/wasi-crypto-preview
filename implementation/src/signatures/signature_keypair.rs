@@ -123,7 +123,12 @@ impl CryptoCtx {
     ) -> Result<Handle, CryptoError> {
         let options = match options_handle {
             None => None,
-            Some(options_handle) => Some(self.handles.signature_options.get(options_handle)?),
+            Some(options_handle) => Some(
+                self.handles
+                    .options
+                    .get(options_handle)?
+                    .into_signatures()?,
+            ),
         };
         let kp = SignatureKeyPair::generate(alg_str, options)?;
         let handle = self.handles.signature_keypair.register(kp)?;
@@ -176,13 +181,13 @@ impl WasiCryptoCtx {
     pub fn signature_keypair_generate(
         &self,
         alg_str: &wiggle::GuestPtr<'_, str>,
-        options_handle: &guest_types::OptSignatureOptions,
+        options_handle: &guest_types::OptOptions,
     ) -> Result<guest_types::SignatureKeypair, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let options_handle = match *options_handle {
-            guest_types::OptSignatureOptions::Some(options_handle) => Some(options_handle),
-            guest_types::OptSignatureOptions::None => None,
+            guest_types::OptOptions::Some(options_handle) => Some(options_handle),
+            guest_types::OptOptions::None => None,
         };
         Ok(self
             .ctx

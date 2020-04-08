@@ -55,6 +55,13 @@
   )
 )
 
+(typename $options_type
+  (enum u16
+    $signatures
+    $symmetric
+  )
+)
+
 (typename $version
   (int u64
     ;;; Key doesn't support versioning.
@@ -69,23 +76,19 @@
 (typename $size (@witx usize))
 
 (typename $array_output (handle))
-(typename $signature_options (handle))
+(typename $options (handle))
 (typename $signature_keypair_manager (handle))
 (typename $signature_keypair (handle))
 (typename $signature_state (handle))
 (typename $signature (handle))
 (typename $signature_publickey (handle))
 (typename $signature_verification_state (handle))
-(typename $symmetric_options (handle))
 (typename $symmetric_state (handle))
 (typename $symmetric_key (handle))
 (typename $symmetric_tag (handle))
 
-(typename $opt_signature_options_u (enum u8 $some $none))
-(typename $opt_signature_options (union $opt_signature_options_u (field $some $signature_options) (empty $none)))
-
-(typename $opt_symmetric_options_u (enum u8 $some $none))
-(typename $opt_symmetric_options (union $opt_symmetric_options_u (field $some $symmetric_options) (empty $none)))
+(typename $opt_options_u (enum u8 $some $none))
+(typename $opt_options (union $opt_options_u (field $some $options) (empty $none)))
 
 (typename $opt_symmetric_key_u (enum u8 $some $none))
 (typename $opt_symmetric_key (union $opt_symmetric_key_u (field $some $symmetric_key) (empty $none)))
@@ -111,7 +114,7 @@
 
   ;;; Create a context to construct a key pair.
   (@interface func (export "signature_keypair_manager_open")
-    (param $options $opt_signature_options)
+    (param $options $opt_options)
     (result $error $crypto_errno)
     (result $handle $signature_keypair_manager)
   )
@@ -127,7 +130,7 @@
   ;;; generation is not supported by the host for the chosen algorithm.
   (@interface func (export "signature_keypair_generate")
     (param $algorithm string)
-    (param $options $opt_signature_options)
+    (param $options $opt_options)
     (result $error $crypto_errno)
     (result $handle $signature_keypair)
   )
