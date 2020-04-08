@@ -40,6 +40,10 @@ impl HmacSha2SymmetricKey {
         })
     }
 
+    pub fn alg(&self) -> SymmetricAlgorithm {
+        self.alg
+    }
+
     pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
         Ok(&self.raw)
     }
@@ -78,7 +82,6 @@ impl HmacSha2SymmetricState {
             None => bail!(CryptoError::KeyRequired),
             Some(SymmetricKey::HmacSha2(key)) => key,
         };
-        ensure!(alg == key.alg, CryptoError::InvalidKey);
         let ring_alg = match alg {
             SymmetricAlgorithm::HmacSha256 => ring::hmac::HMAC_SHA256,
             SymmetricAlgorithm::HmacSha512 => ring::hmac::HMAC_SHA512,
@@ -90,6 +93,10 @@ impl HmacSha2SymmetricState {
             alg,
             ring_ctx: Arc::new(Mutex::new(ring_ctx)),
         })
+    }
+
+    pub fn alg(&self) -> SymmetricAlgorithm {
+        self.alg
     }
 
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {

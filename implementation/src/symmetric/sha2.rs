@@ -1,5 +1,4 @@
 use super::*;
-use symmetric_key::*;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -26,6 +25,10 @@ impl Sha2SymmetricState {
         };
         let ring_ctx = ring::digest::Context::new(ring_alg);
         Ok(Sha2SymmetricState { alg, ring_ctx })
+    }
+
+    pub fn alg(&self) -> SymmetricAlgorithm {
+        self.alg
     }
 
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {

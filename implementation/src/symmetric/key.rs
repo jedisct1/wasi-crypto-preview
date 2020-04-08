@@ -6,6 +6,12 @@ pub enum SymmetricKey {
 }
 
 impl SymmetricKey {
+    pub fn alg(&self) -> SymmetricAlgorithm {
+        match self {
+            SymmetricKey::HmacSha2(key) => key.alg(),
+        }
+    }
+
     fn generate(
         alg_str: &str,
         options: Option<SymmetricOptions>,
@@ -58,5 +64,9 @@ impl CryptoCtx {
         let key = SymmetricKey::import(alg_str, raw)?;
         let handle = self.handles.symmetric_key.register(key)?;
         Ok(handle)
+    }
+
+    pub fn symmetric_key_close(&self, symmetric_key_handle: Handle) -> Result<(), CryptoError> {
+        self.handles.symmetric_key.close(symmetric_key_handle)
     }
 }
