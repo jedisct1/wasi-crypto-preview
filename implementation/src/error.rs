@@ -51,6 +51,8 @@ pub enum CryptoError {
     KeyRequired,
     #[error("Authentication tag did not verify")]
     InvalidTag,
+    #[error("Operation invalid for the selected algorithm")]
+    InvalidOperation,
 }
 
 impl From<TryFromIntError> for CryptoError {
@@ -84,6 +86,7 @@ impl From<CryptoError> for guest_types::CryptoErrno {
             CryptoError::KeyNotSupported => guest_types::CryptoErrno::KeyNotSupported,
             CryptoError::KeyRequired => guest_types::CryptoErrno::KeyRequired,
             CryptoError::InvalidTag => guest_types::CryptoErrno::InvalidTag,
+            CryptoError::InvalidOperation => guest_types::CryptoErrno::InvalidOperation,
         }
     }
 }

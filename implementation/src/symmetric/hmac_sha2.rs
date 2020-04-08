@@ -1,13 +1,16 @@
 use super::*;
+
+use parking_lot::Mutex;
 use ring::rand::SecureRandom;
+use std::sync::Arc;
 use zeroize::Zeroize;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
-pub struct HmacSha2SymmetricOp {
+pub struct HmacSha2SymmetricState {
     pub alg: SymmetricAlgorithm,
     #[derivative(Debug = "ignore")]
-    pub ring_ctx: ring::hmac::Context,
+    pub ring_ctx: Arc<Mutex<ring::hmac::Context>>,
 }
 
 #[derive(Clone, Debug, Eq)]
@@ -44,6 +47,7 @@ impl HmacSha2SymmetricKey {
     pub fn generate(
         handles: &HandleManagers,
         alg: SymmetricAlgorithm,
+        _options: Option<SymmetricOptions>,
     ) -> Result<Handle, CryptoError> {
         let key_len = match alg {
             SymmetricAlgorithm::HmacSha256 => ring::digest::SHA256_OUTPUT_LEN,
@@ -69,7 +73,7 @@ impl HmacSha2SymmetricKey {
     }
 }
 
-impl HmacSha2SymmetricOp {
+impl HmacSha2SymmetricState {
     pub fn new(
         alg: SymmetricAlgorithm,
         key: Option<&SymmetricKey>,
@@ -86,14 +90,23 @@ impl HmacSha2SymmetricOp {
         };
         let ring_key = ring::hmac::Key::new(ring_alg, key.as_raw()?);
         let ring_ctx = ring::hmac::Context::with_key(&ring_key);
-        Ok(HmacSha2SymmetricOp { alg, ring_ctx })
+        Ok(HmacSha2SymmetricState {
+            alg,
+            ring_ctx: Arc::new(Mutex::new(ring_ctx)),
+        })
     }
 
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
-        unimplemented!();
+        self.ring_ctx.lock().update(data);
+        Ok(())
     }
 
-    pub fn squeeze(&mut self, len: usize) -> Result<Vec<u8>, CryptoError> {
-        unimplemented!();
+    pub fn squeeze(&mut self, _len: usize) -> Result<Vec<u8>, CryptoError> {
+        bail!(CryptoError::InvalidOperation)
+    }
+
+    pub fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
+        let raw = self.ring_ctx.lock().clone().sign().as_ref().to_vec();
+        Ok(SymmetricTag::new(self.alg, raw))
     }
 }

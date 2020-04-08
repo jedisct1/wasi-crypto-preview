@@ -1,6 +1,7 @@
 mod hmac_sha2;
 mod sha2;
 mod symmetric_key;
+mod tag;
 
 use crate::error::*;
 use crate::handles::*;
@@ -13,6 +14,7 @@ use std::any::Any;
 use std::convert::TryFrom;
 
 pub use symmetric_key::SymmetricKey;
+pub use tag::SymmetricTag;
 
 #[derive(Clone, Debug, Default)]
 pub struct SymmetricOptions {
@@ -76,60 +78,70 @@ impl TryFrom<&str> for SymmetricAlgorithm {
 }
 
 #[derive(Clone, Debug)]
-pub enum SymmetricOp {
-    HmacSha2(HmacSha2SymmetricOp),
-    Sha2(Sha2SymmetricOp),
+pub enum SymmetricState {
+    HmacSha2(HmacSha2SymmetricState),
+    Sha2(Sha2SymmetricState),
 }
 
-impl SymmetricOp {
+impl SymmetricState {
     pub fn alg(self) -> SymmetricAlgorithm {
         match self {
-            SymmetricOp::HmacSha2(op) => op.alg,
-            SymmetricOp::Sha2(op) => op.alg,
+            SymmetricState::HmacSha2(op) => op.alg,
+            SymmetricState::Sha2(op) => op.alg,
         }
     }
 
     fn open(
-        handles: &HandleManagers,
         alg_str: &str,
         key: Option<&SymmetricKey>,
         options: &SymmetricOptions,
-    ) -> Result<Handle, CryptoError> {
+    ) -> Result<SymmetricState, CryptoError> {
         let alg = SymmetricAlgorithm::try_from(alg_str)?;
-        let symmetric_op = match alg {
-            SymmetricAlgorithm::HmacSha256 => {
-                SymmetricOp::HmacSha2(HmacSha2SymmetricOp::new(alg, key, options)?)
+        let symmetric_state = match alg {
+            SymmetricAlgorithm::HmacSha256 | SymmetricAlgorithm::HmacSha512 => {
+                SymmetricState::HmacSha2(HmacSha2SymmetricState::new(alg, key, options)?)
             }
-            SymmetricAlgorithm::HmacSha512 => {
-                SymmetricOp::HmacSha2(HmacSha2SymmetricOp::new(alg, key, options)?)
-            }
-            SymmetricAlgorithm::Sha256 => {
-                SymmetricOp::Sha2(Sha2SymmetricOp::new(alg, None, options)?)
-            }
-            SymmetricAlgorithm::Sha512 => {
-                SymmetricOp::Sha2(Sha2SymmetricOp::new(alg, None, options)?)
-            }
-            SymmetricAlgorithm::Sha512_256 => {
-                SymmetricOp::Sha2(Sha2SymmetricOp::new(alg, None, options)?)
+            SymmetricAlgorithm::Sha256
+            | SymmetricAlgorithm::Sha512
+            | SymmetricAlgorithm::Sha512_256 => {
+                SymmetricState::Sha2(Sha2SymmetricState::new(alg, None, options)?)
             }
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
-        let handle = handles.symmetric_op.register(symmetric_op)?;
-        Ok(handle)
+        Ok(symmetric_state)
+    }
+
+    fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
+        match self {
+            SymmetricState::Sha2(state) => state.absorb(data)?,
+            SymmetricState::HmacSha2(state) => state.absorb(data)?,
+        };
+        Ok(())
     }
 }
 
 impl CryptoCtx {
-    pub fn symmetric_op_open(
+    pub fn symmetric_state_open(
         &self,
         alg_str: &str,
         key: Option<&SymmetricKey>,
         options: SymmetricOptions,
     ) -> Result<Handle, CryptoError> {
-        SymmetricOp::open(&self.handles, alg_str, key, &options)
+        let symmetric_state = SymmetricState::open(alg_str, key, &options)?;
+        let handle = self.handles.symmetric_state.register(symmetric_state)?;
+        Ok(handle)
     }
 
-    pub fn symmetric_op_close(&self, handle: Handle) -> Result<(), CryptoError> {
-        self.handles.symmetric_op.close(handle)
+    pub fn symmetric_state_close(&self, state_handle: Handle) -> Result<(), CryptoError> {
+        self.handles.symmetric_state.close(state_handle)
+    }
+
+    fn absorb(&self, state_handle: Handle, data: &[u8]) -> Result<(), CryptoError> {
+        let state = self.handles.symmetric_state.get(state_handle)?;
+        match state {
+            SymmetricState::Sha2(mut state) => state.absorb(data)?,
+            SymmetricState::HmacSha2(mut state) => state.absorb(data)?,
+        };
+        Ok(())
     }
 }

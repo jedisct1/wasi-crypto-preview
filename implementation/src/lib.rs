@@ -40,8 +40,9 @@ pub struct HandleManagers {
     pub signature_publickey: HandlesManager<SignaturePublicKey>,
     pub signature_verification_state: HandlesManager<ExclusiveSignatureVerificationState>,
     pub symmetric_options: HandlesManager<SymmetricOptions>,
-    pub symmetric_op: HandlesManager<SymmetricOp>,
+    pub symmetric_state: HandlesManager<SymmetricState>,
     pub symmetric_key: HandlesManager<SymmetricKey>,
+    pub symmetric_tag: HandlesManager<SymmetricTag>,
 }
 
 pub struct CryptoCtx {
@@ -65,8 +66,9 @@ impl CryptoCtx {
                 signature_publickey: HandlesManager::new(0x06),
                 signature_verification_state: HandlesManager::new(0x07),
                 symmetric_options: HandlesManager::new(0x08),
-                symmetric_op: HandlesManager::new(0x09),
+                symmetric_state: HandlesManager::new(0x09),
                 symmetric_key: HandlesManager::new(0x0a),
+                symmetric_tag: HandlesManager::new(0x0b),
             },
         }
     }

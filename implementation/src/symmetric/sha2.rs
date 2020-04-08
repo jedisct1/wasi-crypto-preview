@@ -1,16 +1,15 @@
 use super::*;
 use symmetric_key::*;
-use zeroize::Zeroize;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
-pub struct Sha2SymmetricOp {
+pub struct Sha2SymmetricState {
     pub alg: SymmetricAlgorithm,
     #[derivative(Debug = "ignore")]
     pub ring_ctx: ring::digest::Context,
 }
 
-impl Sha2SymmetricOp {
+impl Sha2SymmetricState {
     pub fn new(
         alg: SymmetricAlgorithm,
         key: Option<SymmetricKey>,
@@ -26,7 +25,7 @@ impl Sha2SymmetricOp {
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let ring_ctx = ring::digest::Context::new(ring_alg);
-        Ok(Sha2SymmetricOp { alg, ring_ctx })
+        Ok(Sha2SymmetricState { alg, ring_ctx })
     }
 
     pub fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
@@ -42,5 +41,9 @@ impl Sha2SymmetricOp {
         );
         let out = out.as_ref()[..len].to_vec();
         Ok(out)
+    }
+
+    pub fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
+        bail!(CryptoError::InvalidOperation)
     }
 }

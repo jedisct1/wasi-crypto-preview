@@ -24,6 +24,7 @@
     $key_not_supported
     $key_required
     $invalid_tag
+    $invalid_operation
   )
 )
 
@@ -77,9 +78,16 @@
 (typename $symmetric_options (handle))
 (typename $symmetric_state (handle))
 (typename $symmetric_key (handle))
+(typename $symmetric_tag (handle))
 
 (typename $opt_signature_options_u (enum u8 $some $none))
 (typename $opt_signature_options (union $opt_signature_options_u (field $some $signature_options) (empty $none)))
+
+(typename $opt_symmetric_options_u (enum u8 $some $none))
+(typename $opt_symmetric_options (union $opt_symmetric_options_u (field $some $symmetric_options) (empty $none)))
+
+(typename $opt_symmetric_key_u (enum u8 $some $none))
+(typename $opt_symmetric_key (union $opt_symmetric_key_u (field $some $symmetric_key) (empty $none)))
 
 (module $wasi_ephemeral_crypto
   (import "memory" (memory))
