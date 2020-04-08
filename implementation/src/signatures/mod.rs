@@ -54,7 +54,7 @@ impl OptionsLike for SignatureOptions {
         self
     }
 
-    fn set(&mut self, _name: &str, _value: &str) -> Result<(), CryptoError> {
+    fn set(&mut self, _name: &str, _value: &[u8]) -> Result<(), CryptoError> {
         bail!(CryptoError::UnsupportedOption)
     }
 

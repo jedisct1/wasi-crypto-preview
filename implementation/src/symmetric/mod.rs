@@ -19,8 +19,8 @@ pub use tag::SymmetricTag;
 
 #[derive(Clone, Debug, Default)]
 pub struct SymmetricOptions {
-    context: Option<String>,
-    salt: Option<String>,
+    context: Option<Vec<u8>>,
+    salt: Option<Vec<u8>>,
     memory_limit: Option<u64>,
     ops_limit: Option<u64>,
     parallelism: Option<u64>,
@@ -31,13 +31,13 @@ impl OptionsLike for SymmetricOptions {
         self
     }
 
-    fn set(&mut self, name: &str, value: &str) -> Result<(), CryptoError> {
+    fn set(&mut self, name: &str, value: &[u8]) -> Result<(), CryptoError> {
         let option = match name.to_lowercase().as_str() {
             "context" => &mut self.context,
             "salt" => &mut self.salt,
             _ => bail!(CryptoError::UnsupportedOption),
         };
-        *option = Some(value.to_string());
+        *option = Some(value.to_vec());
         Ok(())
     }
 
