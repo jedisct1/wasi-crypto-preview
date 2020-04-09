@@ -52,7 +52,7 @@ pub trait SymmetricAlgorithmStateLike {
         bail!(CryptoError::InvalidOperation)
     }
 
-    fn ratchet(&mut self) -> Result<Vec<u8>, CryptoError> {
+    fn ratchet(&mut self) -> Result<(), CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 }
@@ -193,6 +193,14 @@ impl SymmetricState {
         };
         Ok(out)
     }
+
+    fn ratchet(&mut self) -> Result<(), CryptoError> {
+        match self {
+            SymmetricState::Sha2(state) => state.ratchet(),
+            SymmetricState::HmacSha2(state) => state.ratchet(),
+            SymmetricState::AesGcm(state) => state.ratchet(),
+        }
+    }
 }
 
 impl CryptoCtx {
@@ -293,6 +301,11 @@ impl CryptoCtx {
     ) -> Result<usize, CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
         symmetric_state.decrypt_detached(out, data, raw_tag)
+    }
+
+    pub fn ratchet(&mut self, state_handle: Handle) -> Result<(), CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        symmetric_state.ratchet()
     }
 }
 
