@@ -58,7 +58,7 @@ impl CryptoCtx {
         CryptoCtx {
             handles: HandleManagers {
                 array_output: HandlesManager::new(0x00),
-                options: HandlesManager::new(0xff),
+                options: HandlesManager::new(0x01),
                 signature_keypair_manager: HandlesManager::new(0x02),
                 signature_keypair: HandlesManager::new(0x03),
                 signature_state: HandlesManager::new(0x04),
