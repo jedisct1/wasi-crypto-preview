@@ -169,14 +169,6 @@ fn test_hmac() {
     ctx.symmetric_state_close(state_handle).unwrap();
     ctx.symmetric_key_close(key_handle).unwrap();
     ctx.symmetric_tag_close(tag_handle).unwrap();
-
-    //
-
-    fn tag_to_vec(ctx: &CryptoCtx, symmetric_tag: Handle) -> Result<Vec<u8>, CryptoError> {
-        let mut bytes = vec![0u8; ctx.symmetric_tag_len(symmetric_tag)?];
-        ctx.symmetric_tag_pull(symmetric_tag, &mut bytes)?;
-        Ok(bytes)
-    }
 }
 
 #[test]
@@ -219,17 +211,26 @@ fn test_encryption() {
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
     let mut ciphertext = vec![0u8; msg.len()];
-    let tag = ctx
+    let tag_handle = ctx
         .symmetric_state_encrypt_detached(symmetric_state, &mut ciphertext, msg)
         .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
+
+    let raw_tag = tag_to_vec(&ctx, tag_handle).unwrap();
 
     let symmetric_state = ctx
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
     let mut msg2 = vec![0u8; msg.len()];
-    ctx.symmetric_state_decrypt_detached(symmetric_state, &mut msg2, &ciphertext, tag.as_ref())
+    ctx.symmetric_state_decrypt_detached(symmetric_state, &mut msg2, &ciphertext, &raw_tag)
         .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
     assert_eq!(msg, &msg2[..]);
+}
+
+#[cfg(test)]
+fn tag_to_vec(ctx: &crate::CryptoCtx, symmetric_tag: Handle) -> Result<Vec<u8>, CryptoError> {
+    let mut bytes = vec![0u8; ctx.symmetric_tag_len(symmetric_tag)?];
+    ctx.symmetric_tag_pull(symmetric_tag, &mut bytes)?;
+    Ok(bytes)
 }

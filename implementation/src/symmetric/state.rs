@@ -17,7 +17,7 @@ pub trait SymmetricAlgorithmStateLike {
         bail!(CryptoError::InvalidOperation)
     }
 
-    fn squeeze_key(&mut self, _len: usize) -> Result<Vec<u8>, CryptoError> {
+    fn squeeze_key(&mut self, _out: &mut [u8]) -> Result<(), CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 
@@ -144,6 +144,15 @@ impl SymmetricState {
         Ok(tag)
     }
 
+    fn squeeze_key(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {
+        let tag = match self {
+            SymmetricState::Sha2(state) => state.squeeze_key(out)?,
+            SymmetricState::HmacSha2(state) => state.squeeze_key(out)?,
+            SymmetricState::AesGcm(state) => state.squeeze_key(out)?,
+        };
+        Ok(tag)
+    }
+
     fn max_tag_len(&mut self) -> Result<usize, CryptoError> {
         let tag = match self {
             SymmetricState::Sha2(state) => state.max_tag_len()?,
@@ -247,11 +256,11 @@ impl CryptoCtx {
 
     pub fn symmetric_state_options_get(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         name: &str,
         value: &mut [u8],
     ) -> Result<usize, CryptoError> {
-        let symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         let v = symmetric_state.options_get(name)?;
         let v_len = v.len();
         ensure!(v_len <= value.len(), CryptoError::Overflow);
@@ -261,92 +270,112 @@ impl CryptoCtx {
 
     pub fn symmetric_state_options_get_u64(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         name: &str,
     ) -> Result<u64, CryptoError> {
-        let symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         let v = symmetric_state.options_get_u64(name)?;
         Ok(v)
     }
 
-    pub fn symmetric_state_close(&self, state_handle: Handle) -> Result<(), CryptoError> {
-        self.handles.symmetric_state.close(state_handle)
+    pub fn symmetric_state_close(&self, symmetric_state_handle: Handle) -> Result<(), CryptoError> {
+        self.handles.symmetric_state.close(symmetric_state_handle)
     }
 
     pub fn symmetric_state_absorb(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         data: &[u8],
     ) -> Result<(), CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         symmetric_state.absorb(data)
     }
 
     pub fn symmetric_state_squeeze(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         out: &mut [u8],
     ) -> Result<(), CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         symmetric_state.squeeze(out)
     }
 
-    pub fn symmetric_state_squeeze_tag(&self, state_handle: Handle) -> Result<Handle, CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+    pub fn symmetric_state_squeeze_tag(
+        &self,
+        symmetric_state_handle: Handle,
+    ) -> Result<Handle, CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         let tag = symmetric_state.squeeze_tag()?;
         let handle = self.handles.symmetric_tag.register(tag)?;
         Ok(handle)
     }
 
-    pub fn symmetric_state_max_tag_len(&self, state_handle: Handle) -> Result<usize, CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+    pub fn symmetric_state_squeeze_key(
+        &self,
+        symmetric_state_handle: Handle,
+        out: &mut [u8],
+    ) -> Result<(), CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
+        symmetric_state.squeeze_key(out)
+    }
+
+    pub fn symmetric_state_max_tag_len(
+        &self,
+        symmetric_state_handle: Handle,
+    ) -> Result<usize, CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         let max_tag_len = symmetric_state.max_tag_len()?;
         Ok(max_tag_len)
     }
 
     pub fn symmetric_state_encrypt(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         out: &mut [u8],
         data: &[u8],
     ) -> Result<usize, CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         symmetric_state.encrypt(out, data)
     }
 
     pub fn symmetric_state_encrypt_detached(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         out: &mut [u8],
         data: &[u8],
-    ) -> Result<SymmetricTag, CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
-        symmetric_state.encrypt_detached(out, data)
+    ) -> Result<Handle, CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
+        let symmetric_tag = symmetric_state.encrypt_detached(out, data)?;
+        let handle = self.handles.symmetric_tag.register(symmetric_tag)?;
+        Ok(handle)
     }
 
     pub fn symmetric_state_decrypt(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         out: &mut [u8],
         data: &[u8],
     ) -> Result<usize, CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         symmetric_state.decrypt(out, data)
     }
 
     pub fn symmetric_state_decrypt_detached(
         &self,
-        state_handle: Handle,
+        symmetric_state_handle: Handle,
         out: &mut [u8],
         data: &[u8],
         raw_tag: &[u8],
     ) -> Result<usize, CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         symmetric_state.decrypt_detached(out, data, raw_tag)
     }
 
-    pub fn ratchet(&mut self, state_handle: Handle) -> Result<(), CryptoError> {
-        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+    pub fn symmetric_state_ratchet(
+        &self,
+        symmetric_state_handle: Handle,
+    ) -> Result<(), CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
         symmetric_state.ratchet()
     }
 }
@@ -409,5 +438,169 @@ impl WasiCryptoCtx {
             .ctx
             .options_get_u64(symmetric_state_handle.into(), name_str)?
             .into())
+    }
+
+    pub fn symmetric_state_close(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+    ) -> Result<(), CryptoError> {
+        self.ctx
+            .symmetric_state_close(symmetric_state_handle.into())
+    }
+
+    pub fn symmetric_state_absorb(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        data_ptr: &wiggle::GuestPtr<'_, u8>,
+        data_len: guest_types::Size,
+    ) -> Result<(), CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let data: &[u8] = unsafe { &*data_ptr.as_array(data_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_state_absorb(symmetric_state_handle.into(), data)?
+            .into())
+    }
+
+    pub fn symmetric_state_squeeze(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        out_ptr: &wiggle::GuestPtr<'_, u8>,
+        out_len: guest_types::Size,
+    ) -> Result<(), CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let out: &mut [u8] =
+            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_state_squeeze(symmetric_state_handle.into(), out)?
+            .into())
+    }
+
+    pub fn symmetric_state_squeeze_tag(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        out_ptr: &wiggle::GuestPtr<'_, u8>,
+        out_len: guest_types::Size,
+    ) -> Result<(), CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let out: &mut [u8] =
+            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_state_squeeze(symmetric_state_handle.into(), out)?
+            .into())
+    }
+
+    pub fn symmetric_state_squeeze_key(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        out_ptr: &wiggle::GuestPtr<'_, u8>,
+        out_len: guest_types::Size,
+    ) -> Result<(), CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let out: &mut [u8] =
+            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_state_squeeze_key(symmetric_state_handle.into(), out)?
+            .into())
+    }
+
+    pub fn symmetric_state_max_tag_len(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+    ) -> Result<guest_types::Size, CryptoError> {
+        Ok(self
+            .ctx
+            .symmetric_state_max_tag_len(symmetric_state_handle.into())?
+            .try_into()?)
+    }
+
+    pub fn symmetric_state_encrypt(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        out_ptr: &wiggle::GuestPtr<'_, u8>,
+        out_len: guest_types::Size,
+        data_ptr: &wiggle::GuestPtr<'_, u8>,
+        data_len: guest_types::Size,
+    ) -> Result<usize, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let out: &mut [u8] =
+            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        let data: &[u8] = unsafe { &*data_ptr.as_array(data_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_state_encrypt(symmetric_state_handle.into(), out, data)?
+            .into())
+    }
+
+    pub fn symmetric_state_encrypt_detached(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        out_ptr: &wiggle::GuestPtr<'_, u8>,
+        out_len: guest_types::Size,
+        data_ptr: &wiggle::GuestPtr<'_, u8>,
+        data_len: guest_types::Size,
+    ) -> Result<guest_types::SymmetricTag, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let out: &mut [u8] =
+            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        let data: &[u8] = unsafe { &*data_ptr.as_array(data_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_state_encrypt_detached(symmetric_state_handle.into(), out, data)?
+            .into())
+    }
+
+    pub fn symmetric_state_decrypt(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        out_ptr: &wiggle::GuestPtr<'_, u8>,
+        out_len: guest_types::Size,
+        data_ptr: &wiggle::GuestPtr<'_, u8>,
+        data_len: guest_types::Size,
+    ) -> Result<usize, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let out: &mut [u8] =
+            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        let data: &[u8] = unsafe { &*data_ptr.as_array(data_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_state_decrypt(symmetric_state_handle.into(), out, data)?
+            .into())
+    }
+
+    pub fn symmetric_state_decrypt_detached(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        out_ptr: &wiggle::GuestPtr<'_, u8>,
+        out_len: guest_types::Size,
+        data_ptr: &wiggle::GuestPtr<'_, u8>,
+        data_len: guest_types::Size,
+        raw_tag_ptr: &wiggle::GuestPtr<'_, u8>,
+        raw_tag_len: guest_types::Size,
+    ) -> Result<usize, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let out: &mut [u8] =
+            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        let data: &[u8] = unsafe { &*data_ptr.as_array(data_len as _).as_raw(&mut guest_borrow)? };
+        let raw_tag: &[u8] = unsafe {
+            &*raw_tag_ptr
+                .as_array(raw_tag_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .symmetric_state_decrypt_detached(symmetric_state_handle.into(), out, data, raw_tag)?
+            .into())
+    }
+
+    pub fn symmetric_state_ratchet(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+    ) -> Result<(), CryptoError> {
+        self.ctx
+            .symmetric_state_ratchet(symmetric_state_handle.into())
     }
 }
