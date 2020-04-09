@@ -43,7 +43,12 @@ pub trait SymmetricAlgorithmStateLike {
         bail!(CryptoError::InvalidOperation)
     }
 
-    fn decrypt_detached(&mut self, _data: &[u8], _raw_tag: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn decrypt_detached(
+        &mut self,
+        _out: &mut [u8],
+        _data: &[u8],
+        _raw_tag: &[u8],
+    ) -> Result<usize, CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 
@@ -158,6 +163,14 @@ impl SymmetricState {
     }
 
     fn decrypt(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
+        ensure!(
+            out.len()
+                >= data
+                    .len()
+                    .checked_sub(self.max_tag_len()?)
+                    .ok_or(CryptoError::Overflow)?,
+            CryptoError::Overflow
+        );
         let out_len = match self {
             SymmetricState::Sha2(state) => state.decrypt(out, data)?,
             SymmetricState::HmacSha2(state) => state.decrypt(out, data)?,
@@ -166,11 +179,17 @@ impl SymmetricState {
         Ok(out_len)
     }
 
-    fn decrypt_detached(&mut self, data: &[u8], raw_tag: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn decrypt_detached(
+        &mut self,
+        out: &mut [u8],
+        data: &[u8],
+        raw_tag: &[u8],
+    ) -> Result<usize, CryptoError> {
+        ensure!(out.len() >= data.len(), CryptoError::Overflow);
         let out = match self {
-            SymmetricState::Sha2(state) => state.decrypt_detached(data, raw_tag)?,
-            SymmetricState::HmacSha2(state) => state.decrypt_detached(data, raw_tag)?,
-            SymmetricState::AesGcm(state) => state.decrypt_detached(data, raw_tag)?,
+            SymmetricState::Sha2(state) => state.decrypt_detached(out, data, raw_tag)?,
+            SymmetricState::HmacSha2(state) => state.decrypt_detached(out, data, raw_tag)?,
+            SymmetricState::AesGcm(state) => state.decrypt_detached(out, data, raw_tag)?,
         };
         Ok(out)
     }
@@ -268,11 +287,12 @@ impl CryptoCtx {
     pub fn symmetric_state_decrypt_detached(
         &self,
         state_handle: Handle,
+        out: &mut [u8],
         data: &[u8],
         raw_tag: &[u8],
-    ) -> Result<Vec<u8>, CryptoError> {
+    ) -> Result<usize, CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
-        symmetric_state.decrypt_detached(data, raw_tag)
+        symmetric_state.decrypt_detached(out, data, raw_tag)
     }
 }
 
