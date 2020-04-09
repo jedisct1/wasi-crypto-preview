@@ -23,11 +23,19 @@ pub trait SymmetricAlgorithmStateLike {
         bail!(CryptoError::InvalidOperation)
     }
 
-    fn encrypt(&mut self, _data: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn max_tag_len(&mut self) -> Result<usize, CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 
-    fn encrypt_detached(&mut self, _data: &[u8]) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
+    fn encrypt(&mut self, _out: &mut [u8], _data: &[u8]) -> Result<usize, CryptoError> {
+        bail!(CryptoError::InvalidOperation)
+    }
+
+    fn encrypt_detached(
+        &mut self,
+        _out: &mut [u8],
+        _data: &[u8],
+    ) -> Result<SymmetricTag, CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 
@@ -113,22 +121,40 @@ impl SymmetricState {
         Ok(tag)
     }
 
-    fn encrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn max_tag_len(&mut self) -> Result<usize, CryptoError> {
+        let tag = match self {
+            SymmetricState::Sha2(state) => state.max_tag_len()?,
+            SymmetricState::HmacSha2(state) => state.max_tag_len()?,
+            SymmetricState::AesGcm(state) => state.max_tag_len()?,
+        };
+        Ok(tag)
+    }
+
+    fn encrypt(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
+        ensure!(
+            out.len() >= data.len() + self.max_tag_len()?,
+            CryptoError::Overflow
+        );
         let out = match self {
-            SymmetricState::Sha2(state) => state.encrypt(data)?,
-            SymmetricState::HmacSha2(state) => state.encrypt(data)?,
-            SymmetricState::AesGcm(state) => state.encrypt(data)?,
+            SymmetricState::Sha2(state) => state.encrypt(out, data)?,
+            SymmetricState::HmacSha2(state) => state.encrypt(out, data)?,
+            SymmetricState::AesGcm(state) => state.encrypt(out, data)?,
         };
         Ok(out)
     }
 
-    fn encrypt_detached(&mut self, data: &[u8]) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
-        let (out, symmetric_tag) = match self {
-            SymmetricState::Sha2(state) => state.encrypt_detached(data)?,
-            SymmetricState::HmacSha2(state) => state.encrypt_detached(data)?,
-            SymmetricState::AesGcm(state) => state.encrypt_detached(data)?,
+    fn encrypt_detached(
+        &mut self,
+        out: &mut [u8],
+        data: &[u8],
+    ) -> Result<SymmetricTag, CryptoError> {
+        ensure!(out.len() >= data.len(), CryptoError::Overflow);
+        let symmetric_tag = match self {
+            SymmetricState::Sha2(state) => state.encrypt_detached(out, data)?,
+            SymmetricState::HmacSha2(state) => state.encrypt_detached(out, data)?,
+            SymmetricState::AesGcm(state) => state.encrypt_detached(out, data)?,
         };
-        Ok((out, symmetric_tag))
+        Ok(symmetric_tag)
     }
 
     fn decrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
@@ -203,25 +229,33 @@ impl CryptoCtx {
         Ok(handle)
     }
 
-    pub fn symmetric_encrypt(
-        &self,
-        state_handle: Handle,
-        data: &[u8],
-    ) -> Result<Vec<u8>, CryptoError> {
+    pub fn symmetric_state_max_tag_len(&self, state_handle: Handle) -> Result<usize, CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
-        symmetric_state.encrypt(data)
+        let max_tag_len = symmetric_state.max_tag_len()?;
+        Ok(max_tag_len)
     }
 
-    pub fn symmetric_encrypt_detached(
+    pub fn symmetric_state_encrypt(
         &self,
         state_handle: Handle,
+        out: &mut [u8],
         data: &[u8],
-    ) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
+    ) -> Result<usize, CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
-        symmetric_state.encrypt_detached(data)
+        symmetric_state.encrypt(out, data)
     }
 
-    pub fn symmetric_decrypt(
+    pub fn symmetric_state_encrypt_detached(
+        &self,
+        state_handle: Handle,
+        out: &mut [u8],
+        data: &[u8],
+    ) -> Result<SymmetricTag, CryptoError> {
+        let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        symmetric_state.encrypt_detached(out, data)
+    }
+
+    pub fn symmetric_state_decrypt(
         &self,
         state_handle: Handle,
         data: &[u8],
@@ -230,7 +264,7 @@ impl CryptoCtx {
         symmetric_state.decrypt(data)
     }
 
-    pub fn symmetric_decrypt_detached(
+    pub fn symmetric_state_decrypt_detached(
         &self,
         state_handle: Handle,
         data: &[u8],

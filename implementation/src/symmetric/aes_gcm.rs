@@ -154,27 +154,36 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
         Ok(())
     }
 
-    fn encrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
-        let mut out = data.to_vec();
+    fn max_tag_len(&mut self) -> Result<usize, CryptoError> {
+        Ok(ring::aead::MAX_TAG_LEN)
+    }
+
+    fn encrypt(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
+        let mut in_out = data.to_vec();
         let mut inner = self.inner.lock();
         let ring_ad = ring::aead::Aad::from(inner.ad.clone());
         inner
             .ring_sealing_key
-            .seal_in_place_append_tag(ring_ad, &mut out)
+            .seal_in_place_append_tag(ring_ad, &mut in_out)
             .map_err(|_| CryptoError::AlgorithmFailure)?;
-        Ok(out)
+        out.copy_from_slice(&in_out);
+        Ok(out.len())
     }
 
-    fn encrypt_detached(&mut self, data: &[u8]) -> Result<(Vec<u8>, SymmetricTag), CryptoError> {
-        let mut out = data.to_vec();
+    fn encrypt_detached(
+        &mut self,
+        out: &mut [u8],
+        data: &[u8],
+    ) -> Result<SymmetricTag, CryptoError> {
+        out[..data.len()].copy_from_slice(data);
         let mut inner = self.inner.lock();
         let ring_ad = ring::aead::Aad::from(inner.ad.clone());
         let ring_tag = inner
             .ring_sealing_key
-            .seal_in_place_separate_tag(ring_ad, &mut out)
+            .seal_in_place_separate_tag(ring_ad, out)
             .map_err(|_| CryptoError::AlgorithmFailure)?;
         let symmetric_tag = SymmetricTag::new(self.alg, ring_tag.as_ref().to_vec());
-        Ok((out, symmetric_tag))
+        Ok(symmetric_tag)
     }
 
     fn decrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {

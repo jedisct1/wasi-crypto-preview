@@ -137,9 +137,11 @@ fn test_hmac() {
     ctx.symmetric_state_absorb(state_handle, b"data").unwrap();
     ctx.symmetric_state_absorb(state_handle, b"more_data")
         .unwrap();
-    let tag_handle = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
 
+    let tag_handle = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
     let raw_tag = tag_to_vec(&ctx, tag_handle).unwrap();
+
+    let tag_handle = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
     ctx.symmetric_tag_verify(tag_handle, &raw_tag).unwrap();
 
     ctx.symmetric_state_close(state_handle).unwrap();
@@ -171,14 +173,17 @@ fn test_encryption() {
     let symmetric_state = ctx
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
-    let ciphertext_with_tag = ctx.symmetric_encrypt(symmetric_state, msg).unwrap();
+    let mut ciphertext_with_tag =
+        vec![0u8; msg.len() + ctx.symmetric_state_max_tag_len(symmetric_state).unwrap()];
+    ctx.symmetric_state_encrypt(symmetric_state, &mut ciphertext_with_tag, msg)
+        .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
 
     let symmetric_state = ctx
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
     let msg2 = ctx
-        .symmetric_decrypt(symmetric_state, &ciphertext_with_tag)
+        .symmetric_state_decrypt(symmetric_state, &ciphertext_with_tag)
         .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
     assert_eq!(msg, &msg2[..]);
@@ -186,8 +191,9 @@ fn test_encryption() {
     let symmetric_state = ctx
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
-    let (ciphertext, tag) = ctx
-        .symmetric_encrypt_detached(symmetric_state, msg)
+    let mut ciphertext = vec![0u8; msg.len()];
+    let tag = ctx
+        .symmetric_state_encrypt_detached(symmetric_state, &mut ciphertext, msg)
         .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
 
@@ -195,7 +201,7 @@ fn test_encryption() {
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
     let msg2 = ctx
-        .symmetric_decrypt_detached(symmetric_state, &ciphertext, tag.as_ref())
+        .symmetric_state_decrypt_detached(symmetric_state, &ciphertext, tag.as_ref())
         .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
     assert_eq!(msg, &msg2[..]);
