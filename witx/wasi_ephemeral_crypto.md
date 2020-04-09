@@ -177,6 +177,7 @@ Perform an operation over all versions of a key.
 ---
 
 #### <a href="#options_open" name="options_open"></a> `options_open(options_type: options_type) -> (crypto_errno, options)`
+Create a new object to set options.
 
 ##### Params
 - <a href="#options_open.options_type" name="options_open.options_type"></a> `options_type`: [`options_type`](#options_type)
@@ -190,6 +191,7 @@ Perform an operation over all versions of a key.
 ---
 
 #### <a href="#options_close" name="options_close"></a> `options_close(handle: options) -> crypto_errno`
+Destroy an options object.
 
 ##### Params
 - <a href="#options_close.handle" name="options_close.handle"></a> `handle`: [`options`](#options)
@@ -201,6 +203,7 @@ Perform an operation over all versions of a key.
 ---
 
 #### <a href="#options_set" name="options_set"></a> `options_set(handle: options, name: string, value: ConstPointer<u8>, value_len: size) -> crypto_errno`
+Set or update an option.
 
 ##### Params
 - <a href="#options_set.handle" name="options_set.handle"></a> `handle`: [`options`](#options)
@@ -218,6 +221,7 @@ Perform an operation over all versions of a key.
 ---
 
 #### <a href="#options_set_u64" name="options_set_u64"></a> `options_set_u64(handle: options, name: string, value: u64) -> crypto_errno`
+Set or update an integer option.
 
 ##### Params
 - <a href="#options_set_u64.handle" name="options_set_u64.handle"></a> `handle`: [`options`](#options)
@@ -680,14 +684,17 @@ The handle becomes invalid after this operation.
 
 ---
 
-#### <a href="#symmetric_tag_verify" name="symmetric_tag_verify"></a> `symmetric_tag_verify(symmetric_tag: symmetric_tag, expected_raw_ptr: ConstPointer<u8>, expected_raw_len: size) -> crypto_errno`
+#### <a href="#symmetric_tag_verify" name="symmetric_tag_verify"></a> `symmetric_tag_verify(symmetric_tag: symmetric_tag, expected_raw_tag_ptr: ConstPointer<u8>, expected_raw_tag_len: size) -> crypto_errno`
+Verity that a computed tag matches an expected tag.
+The reference tag is an object, but the expected tag
+is a raw byte string.
 
 ##### Params
 - <a href="#symmetric_tag_verify.symmetric_tag" name="symmetric_tag_verify.symmetric_tag"></a> `symmetric_tag`: [`symmetric_tag`](#symmetric_tag)
 
-- <a href="#symmetric_tag_verify.expected_raw_ptr" name="symmetric_tag_verify.expected_raw_ptr"></a> `expected_raw_ptr`: `ConstPointer<u8>`
+- <a href="#symmetric_tag_verify.expected_raw_tag_ptr" name="symmetric_tag_verify.expected_raw_tag_ptr"></a> `expected_raw_tag_ptr`: `ConstPointer<u8>`
 
-- <a href="#symmetric_tag_verify.expected_raw_len" name="symmetric_tag_verify.expected_raw_len"></a> `expected_raw_len`: [`size`](#size)
+- <a href="#symmetric_tag_verify.expected_raw_tag_len" name="symmetric_tag_verify.expected_raw_tag_len"></a> `expected_raw_tag_len`: [`size`](#size)
 
 ##### Results
 - <a href="#symmetric_tag_verify.error" name="symmetric_tag_verify.error"></a> `error`: [`crypto_errno`](#crypto_errno)
@@ -856,6 +863,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_options_get" name="symmetric_state_options_get"></a> `symmetric_state_options_get(handle: symmetric_state, name: string, value: Pointer<u8>, value_max_len: size) -> (crypto_errno, size)`
+Retrieve a parameter from the current state.
+In particular, `symmetric_state_options_get("nonce")` can be used
+to get a nonce that as automatically generated.
 
 ##### Params
 - <a href="#symmetric_state_options_get.handle" name="symmetric_state_options_get.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -875,6 +885,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_options_get_u64" name="symmetric_state_options_get_u64"></a> `symmetric_state_options_get_u64(handle: symmetric_state, name: string) -> (crypto_errno, u64)`
+Retrieve an integer parameter from the current state.
+In particular, `symmetric_state_options_get("nonce")` can be used
+to get a nonce that as automatically generated.
 
 ##### Params
 - <a href="#symmetric_state_options_get_u64.handle" name="symmetric_state_options_get_u64.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -890,6 +903,7 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_close" name="symmetric_state_close"></a> `symmetric_state_close(handle: symmetric_state) -> crypto_errno`
+Destroy a symmetric state.
 
 ##### Params
 - <a href="#symmetric_state_close.handle" name="symmetric_state_close.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -901,6 +915,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_absorb" name="symmetric_state_absorb"></a> `symmetric_state_absorb(handle: symmetric_state, data: ConstPointer<u8>, data_len: size) -> crypto_errno`
+Absorb data into the state.
+This can be data to be hashed for a hash function,
+or additional data for an AEAD.
 
 ##### Params
 - <a href="#symmetric_state_absorb.handle" name="symmetric_state_absorb.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -916,6 +933,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_squeeze" name="symmetric_state_squeeze"></a> `symmetric_state_squeeze(handle: symmetric_state, out: Pointer<u8>, out_len: size) -> crypto_errno`
+Squeeze bytes from the state.
+This can be the output of a hash function (with limits on
+the output length), a XOF, a stream cipher or a KDF.
 
 ##### Params
 - <a href="#symmetric_state_squeeze.handle" name="symmetric_state_squeeze.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -931,6 +951,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_squeeze_tag" name="symmetric_state_squeeze_tag"></a> `symmetric_state_squeeze_tag(handle: symmetric_state) -> (crypto_errno, symmetric_tag)`
+Compute and return a tag for all the data injected into
+the state so far. This can be a MAC or a self-contained
+verification tag for a password hashing function.
 
 ##### Params
 - <a href="#symmetric_state_squeeze_tag.handle" name="symmetric_state_squeeze_tag.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -944,6 +967,7 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_squeeze_key" name="symmetric_state_squeeze_key"></a> `symmetric_state_squeeze_key(handle: symmetric_state, raw: Pointer<u8>, raw_len: size) -> crypto_errno`
+Compute a new key.
 
 ##### Params
 - <a href="#symmetric_state_squeeze_key.handle" name="symmetric_state_squeeze_key.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -959,6 +983,7 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_max_tag_len" name="symmetric_state_max_tag_len"></a> `symmetric_state_max_tag_len(handle: symmetric_state) -> (crypto_errno, size)`
+Return the maximum length of a for the current algorithm.
 
 ##### Params
 - <a href="#symmetric_state_max_tag_len.handle" name="symmetric_state_max_tag_len.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -972,6 +997,13 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_encrypt" name="symmetric_state_encrypt"></a> `symmetric_state_encrypt(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size) -> (crypto_errno, size)`
+Encrypt data.
+With authenticated encryption, the output will include
+the authentication tag. Therefore, `$out_len` must be
+at least `symmetric_state_max_tag_len()` byte larger than
+the input.
+If `out` and `data` are the same address, encryption may
+happen in-place.
 
 ##### Params
 - <a href="#symmetric_state_encrypt.handle" name="symmetric_state_encrypt.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -993,6 +1025,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_encrypt_detached" name="symmetric_state_encrypt_detached"></a> `symmetric_state_encrypt_detached(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size) -> (crypto_errno, symmetric_tag)`
+Encrypt data, with a detached tag.
+If `out` and `data` are the same address, encryption may
+happen in-place.
 
 ##### Params
 - <a href="#symmetric_state_encrypt_detached.handle" name="symmetric_state_encrypt_detached.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1014,6 +1049,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_decrypt" name="symmetric_state_decrypt"></a> `symmetric_state_decrypt(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size) -> (crypto_errno, size)`
+Decrypt data with an attached tag.
+If `out` and `data` are the same address, decryption may
+happen in-place.
 
 ##### Params
 - <a href="#symmetric_state_decrypt.handle" name="symmetric_state_decrypt.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1035,6 +1073,9 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_decrypt_detached" name="symmetric_state_decrypt_detached"></a> `symmetric_state_decrypt_detached(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size, raw_tag: ConstPointer<u8>, raw_tag_len: size) -> (crypto_errno, size)`
+Decrypt data with a detached tag.
+If `out` and `data` are the same address, decryption may
+happen in-place.
 
 ##### Params
 - <a href="#symmetric_state_decrypt_detached.handle" name="symmetric_state_decrypt_detached.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1060,6 +1101,7 @@ $version.latest or $version.all .
 ---
 
 #### <a href="#symmetric_state_ratchet" name="symmetric_state_ratchet"></a> `symmetric_state_ratchet(handle: symmetric_state) -> crypto_errno`
+Make it impossible to recover the previous state.
 
 ##### Params
 - <a href="#symmetric_state_ratchet.handle" name="symmetric_state_ratchet.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)

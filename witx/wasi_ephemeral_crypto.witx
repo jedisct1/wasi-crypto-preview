@@ -98,17 +98,20 @@
 (module $wasi_ephemeral_crypto
   (import "memory" (memory))
 
+  ;;; Create a new object to set options.
   (@interface func (export "options_open")
     (param $options_type $options_type)
     (result $error $crypto_errno)
     (result $handle $options)
   )
 
+  ;;; Destroy an options object.
   (@interface func (export "options_close")
     (param $handle $options)
     (result $error $crypto_errno)
   )
 
+  ;;; Set or update an option.
   (@interface func (export "options_set")
     (param $handle $options)
     (param $name string)
@@ -117,6 +120,7 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Set or update an integer option.
   (@interface func (export "options_set_u64")
     (param $handle $options)
     (param $name string)
@@ -366,10 +370,13 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Verity that a computed tag matches an expected tag.
+  ;;; The reference tag is an object, but the expected tag
+  ;;; is a raw byte string.
   (@interface func (export "symmetric_tag_verify")
     (param $symmetric_tag $symmetric_tag)
-    (param $expected_raw_ptr (@witx const_pointer u8))
-    (param $expected_raw_len $size)
+    (param $expected_raw_tag_ptr (@witx const_pointer u8))
+    (param $expected_raw_tag_len $size)
     (result $error $crypto_errno)
   )
 
@@ -462,6 +469,9 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Retrieve a parameter from the current state.
+  ;;; In particular, `symmetric_state_options_get("nonce")` can be used
+  ;;; to get a nonce that as automatically generated.
   (@interface func (export "symmetric_state_options_get")
     (param $handle $symmetric_state)
     (param $name string)
@@ -471,6 +481,9 @@
     (result $value_len $size)
   )
 
+  ;;; Retrieve an integer parameter from the current state.
+  ;;; In particular, `symmetric_state_options_get("nonce")` can be used
+  ;;; to get a nonce that as automatically generated.
   (@interface func (export "symmetric_state_options_get_u64")
     (param $handle $symmetric_state)
     (param $name string)
@@ -478,11 +491,15 @@
     (result $value u64)
   )
 
+  ;;; Destroy a symmetric state.
   (@interface func (export "symmetric_state_close")
     (param $handle $symmetric_state)
     (result $error $crypto_errno)
   )
 
+  ;;; Absorb data into the state.
+  ;;; This can be data to be hashed for a hash function,
+  ;;; or additional data for an AEAD.
   (@interface func (export "symmetric_state_absorb")
     (param $handle $symmetric_state)
     (param $data (@witx const_pointer u8))
@@ -490,6 +507,9 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Squeeze bytes from the state.
+  ;;; This can be the output of a hash function (with limits on
+  ;;; the output length), a XOF, a stream cipher or a KDF.
   (@interface func (export "symmetric_state_squeeze")
     (param $handle $symmetric_state)
     (param $out (@witx pointer u8))
@@ -497,12 +517,16 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Compute and return a tag for all the data injected into
+  ;;; the state so far. This can be a MAC or a self-contained
+  ;;; verification tag for a password hashing function.
   (@interface func (export "symmetric_state_squeeze_tag")
     (param $handle $symmetric_state)
     (result $error $crypto_errno)
     (result $symmetric_tag $symmetric_tag)
   )
 
+  ;;; Compute a new key.
   (@interface func (export "symmetric_state_squeeze_key")
     (param $handle $symmetric_state)
     (param $raw (@witx pointer u8))
@@ -510,12 +534,20 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Return the maximum length of a for the current algorithm.
   (@interface func (export "symmetric_state_max_tag_len")
     (param $handle $symmetric_state)
     (result $error $crypto_errno)
     (result $len $size)
   )
 
+  ;;; Encrypt data.
+  ;;; With authenticated encryption, the output will include
+  ;;; the authentication tag. Therefore, `$out_len` must be
+  ;;; at least `symmetric_state_max_tag_len()` byte larger than
+  ;;; the input.
+  ;;; If `out` and `data` are the same address, encryption may
+  ;;; happen in-place.
   (@interface func (export "symmetric_state_encrypt")
     (param $handle $symmetric_state)
     (param $out (@witx pointer u8))
@@ -526,6 +558,9 @@
     (result $actual_out_len $size)
   )
 
+  ;;; Encrypt data, with a detached tag.
+  ;;; If `out` and `data` are the same address, encryption may
+  ;;; happen in-place.
   (@interface func (export "symmetric_state_encrypt_detached")
     (param $handle $symmetric_state)
     (param $out (@witx pointer u8))
@@ -536,6 +571,9 @@
     (result $symmetric_tag $symmetric_tag)
   )
 
+  ;;; Decrypt data with an attached tag.
+  ;;; If `out` and `data` are the same address, decryption may
+  ;;; happen in-place.
   (@interface func (export "symmetric_state_decrypt")
     (param $handle $symmetric_state)
     (param $out (@witx pointer u8))
@@ -546,6 +584,9 @@
     (result $actual_out_len $size)
   )
 
+  ;;; Decrypt data with a detached tag.
+  ;;; If `out` and `data` are the same address, decryption may
+  ;;; happen in-place.
   (@interface func (export "symmetric_state_decrypt_detached")
     (param $handle $symmetric_state)
     (param $out (@witx pointer u8))
@@ -558,6 +599,7 @@
     (result $actual_out_len $size)
   )
 
+  ;;; Make it impossible to recover the previous state.
   (@interface func (export "symmetric_state_ratchet")
     (param $handle $symmetric_state)
     (result $error $crypto_errno)
