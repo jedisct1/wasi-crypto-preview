@@ -39,13 +39,13 @@ impl SymmetricAlgorithmStateLike for Sha2SymmetricState {
         Ok(())
     }
 
-    fn squeeze(&mut self, len: usize) -> Result<Vec<u8>, CryptoError> {
-        let out = self.ring_ctx.clone().finish();
+    fn squeeze(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {
+        let digest = self.ring_ctx.clone().finish();
         ensure!(
-            len > 0 && len <= out.as_ref().len(),
+            digest.as_ref().len() <= out.len(),
             CryptoError::InvalidLength
         );
-        let out = out.as_ref()[..len].to_vec();
-        Ok(out)
+        out.copy_from_slice(&digest.as_ref()[..out.len()]);
+        Ok(())
     }
 }

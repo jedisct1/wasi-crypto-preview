@@ -1,4 +1,8 @@
 use super::*;
+use crate::types as guest_types;
+use crate::{CryptoCtx, WasiCryptoCtx};
+
+use std::convert::TryFrom;
 
 pub trait SymmetricAlgorithmStateLike {
     fn alg(&self) -> SymmetricAlgorithm;
@@ -7,7 +11,7 @@ pub trait SymmetricAlgorithmStateLike {
         bail!(CryptoError::InvalidOperation)
     }
 
-    fn squeeze(&mut self, _len: usize) -> Result<Vec<u8>, CryptoError> {
+    fn squeeze(&mut self, _out: &mut [u8]) -> Result<(), CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 
@@ -91,11 +95,11 @@ impl SymmetricState {
         Ok(())
     }
 
-    fn squeeze(&mut self, len: usize) -> Result<Vec<u8>, CryptoError> {
+    fn squeeze(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {
         let out = match self {
-            SymmetricState::Sha2(state) => state.squeeze(len)?,
-            SymmetricState::HmacSha2(state) => state.squeeze(len)?,
-            SymmetricState::AesGcm(state) => state.squeeze(len)?,
+            SymmetricState::Sha2(state) => state.squeeze(out)?,
+            SymmetricState::HmacSha2(state) => state.squeeze(out)?,
+            SymmetricState::AesGcm(state) => state.squeeze(out)?,
         };
         Ok(out)
     }
@@ -186,10 +190,10 @@ impl CryptoCtx {
     pub fn symmetric_state_squeeze(
         &self,
         state_handle: Handle,
-        len: usize,
-    ) -> Result<Vec<u8>, CryptoError> {
+        out: &mut [u8],
+    ) -> Result<(), CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
-        symmetric_state.squeeze(len)
+        symmetric_state.squeeze(out)
     }
 
     pub fn symmetric_state_squeeze_tag(&self, state_handle: Handle) -> Result<Handle, CryptoError> {
@@ -234,5 +238,33 @@ impl CryptoCtx {
     ) -> Result<Vec<u8>, CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
         symmetric_state.decrypt_detached(data, raw_tag)
+    }
+}
+
+impl WasiCryptoCtx {
+    pub fn symmetric_state_open(
+        &self,
+        alg_str: &wiggle::GuestPtr<'_, str>,
+        key_handle: &guest_types::OptSymmetricKey,
+        options_handle: &guest_types::OptOptions,
+    ) -> Result<guest_types::SymmetricState, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
+        let key_handle = match *key_handle {
+            guest_types::OptSymmetricKey::Some(key_handle) => Some(key_handle),
+            guest_types::OptSymmetricKey::None => None,
+        };
+        let options_handle = match *options_handle {
+            guest_types::OptOptions::Some(options_handle) => Some(options_handle),
+            guest_types::OptOptions::None => None,
+        };
+        Ok(self
+            .ctx
+            .symmetric_state_open(
+                alg_str,
+                key_handle.map(Into::into),
+                options_handle.map(Into::into),
+            )?
+            .into())
     }
 }

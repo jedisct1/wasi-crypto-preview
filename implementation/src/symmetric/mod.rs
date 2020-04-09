@@ -9,7 +9,6 @@ mod tag;
 use crate::error::*;
 use crate::handles::*;
 use crate::options::*;
-use crate::CryptoCtx;
 use aes_gcm::*;
 use hmac_sha2::*;
 use parking_lot::Mutex;
@@ -115,20 +114,14 @@ fn test_hash() {
     ctx.symmetric_state_absorb(state_handle, b"data").unwrap();
     ctx.symmetric_state_absorb(state_handle, b"more_data")
         .unwrap();
-    let out = ctx.symmetric_state_squeeze(state_handle, 32).unwrap();
+    let mut out = [0u8; 32];
+    ctx.symmetric_state_squeeze(state_handle, &mut out).unwrap();
     let expected = [
         227, 176, 196, 66, 152, 252, 28, 20, 154, 251, 244, 200, 153, 111, 185, 36, 39, 174, 65,
         228, 100, 155, 147, 76, 164, 149, 153, 27, 120, 82, 184, 85,
     ];
     assert_eq!(out, expected);
     ctx.symmetric_state_close(state_handle).unwrap();
-}
-
-#[cfg(test)]
-fn symmetric_tag_get(ctx: &CryptoCtx, symmetric_tag: Handle) -> Result<Vec<u8>, CryptoError> {
-    let mut bytes = vec![0u8; ctx.symmetric_tag_len(symmetric_tag)?];
-    ctx.symmetric_tag_pull(symmetric_tag, &mut bytes)?;
-    Ok(bytes)
 }
 
 #[test]
@@ -146,12 +139,20 @@ fn test_hmac() {
         .unwrap();
     let tag_handle = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
 
-    let raw_tag = symmetric_tag_get(&ctx, tag_handle).unwrap();
+    let raw_tag = tag_to_vec(&ctx, tag_handle).unwrap();
     ctx.symmetric_tag_verify(tag_handle, &raw_tag).unwrap();
 
     ctx.symmetric_state_close(state_handle).unwrap();
     ctx.symmetric_key_close(key_handle).unwrap();
     ctx.symmetric_tag_close(tag_handle).unwrap();
+
+    //
+
+    fn tag_to_vec(ctx: &CryptoCtx, symmetric_tag: Handle) -> Result<Vec<u8>, CryptoError> {
+        let mut bytes = vec![0u8; ctx.symmetric_tag_len(symmetric_tag)?];
+        ctx.symmetric_tag_pull(symmetric_tag, &mut bytes)?;
+        Ok(bytes)
+    }
 }
 
 #[test]
