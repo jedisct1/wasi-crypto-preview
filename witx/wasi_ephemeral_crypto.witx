@@ -420,7 +420,7 @@
   )
 
   ;;; [OPTIONAL IMPORT]
-  ;;; Return the key identifier and version, if these are available
+  ;;; Return the symmetric key identifier and version, if these are available
   ;;; or $crypto_errno.unsupported_feature if not.
   (@interface func (export "symmetric_key_id")
     (param $symmetric_key $symmetric_key)
@@ -432,7 +432,7 @@
   )
 
   ;;; [OPTIONAL IMPORT]
-  ;;; Create a key pair using an opaque key identifier.
+  ;;; Create a symmetric key using an opaque key identifier.
   ;;; Return crypto_errno.unsupported_feature if this operation is not
   ;;; supported by the host, and crypto_errno.invalid_key if the identifier
   ;;; is invalid.
@@ -447,7 +447,7 @@
   )
 
   ;;; [OPTIONAL IMPORT]
-  ;;; Invalidate a key pair given a key identifier and a version.
+  ;;; Invalidate a symmetric key given a key identifier and a version.
   ;;; Return crypto_errno.unsupported_feature if this operation is not
   ;;; supported by the host, and crypto_errno.invalid_key if the identifier
   ;;; is invalid.

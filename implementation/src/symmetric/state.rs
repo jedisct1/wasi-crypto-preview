@@ -11,6 +11,10 @@ pub trait SymmetricAlgorithmStateLike {
         bail!(CryptoError::InvalidOperation)
     }
 
+    fn squeeze_key(&mut self, _len: usize) -> Result<Vec<u8>, CryptoError> {
+        bail!(CryptoError::InvalidOperation)
+    }
+
     fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
@@ -28,6 +32,10 @@ pub trait SymmetricAlgorithmStateLike {
     }
 
     fn decrypt_detached(&mut self, _data: &[u8], _raw_tag: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        bail!(CryptoError::InvalidOperation)
+    }
+
+    fn ratchet(&mut self) -> Result<Vec<u8>, CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 }
