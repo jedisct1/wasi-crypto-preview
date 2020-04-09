@@ -863,6 +863,26 @@ The version can be a actual version number, as well as
 
 ---
 
+#### <a href="#symmetric_state_open" name="symmetric_state_open"></a> `symmetric_state_open(alg_str: string, key: opt_symmetric_key, options: opt_options) -> (crypto_errno, symmetric_state)`
+Retrieve a parameter from the current state.
+In particular, `symmetric_state_options_get("nonce")` can be used
+to get a nonce that as automatically generated.
+
+##### Params
+- <a href="#symmetric_state_open.alg_str" name="symmetric_state_open.alg_str"></a> `alg_str`: `string`
+
+- <a href="#symmetric_state_open.key" name="symmetric_state_open.key"></a> `key`: [`opt_symmetric_key`](#opt_symmetric_key)
+
+- <a href="#symmetric_state_open.options" name="symmetric_state_open.options"></a> `options`: [`opt_options`](#opt_options)
+
+##### Results
+- <a href="#symmetric_state_open.error" name="symmetric_state_open.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#symmetric_state_open.symmetric_state" name="symmetric_state_open.symmetric_state"></a> `symmetric_state`: [`symmetric_state`](#symmetric_state)
+
+
+---
+
 #### <a href="#symmetric_state_options_get" name="symmetric_state_options_get"></a> `symmetric_state_options_get(handle: symmetric_state, name: string, value: Pointer<u8>, value_max_len: size) -> (crypto_errno, size)`
 Retrieve a parameter from the current state.
 In particular, `symmetric_state_options_get("nonce")` can be used
