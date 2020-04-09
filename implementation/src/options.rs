@@ -9,8 +9,22 @@ use crate::{CryptoCtx, WasiCryptoCtx};
 
 pub trait OptionsLike: Send + Sized {
     fn as_any(&self) -> &dyn Any;
-    fn set(&mut self, name: &str, value: &[u8]) -> Result<(), CryptoError>;
-    fn set_u64(&mut self, name: &str, value: u64) -> Result<(), CryptoError>;
+
+    fn set(&mut self, _name: &str, _value: &[u8]) -> Result<(), CryptoError> {
+        bail!(CryptoError::UnsupportedOption)
+    }
+
+    fn get(&mut self, _name: &str) -> Result<Vec<u8>, CryptoError> {
+        bail!(CryptoError::UnsupportedOption)
+    }
+
+    fn set_u64(&mut self, _name: &str, _value: u64) -> Result<(), CryptoError> {
+        bail!(CryptoError::UnsupportedOption)
+    }
+
+    fn get_u64(&mut self, _name: &str) -> Result<u64, CryptoError> {
+        bail!(CryptoError::UnsupportedOption)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -41,10 +55,24 @@ impl Options {
         }
     }
 
+    pub fn get(&mut self, name: &str) -> Result<Vec<u8>, CryptoError> {
+        match self {
+            Options::Signatures(options) => options.get(name),
+            Options::Symmetric(options) => options.get(name),
+        }
+    }
+
     pub fn set_u64(&mut self, name: &str, value: u64) -> Result<(), CryptoError> {
         match self {
             Options::Signatures(options) => options.set_u64(name, value),
             Options::Symmetric(options) => options.set_u64(name, value),
+        }
+    }
+
+    pub fn get_u64(&mut self, name: &str) -> Result<u64, CryptoError> {
+        match self {
+            Options::Signatures(options) => options.get_u64(name),
+            Options::Symmetric(options) => options.get_u64(name),
         }
     }
 }
@@ -87,6 +115,20 @@ impl CryptoCtx {
         options.set(name, value)
     }
 
+    pub fn options_get(
+        &self,
+        options_handle: Handle,
+        name: &str,
+        value: &mut [u8],
+    ) -> Result<usize, CryptoError> {
+        let mut options = self.handles.options.get(options_handle)?;
+        let v = options.get(name)?;
+        let v_len = v.len();
+        ensure!(v_len <= value.len(), CryptoError::Overflow);
+        value[..v_len].copy_from_slice(&v);
+        Ok(v_len)
+    }
+
     pub fn options_set_u64(
         &self,
         options_handle: Handle,
@@ -95,6 +137,12 @@ impl CryptoCtx {
     ) -> Result<(), CryptoError> {
         let mut options = self.handles.options.get(options_handle)?;
         options.set_u64(name, value)
+    }
+
+    pub fn options_get_u64(&self, options_handle: Handle, name: &str) -> Result<u64, CryptoError> {
+        let mut options = self.handles.options.get(options_handle)?;
+        let v = options.get_u64(name)?;
+        Ok(v)
     }
 }
 
@@ -130,6 +178,26 @@ impl WasiCryptoCtx {
             .into())
     }
 
+    pub fn options_get(
+        &self,
+        options_handle: guest_types::Options,
+        name_str: &wiggle::GuestPtr<'_, str>,
+        value_ptr: &wiggle::GuestPtr<'_, u8>,
+        value_max_len: guest_types::Size,
+    ) -> Result<usize, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let name_str: &str = unsafe { &*name_str.as_raw(&mut guest_borrow)? };
+        let value: &mut [u8] = unsafe {
+            &mut *value_ptr
+                .as_array(value_max_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .options_get(options_handle.into(), name_str, value)?
+            .into())
+    }
+
     pub fn options_set_u64(
         &self,
         options_handle: guest_types::Options,
@@ -141,6 +209,19 @@ impl WasiCryptoCtx {
         Ok(self
             .ctx
             .options_set_u64(options_handle.into(), name_str, value)?
+            .into())
+    }
+
+    pub fn options_get_u64(
+        &self,
+        options_handle: guest_types::Options,
+        name_str: &wiggle::GuestPtr<'_, str>,
+    ) -> Result<u64, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let name_str: &str = unsafe { &*name_str.as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .options_get_u64(options_handle.into(), name_str)?
             .into())
     }
 }

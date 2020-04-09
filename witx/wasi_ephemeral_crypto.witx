@@ -26,6 +26,7 @@
     $invalid_tag
     $invalid_operation
     $nonce_required
+    $option_not_set
   )
 )
 
@@ -116,12 +117,28 @@
     (result $error $crypto_errno)
   )
 
+  (@interface func (export "options_get")
+    (param $handle $options)
+    (param $name string)
+    (param $value (@witx pointer u8))
+    (param $value_max_len $size)
+    (result $error $crypto_errno)
+;;    (result $value_len $size)
+  )  
+
   (@interface func (export "options_set_u64")
     (param $handle $options)
     (param $name string)
     (param $value u64)
     (result $error $crypto_errno)
   )
+
+  (@interface func (export "options_get_u64")
+    (param $handle $options)
+    (param $name string)
+    (result $error $crypto_errno)
+    (result $value u64)
+  )  
 
   ;;; Return the length of an array_output object.
   (@interface func (export "array_output_len")

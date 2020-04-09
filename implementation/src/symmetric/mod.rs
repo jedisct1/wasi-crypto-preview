@@ -62,6 +62,17 @@ impl OptionsLike for SymmetricOptions {
         Ok(())
     }
 
+    fn get(&mut self, name: &str) -> Result<Vec<u8>, CryptoError> {
+        let inner = self.inner.lock();
+        let value = match name.to_lowercase().as_str() {
+            "context" => &inner.context,
+            "salt" => &inner.salt,
+            "nonce" => &inner.nonce,
+            _ => bail!(CryptoError::UnsupportedOption),
+        };
+        value.as_ref().cloned().ok_or(CryptoError::OptionNotSet)
+    }
+
     fn set_u64(&mut self, name: &str, value: u64) -> Result<(), CryptoError> {
         let mut inner = self.inner.lock();
         let option = match name.to_lowercase().as_str() {
@@ -72,6 +83,17 @@ impl OptionsLike for SymmetricOptions {
         };
         *option = Some(value);
         Ok(())
+    }
+
+    fn get_u64(&mut self, name: &str) -> Result<u64, CryptoError> {
+        let inner = self.inner.lock();
+        let value = match name.to_lowercase().as_str() {
+            "memory_limit" => &inner.memory_limit,
+            "ops_limit" => &inner.ops_limit,
+            "parallelism" => &inner.parallelism,
+            _ => bail!(CryptoError::UnsupportedOption),
+        };
+        value.ok_or(CryptoError::OptionNotSet)
     }
 }
 

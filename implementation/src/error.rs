@@ -55,6 +55,8 @@ pub enum CryptoError {
     InvalidOperation,
     #[error("Nonce required")]
     NonceRequired,
+    #[error("Option not set")]
+    OptionNotSet,
 }
 
 impl From<TryFromIntError> for CryptoError {
@@ -90,6 +92,7 @@ impl From<CryptoError> for guest_types::CryptoErrno {
             CryptoError::InvalidTag => guest_types::CryptoErrno::InvalidTag,
             CryptoError::InvalidOperation => guest_types::CryptoErrno::InvalidOperation,
             CryptoError::NonceRequired => guest_types::CryptoErrno::NonceRequired,
+            CryptoError::OptionNotSet => guest_types::CryptoErrno::OptionNotSet,
         }
     }
 }
