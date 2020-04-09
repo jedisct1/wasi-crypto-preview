@@ -1,6 +1,7 @@
 mod aes_gcm;
 mod hmac_sha2;
 mod key;
+mod key_manager;
 mod sha2;
 mod state;
 mod tag;
@@ -18,6 +19,7 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 
 pub use key::SymmetricKey;
+pub use key_manager::*;
 pub use state::SymmetricState;
 pub use tag::SymmetricTag;
 

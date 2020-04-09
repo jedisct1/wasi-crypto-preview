@@ -3,7 +3,7 @@ use ring::signature::KeyPair as _;
 use std::sync::Arc;
 use zeroize::Zeroize;
 
-use super::signature_keypair::*;
+use super::keypair::*;
 use super::*;
 use crate::error::*;
 

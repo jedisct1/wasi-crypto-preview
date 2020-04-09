@@ -83,6 +83,7 @@
 (typename $signature (handle))
 (typename $signature_publickey (handle))
 (typename $signature_verification_state (handle))
+(typename $symmetric_key_manager (handle))
 (typename $symmetric_state (handle))
 (typename $symmetric_key (handle))
 (typename $symmetric_tag (handle))
@@ -138,14 +139,14 @@
     (result $error $crypto_errno)
   )
 
-  ;;; Create a context to construct a key pair.
+  ;;; Create a context to the key manager
   (@interface func (export "signature_keypair_manager_open")
     (param $options $opt_options)
     (result $error $crypto_errno)
     (result $handle $signature_keypair_manager)
   )
 
-  ;;; Destroy a key pair builder.
+  ;;; Destroy a key manager context.
   (@interface func (export "signature_keypair_manager_close")
     (param $kp_manager $signature_keypair_manager)
     (result $error $crypto_errno)
@@ -399,6 +400,25 @@
     (result $handle $symmetric_key)
   )
 
+  ;;; Destroys a symmetric key.
+  (@interface func (export "symmetric_key_close")
+    (param $symmetric_key $symmetric_key)
+    (result $error $crypto_errno)
+  )
+
+  ;;; Create a context to construct a key pair.
+  (@interface func (export "symmetric_key_manager_open")
+    (param $options $opt_options)
+    (result $error $crypto_errno)
+    (result $handle $symmetric_key_manager)
+  )
+
+  ;;; Destroy a key pair builder.
+  (@interface func (export "symmetric_key_manager_close")
+    (param $symmetric_key_manager $symmetric_key_manager)
+    (result $error $crypto_errno)
+  )
+
   ;;; [OPTIONAL IMPORT]
   ;;; Return the key identifier and version, if these are available
   ;;; or $crypto_errno.unsupported_feature if not.
@@ -411,9 +431,33 @@
     (result $version $version)
   )
 
-  ;;; Destroys a symmetric key.
-  (@interface func (export "symmetric_key_close")
-    (param $symmetric_key $symmetric_key)
+  ;;; [OPTIONAL IMPORT]
+  ;;; Create a key pair using an opaque key identifier.
+  ;;; Return crypto_errno.unsupported_feature if this operation is not
+  ;;; supported by the host, and crypto_errno.invalid_key if the identifier
+  ;;; is invalid.
+  ;;; The version can be an actual version number or $version.latest .
+  (@interface func (export "symmetric_key_from_id")
+    (param $symmetric_key_manager $symmetric_key_manager)
+    (param $symmetric_key_id (@witx const_pointer u8))
+    (param $symmetric_key_id_len $size)
+    (param $symmetric_key_version $version)
+    (result $error $crypto_errno)
+    (result $handle $symmetric_key)
+  )
+
+  ;;; [OPTIONAL IMPORT]
+  ;;; Invalidate a key pair given a key identifier and a version.
+  ;;; Return crypto_errno.unsupported_feature if this operation is not
+  ;;; supported by the host, and crypto_errno.invalid_key if the identifier
+  ;;; is invalid.
+  ;;; The version can be a actual version number, as well as
+  ;;; $version.latest or $version.all .
+  (@interface func (export "symmetric_key_invalidate")
+    (param $symmetric_key_manager $symmetric_key_manager)
+    (param $symmetric_key_id (@witx const_pointer u8))
+    (param $symmetric_key_id_len $size)
+    (param $symmetric_key_version $version)
     (result $error $crypto_errno)
   )
 )

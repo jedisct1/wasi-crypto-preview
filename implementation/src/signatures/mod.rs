@@ -1,18 +1,18 @@
 mod ecdsa;
 mod eddsa;
+mod keypair;
+mod keypair_manager;
+mod publickey;
 mod rsa;
 mod signature;
-mod signature_keypair;
-mod signature_keypair_manager;
-mod signature_publickey;
 
 use crate::error::*;
 use crate::options::*;
 
+pub use keypair::*;
+pub use keypair_manager::*;
+pub use publickey::*;
 pub use signature::*;
-pub use signature_keypair::*;
-pub use signature_keypair_manager::*;
-pub use signature_publickey::*;
 
 use std::any::Any;
 use std::convert::TryFrom;

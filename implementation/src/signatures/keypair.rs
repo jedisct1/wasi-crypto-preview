@@ -1,7 +1,7 @@
 use super::ecdsa::*;
 use super::eddsa::*;
+use super::publickey::*;
 use super::rsa::*;
-use super::signature_publickey::*;
 use super::*;
 use crate::array_output::*;
 use crate::error::*;
