@@ -159,6 +159,18 @@
     (result $error $crypto_errno)
   )
 
+  ;;; [OPTIONAL IMPORT]
+  ;;; Generate a new managed key pair.
+  ;;; This function may return `$crypto_errno.unsupported_feature` if key
+  ;;; generation is not supported by the host for the chosen algorithm.
+  (@interface func (export "signature_managed_keypair_generate")
+    (param $kp_manager $signature_keypair_manager)
+    (param $algorithm string)
+    (param $options $opt_options)
+    (result $error $crypto_errno)
+    (result $handle $signature_keypair)
+  )
+
   ;;; Generate a new key pair.
   ;;; This function may return `$crypto_errno.unsupported_feature` if key
   ;;; generation is not supported by the host for the chosen algorithm.

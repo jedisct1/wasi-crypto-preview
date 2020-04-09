@@ -19,6 +19,15 @@ impl CryptoCtx {
         bail!(CryptoError::UnsupportedFeature)
     }
 
+    pub fn signature_managed_keypair_generate(
+        &self,
+        _kp_manager_handle: Handle,
+        _alg_str: &str,
+        _options_handle: Option<Handle>,
+    ) -> Result<Handle, CryptoError> {
+        bail!(CryptoError::UnsupportedFeature)
+    }
+
     pub fn signature_keypair_from_id(
         &self,
         _kp_manager_handle: Handle,
@@ -59,6 +68,28 @@ impl WasiCryptoCtx {
     ) -> Result<(), CryptoError> {
         self.ctx
             .signature_keypair_manager_close(kp_manager_handle.into())
+    }
+
+    pub fn signature_managed_keypair_generate(
+        &self,
+        kp_manager_handle: guest_types::SignatureKeypairManager,
+        alg_str: &wiggle::GuestPtr<'_, str>,
+        options_handle: &guest_types::OptOptions,
+    ) -> Result<guest_types::SignatureKeypair, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
+        let options_handle = match *options_handle {
+            guest_types::OptOptions::Some(options_handle) => Some(options_handle),
+            guest_types::OptOptions::None => None,
+        };
+        Ok(self
+            .ctx
+            .signature_managed_keypair_generate(
+                kp_manager_handle.into(),
+                alg_str,
+                options_handle.map(Into::into),
+            )?
+            .into())
     }
 
     pub fn signature_keypair_from_id(

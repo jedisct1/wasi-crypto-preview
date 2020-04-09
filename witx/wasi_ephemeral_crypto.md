@@ -295,6 +295,27 @@ Destroy a key manager context.
 
 ---
 
+#### <a href="#signature_managed_keypair_generate" name="signature_managed_keypair_generate"></a> `signature_managed_keypair_generate(kp_manager: signature_keypair_manager, algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
+[OPTIONAL IMPORT]
+Generate a new managed key pair.
+This function may return `$crypto_errno.unsupported_feature` if key
+generation is not supported by the host for the chosen algorithm.
+
+##### Params
+- <a href="#signature_managed_keypair_generate.kp_manager" name="signature_managed_keypair_generate.kp_manager"></a> `kp_manager`: [`signature_keypair_manager`](#signature_keypair_manager)
+
+- <a href="#signature_managed_keypair_generate.algorithm" name="signature_managed_keypair_generate.algorithm"></a> `algorithm`: `string`
+
+- <a href="#signature_managed_keypair_generate.options" name="signature_managed_keypair_generate.options"></a> `options`: [`opt_options`](#opt_options)
+
+##### Results
+- <a href="#signature_managed_keypair_generate.error" name="signature_managed_keypair_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#signature_managed_keypair_generate.handle" name="signature_managed_keypair_generate.handle"></a> `handle`: [`signature_keypair`](#signature_keypair)
+
+
+---
+
 #### <a href="#signature_keypair_generate" name="signature_keypair_generate"></a> `signature_keypair_generate(algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
 Generate a new key pair.
 This function may return `$crypto_errno.unsupported_feature` if key
