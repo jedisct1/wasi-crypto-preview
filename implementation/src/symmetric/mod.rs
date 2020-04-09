@@ -182,8 +182,8 @@ fn test_encryption() {
     let symmetric_state = ctx
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
-    let msg2 = ctx
-        .symmetric_state_decrypt(symmetric_state, &ciphertext_with_tag)
+    let mut msg2 = vec![0u8; msg.len()];
+    ctx.symmetric_state_decrypt(symmetric_state, &mut msg2, &ciphertext_with_tag)
         .unwrap();
     ctx.symmetric_state_close(symmetric_state).unwrap();
     assert_eq!(msg, &msg2[..]);

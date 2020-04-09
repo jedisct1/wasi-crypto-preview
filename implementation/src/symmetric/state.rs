@@ -39,7 +39,7 @@ pub trait SymmetricAlgorithmStateLike {
         bail!(CryptoError::InvalidOperation)
     }
 
-    fn decrypt(&mut self, _data: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn decrypt(&mut self, _out: &mut [u8], _data: &[u8]) -> Result<usize, CryptoError> {
         bail!(CryptoError::InvalidOperation)
     }
 
@@ -157,13 +157,13 @@ impl SymmetricState {
         Ok(symmetric_tag)
     }
 
-    fn decrypt(&mut self, data: &[u8]) -> Result<Vec<u8>, CryptoError> {
-        let out = match self {
-            SymmetricState::Sha2(state) => state.decrypt(data)?,
-            SymmetricState::HmacSha2(state) => state.decrypt(data)?,
-            SymmetricState::AesGcm(state) => state.decrypt(data)?,
+    fn decrypt(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
+        let out_len = match self {
+            SymmetricState::Sha2(state) => state.decrypt(out, data)?,
+            SymmetricState::HmacSha2(state) => state.decrypt(out, data)?,
+            SymmetricState::AesGcm(state) => state.decrypt(out, data)?,
         };
-        Ok(out)
+        Ok(out_len)
     }
 
     fn decrypt_detached(&mut self, data: &[u8], raw_tag: &[u8]) -> Result<Vec<u8>, CryptoError> {
@@ -258,10 +258,11 @@ impl CryptoCtx {
     pub fn symmetric_state_decrypt(
         &self,
         state_handle: Handle,
+        out: &mut [u8],
         data: &[u8],
-    ) -> Result<Vec<u8>, CryptoError> {
+    ) -> Result<usize, CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(state_handle)?;
-        symmetric_state.decrypt(data)
+        symmetric_state.decrypt(out, data)
     }
 
     pub fn symmetric_state_decrypt_detached(
