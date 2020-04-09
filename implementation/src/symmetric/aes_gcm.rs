@@ -159,15 +159,11 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
     }
 
     fn encrypt(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
-        let mut in_out = data.to_vec();
-        let mut inner = self.inner.lock();
-        let ring_ad = ring::aead::Aad::from(inner.ad.clone());
-        inner
-            .ring_sealing_key
-            .seal_in_place_append_tag(ring_ad, &mut in_out)
-            .map_err(|_| CryptoError::AlgorithmFailure)?;
-        out.copy_from_slice(&in_out);
-        Ok(out.len())
+        let data_len = data.len();
+        let tag = self.encrypt_detached(&mut out[..data_len], data)?;
+        let out_len = data_len + tag.as_ref().len();
+        out[data_len..out_len].copy_from_slice(tag.as_ref());
+        Ok(out_len)
     }
 
     fn encrypt_detached(
