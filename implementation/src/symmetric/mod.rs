@@ -123,10 +123,10 @@ fn test_hash() {
 }
 
 #[cfg(test)]
-fn array_get(ctx: &CryptoCtx, output_array: Handle) -> Vec<u8> {
-    let mut bytes = vec![0u8; ctx.array_output_len(output_array).unwrap()];
-    ctx.array_output_pull(output_array, &mut bytes).unwrap();
-    bytes
+fn symmetric_tag_get(ctx: &CryptoCtx, symmetric_tag: Handle) -> Result<Vec<u8>, CryptoError> {
+    let mut bytes = vec![0u8; ctx.symmetric_tag_len(symmetric_tag)?];
+    ctx.symmetric_tag_pull(symmetric_tag, &mut bytes)?;
+    Ok(bytes)
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn test_hmac() {
         .unwrap();
     let tag_handle = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
 
-    let raw_tag = array_get(&ctx, ctx.symmetric_tag_export(tag_handle).unwrap());
+    let raw_tag = symmetric_tag_get(&ctx, tag_handle).unwrap();
     ctx.symmetric_tag_verify(tag_handle, &raw_tag).unwrap();
 
     ctx.symmetric_state_close(state_handle).unwrap();

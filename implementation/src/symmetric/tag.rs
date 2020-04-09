@@ -1,8 +1,8 @@
 use super::*;
-use crate::array_output::*;
 use crate::types as guest_types;
 use crate::{CryptoCtx, WasiCryptoCtx};
 
+use std::convert::TryInto;
 use zeroize::Zeroize;
 
 #[derive(Debug, Clone, Eq)]
@@ -42,14 +42,24 @@ impl AsRef<[u8]> for SymmetricTag {
 }
 
 impl CryptoCtx {
-    pub fn symmetric_tag_export(
+    pub fn symmetric_tag_len(&self, symmetric_tag_handle: Handle) -> Result<usize, CryptoError> {
+        let symmetric_tag = self.handles.symmetric_tag.get(symmetric_tag_handle)?;
+        Ok(symmetric_tag.as_ref().len())
+    }
+
+    pub fn symmetric_tag_pull(
         &self,
         symmetric_tag_handle: Handle,
-    ) -> Result<Handle, CryptoError> {
+        buf: &mut [u8],
+    ) -> Result<usize, CryptoError> {
         let symmetric_tag = self.handles.symmetric_tag.get(symmetric_tag_handle)?;
-        let array_output_handle =
-            ArrayOutput::register(&self.handles, symmetric_tag.as_ref().to_vec())?;
-        Ok(array_output_handle)
+        let raw = symmetric_tag.as_ref();
+        let raw_len = raw.len();
+        let buf_len = buf.len();
+        ensure!(raw_len <= buf_len, CryptoError::Overflow);
+        &buf[..raw_len].copy_from_slice(raw);
+        self.handles.symmetric_tag.close(symmetric_tag_handle)?;
+        Ok(raw_len)
     }
 
     pub fn symmetric_tag_verify(
@@ -67,14 +77,29 @@ impl CryptoCtx {
 }
 
 impl WasiCryptoCtx {
-    pub fn symmetric_tag_export(
+    pub fn symmetric_tag_len(
         &self,
         symmetric_tag_handle: guest_types::SymmetricTag,
-    ) -> Result<guest_types::ArrayOutput, CryptoError> {
+    ) -> Result<guest_types::Size, CryptoError> {
         Ok(self
             .ctx
-            .symmetric_tag_export(symmetric_tag_handle.into())?
-            .into())
+            .symmetric_tag_len(symmetric_tag_handle.into())?
+            .try_into()?)
+    }
+
+    pub fn symmetric_tag_pull(
+        &self,
+        symmetric_tag_handle: guest_types::SymmetricTag,
+        buf_ptr: &wiggle::GuestPtr<'_, u8>,
+        buf_len: guest_types::Size,
+    ) -> Result<guest_types::Size, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let buf: &mut [u8] =
+            unsafe { &mut *buf_ptr.as_array(buf_len as _).as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .symmetric_tag_pull(symmetric_tag_handle.into(), buf)?
+            .try_into()?)
     }
 
     pub fn symmetric_tag_verify(

@@ -348,10 +348,20 @@
     (result $error $crypto_errno)
   )
 
-  (@interface func (export "symmetric_tag_export")
+  ;;; Return the length of an authentication tag.
+  (@interface func (export "symmetric_tag_len")
     (param $symmetric_tag $symmetric_tag)
     (result $error $crypto_errno)
-    (result $raw $array_output)
+    (result $len $size)
+  )
+
+  ;;; Copy an authentication tag into an application-allocated buffer.
+  ;;; The handle becomes invalid after this operation.
+  (@interface func (export "symmetric_tag_pull")
+    (param $symmetric_tag $symmetric_tag)
+    (param $buf (@witx pointer u8))
+    (param $buf_len $size)
+    (result $error $crypto_errno)
   )
 
   (@interface func (export "symmetric_tag_verify")
@@ -364,6 +374,46 @@
   ;;; Destroy an authentication tag.
   (@interface func (export "symmetric_tag_close")
     (param $symmetric_tag $symmetric_tag)
+    (result $error $crypto_errno)
+  )
+
+  ;;; Generate a new symmetric key.
+  ;;; This function may return crypto_errno.unsupported_feature if key
+  ;;; generation is not supported by the host for the chosen algorithm.
+  (@interface func (export "symmetric_key_generate")
+    (param $algorithm string)
+    (param $options $opt_options)
+    (result $error $crypto_errno)
+    (result $handle $symmetric_key)
+  )
+
+  ;;; Import a symmetric key.
+  ;;; This function may return crypto_errno.unsupported_algorithm if the
+  ;;; encoding scheme is not supported, or crypto_errno.invalid_key if the key
+  ;;; cannot be decoded.
+  (@interface func (export "symmetric_key_import")
+    (param $algorithm string)
+    (param $encoded (@witx const_pointer u8))
+    (param $encoded_len $size)
+    (result $error $crypto_errno)
+    (result $handle $symmetric_key)
+  )
+
+  ;;; [OPTIONAL IMPORT]
+  ;;; Return the key identifier and version, if these are available
+  ;;; or $crypto_errno.unsupported_feature if not.
+  (@interface func (export "symmetric_key_id")
+    (param $symmetric_key $symmetric_key)
+    (param $symmetric_key_id (@witx pointer u8))
+    (param $symmetric_key_id_max_len $size)
+    (result $error $crypto_errno)
+    (result $symmetric_key_id_len $size)
+    (result $version $version)
+  )
+
+  ;;; Destroys a symmetric key.
+  (@interface func (export "symmetric_key_close")
+    (param $symmetric_key $symmetric_key)
     (result $error $crypto_errno)
   )
 )
