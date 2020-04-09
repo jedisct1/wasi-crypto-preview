@@ -199,11 +199,17 @@ impl SymmetricState {
             CryptoError::Overflow
         );
         let out_len = match self {
-            SymmetricState::Sha2(state) => state.decrypt(out, data)?,
-            SymmetricState::HmacSha2(state) => state.decrypt(out, data)?,
-            SymmetricState::AesGcm(state) => state.decrypt(out, data)?,
+            SymmetricState::Sha2(state) => state.decrypt(out, data),
+            SymmetricState::HmacSha2(state) => state.decrypt(out, data),
+            SymmetricState::AesGcm(state) => state.decrypt(out, data),
         };
-        Ok(out_len)
+        match out_len {
+            Ok(out_len) => Ok(out_len),
+            Err(e) => {
+                out.iter_mut().for_each(|x| *x = 0);
+                return Err(e);
+            }
+        }
     }
 
     fn decrypt_detached(
@@ -213,12 +219,18 @@ impl SymmetricState {
         raw_tag: &[u8],
     ) -> Result<usize, CryptoError> {
         ensure!(out.len() >= data.len(), CryptoError::Overflow);
-        let out = match self {
-            SymmetricState::Sha2(state) => state.decrypt_detached(out, data, raw_tag)?,
-            SymmetricState::HmacSha2(state) => state.decrypt_detached(out, data, raw_tag)?,
-            SymmetricState::AesGcm(state) => state.decrypt_detached(out, data, raw_tag)?,
+        let out_len = match self {
+            SymmetricState::Sha2(state) => state.decrypt_detached(out, data, raw_tag),
+            SymmetricState::HmacSha2(state) => state.decrypt_detached(out, data, raw_tag),
+            SymmetricState::AesGcm(state) => state.decrypt_detached(out, data, raw_tag),
         };
-        Ok(out)
+        match out_len {
+            Ok(out_len) => Ok(out_len),
+            Err(e) => {
+                out.iter_mut().for_each(|x| *x = 0);
+                return Err(e);
+            }
+        }
     }
 
     fn ratchet(&mut self) -> Result<(), CryptoError> {
