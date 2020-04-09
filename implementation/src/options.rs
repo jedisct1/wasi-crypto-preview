@@ -1,11 +1,11 @@
 use std::any::Any;
 
-use super::{CryptoCtx, WasiCryptoCtx};
 use crate::error::*;
 use crate::handles::*;
 use crate::signatures::SignatureOptions;
 use crate::symmetric::SymmetricOptions;
 use crate::types as guest_types;
+use crate::{CryptoCtx, WasiCryptoCtx};
 
 pub trait OptionsLike: Send + Sized {
     fn as_any(&self) -> &dyn Any;

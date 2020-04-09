@@ -379,16 +379,22 @@ impl WasiCryptoCtx {
 
     pub fn signature_state_sign(
         &self,
-        state_handle: guest_types::SignatureState,
+        signature_state_handle: guest_types::SignatureState,
     ) -> Result<guest_types::ArrayOutput, CryptoError> {
-        Ok(self.ctx.signature_state_sign(state_handle.into())?.into())
+        Ok(self
+            .ctx
+            .signature_state_sign(signature_state_handle.into())?
+            .into())
     }
 
     pub fn signature_state_close(
         &self,
-        state_handle: guest_types::SignatureState,
+        signature_state_handle: guest_types::SignatureState,
     ) -> Result<(), CryptoError> {
-        Ok(self.ctx.signature_state_close(state_handle.into())?.into())
+        Ok(self
+            .ctx
+            .signature_state_close(signature_state_handle.into())?
+            .into())
     }
 
     pub fn signature_verification_state_open(

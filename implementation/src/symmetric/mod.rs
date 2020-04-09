@@ -122,6 +122,13 @@ fn test_hash() {
     ctx.symmetric_state_close(state_handle).unwrap();
 }
 
+#[cfg(test)]
+fn array_get(ctx: &CryptoCtx, output_array: Handle) -> Vec<u8> {
+    let mut bytes = vec![0u8; ctx.array_output_len(output_array).unwrap()];
+    ctx.array_output_pull(output_array, &mut bytes).unwrap();
+    bytes
+}
+
 #[test]
 fn test_hmac() {
     use crate::CryptoCtx;
@@ -136,8 +143,9 @@ fn test_hmac() {
     ctx.symmetric_state_absorb(state_handle, b"more_data")
         .unwrap();
     let tag_handle = ctx.symmetric_state_squeeze_tag(state_handle).unwrap();
-    let tag = ctx.symmetric_tag_export(tag_handle).unwrap();
-    ctx.symmetric_tag_verify(tag_handle, &tag).unwrap();
+
+    let raw_tag = array_get(&ctx, ctx.symmetric_tag_export(tag_handle).unwrap());
+    ctx.symmetric_tag_verify(tag_handle, &raw_tag).unwrap();
 
     ctx.symmetric_state_close(state_handle).unwrap();
     ctx.symmetric_key_close(key_handle).unwrap();
