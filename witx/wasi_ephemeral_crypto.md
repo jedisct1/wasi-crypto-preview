@@ -1,56 +1,123 @@
 # Types
 ## <a href="#crypto_errno" name="crypto_errno"></a> `crypto_errno`: Enum(`u16`)
+Error codes.
 
 ### Variants
 - <a href="#crypto_errno.success" name="crypto_errno.success"></a> `success`
+Operation succeeded.
 
 - <a href="#crypto_errno.guest_error" name="crypto_errno.guest_error"></a> `guest_error`
+An error occurred when trying to during a conversion from a host type to a guest type.
+
+Only an internal bug can throw this error.
 
 - <a href="#crypto_errno.not_implemented" name="crypto_errno.not_implemented"></a> `not_implemented`
+The requested operation is valid, but not implemented by the host.
 
 - <a href="#crypto_errno.unsupported_feature" name="crypto_errno.unsupported_feature"></a> `unsupported_feature`
+The requested feature is not supported by the chosen algorithm.
 
 - <a href="#crypto_errno.prohibited_operation" name="crypto_errno.prohibited_operation"></a> `prohibited_operation`
+The requested operation is valid, but was administratively prohibited.
 
 - <a href="#crypto_errno.unsupported_encoding" name="crypto_errno.unsupported_encoding"></a> `unsupported_encoding`
+Unsupported encoding for an import or export operation.
 
 - <a href="#crypto_errno.unsupported_algorithm" name="crypto_errno.unsupported_algorithm"></a> `unsupported_algorithm`
+The requested algorithm is not supported by the host.
 
 - <a href="#crypto_errno.unsupported_option" name="crypto_errno.unsupported_option"></a> `unsupported_option`
+The requested option is not supported by the currently selected algorithm.
 
 - <a href="#crypto_errno.invalid_key" name="crypto_errno.invalid_key"></a> `invalid_key`
+An invalid or incompatible key was supplied.
+
+The key may not be valid, or was generated for a different algorithm or parameters set.
 
 - <a href="#crypto_errno.invalid_length" name="crypto_errno.invalid_length"></a> `invalid_length`
+The currently selected algorithm doesn't support the requested output length.
+
+This error is thrown by non-extensible hash functions, when requesting an output size larger than they produce out of a single block.
 
 - <a href="#crypto_errno.verification_failed" name="crypto_errno.verification_failed"></a> `verification_failed`
+A signature or authentication tag verification failed.
 
 - <a href="#crypto_errno.rng_error" name="crypto_errno.rng_error"></a> `rng_error`
+A secure random numbers generator is not available.
+
+The requested operation requires random numbers, but the host cannot securely generate them at the moment.
 
 - <a href="#crypto_errno.algorithm_failure" name="crypto_errno.algorithm_failure"></a> `algorithm_failure`
+An error was returned by the underlying cryptography library.
+
+The host may be running out of memory, parameters may be incompatible with the chosen implementation of an algorithm or another unexpected error may have happened.
+
+Ideally, the specification should provide enough details and guidance to make this error impossible to ever be thrown.
+
+Realistically, the WASI crypto module cannot possibly cover all possible error types implementations can return, especially since some of these may be language-specific.
+This error can thus be thrown when other error types are not suitable, and when the original error comes from the cryptographic primitives themselves and not from the WASI module.
 
 - <a href="#crypto_errno.invalid_signature" name="crypto_errno.invalid_signature"></a> `invalid_signature`
+The supplied signature is invalid, or incompatible with the chosen algorithm.
 
 - <a href="#crypto_errno.closed" name="crypto_errno.closed"></a> `closed`
+An attempt was made to close a handle that was already closed.
 
 - <a href="#crypto_errno.invalid_handle" name="crypto_errno.invalid_handle"></a> `invalid_handle`
+A function was called with an unassigned handle, a closed handle, or handle of an unexpected type.
 
 - <a href="#crypto_errno.overflow" name="crypto_errno.overflow"></a> `overflow`
+The host needs to copy data to a guest-allocated buffer, but that buffer is too small.
 
 - <a href="#crypto_errno.internal_error" name="crypto_errno.internal_error"></a> `internal_error`
+An internal error occurred.
+
+This error is reserved to internal consistency checks, and must only be sent if the internal state of the host remains safe after an inconsistency was detected.
 
 - <a href="#crypto_errno.too_many_handles" name="crypto_errno.too_many_handles"></a> `too_many_handles`
+Too many handles are currently open, and a new one cannot be created.
+
+Implementations are free to represent handles as they want, and to enforce limits to limit resources usage.
 
 - <a href="#crypto_errno.key_not_supported" name="crypto_errno.key_not_supported"></a> `key_not_supported`
+A key was provided, but the chosen algorithm doesn't support keys.
+
+This is returned by symmetric operations.
+
+Many hash functions, in particular, do not support keys without being used in particular constructions.
+Blindly ignoring a key provided by mistake while trying to open a context for such as function could cause serious security vulnerabilities.
+
+These functions must refuse to create the context and return this error instead.
 
 - <a href="#crypto_errno.key_required" name="crypto_errno.key_required"></a> `key_required`
+A key is required for the chosen algorithm, but none was given.
 
 - <a href="#crypto_errno.invalid_tag" name="crypto_errno.invalid_tag"></a> `invalid_tag`
+The provided authentication tag is invalid or incompatible with the current algorithm.
+
+This error is returned by decryption functions and tag verification functions.
+
+Unlike `verification_failed`, this error code is returned when the tag cannot possibly verify for any input.
 
 - <a href="#crypto_errno.invalid_operation" name="crypto_errno.invalid_operation"></a> `invalid_operation`
+The requested operation is incompatible with the current scheme.
+
+For example, the `symmetric_state_encrypt()` function cannot complete if the selected construction is a key derivation function.
+This error code will be returned instead.
 
 - <a href="#crypto_errno.nonce_required" name="crypto_errno.nonce_required"></a> `nonce_required`
+A nonce is required.
+
+Most encryption schemes require a nonce.
+
+In the absence of a nonce, the WASI cryptography module can automatically generate one, if that can be done safely. The nonce can be retrieved later with the `symmetric_state_option_get()` function using the `nonce` parameter.
+If automatically generating a nonce cannot be done safely, the module never falls back to an insecure option and requests an explicit nonce by throwing that error.
 
 - <a href="#crypto_errno.option_not_set" name="crypto_errno.option_not_set"></a> `option_not_set`
+The named option was not set.
+
+The caller tried to read the value of an option that was not set.
+This error is used to make the distinction between an empty option, and an option that was not set and left to its default value.
 
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
 
