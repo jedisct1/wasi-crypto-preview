@@ -144,7 +144,7 @@
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Create a context to the key manager.
   (@interface func (export "signature_keypair_manager_open")
     (param $options $opt_options)
@@ -152,7 +152,7 @@
     (result $handle $signature_keypair_manager)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Destroy a key manager context.
   (@interface func (export "signature_keypair_manager_close")
     (param $kp_manager $signature_keypair_manager)
@@ -182,7 +182,7 @@
     (result $handle $signature_keypair)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Return the key identifier and version, if these are available
   ;;; or `$crypto_errno.unsupported_feature` if not.
   (@interface func (export "signature_keypair_id")
@@ -194,7 +194,7 @@
     (result $version $version)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Create a key pair using an opaque key identifier.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and `$crypto_errno.invalid_key` if the identifier
@@ -209,7 +209,7 @@
     (result $handle $signature_keypair)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Invalidate a key pair given a key identifier and a version.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and `$crypto_errno.invalid_key` if the identifier
@@ -224,7 +224,7 @@
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Export the key pair as the given encoding format.
   ;;; May return `$crypto_errno.prohibited_operation` if this operation is
   ;;; not available or `$crypto_errno.unsupported_encoding` if the encoding
@@ -413,7 +413,7 @@
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Create a context to access a key manager.
   (@interface func (export "symmetric_key_manager_open")
     (param $options $opt_options)
@@ -421,14 +421,14 @@
     (result $handle $symmetric_key_manager)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Destroy a key manager.
   (@interface func (export "symmetric_key_manager_close")
     (param $symmetric_key_manager $symmetric_key_manager)
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Return the symmetric key identifier and version, if these are available
   ;;; or `$crypto_errno.unsupported_feature` if not.
   (@interface func (export "symmetric_key_id")
@@ -440,7 +440,7 @@
     (result $version $version)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Create a symmetric key using an opaque key identifier.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and crypto_errno.invalid_key if the identifier
@@ -455,7 +455,7 @@
     (result $handle $symmetric_key)
   )
 
-  ;;; [OPTIONAL IMPORT].
+  ;;; [OPTIONAL IMPORT]
   ;;; Invalidate a symmetric key given a key identifier and a version.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and `$crypto_errno.invalid_key` if the identifier
