@@ -193,7 +193,7 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
         let out_len = inner
             .ring_opening_key
             .open_in_place(ring_ad, &mut out)
-            .map_err(|_| CryptoError::AlgorithmFailure)?
+            .map_err(|_| CryptoError::InvalidTag)?
             .len();
         out.truncate(out_len);
         Ok(out)
@@ -207,7 +207,7 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
         let out_len = inner
             .ring_opening_key
             .open_in_place(ring_ad, &mut out)
-            .map_err(|_| CryptoError::AlgorithmFailure)?
+            .map_err(|_| CryptoError::InvalidTag)?
             .len();
         out.truncate(out_len);
         Ok(out)
