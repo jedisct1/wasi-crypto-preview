@@ -313,10 +313,10 @@ impl CryptoCtx {
     pub fn symmetric_state_squeeze_key(
         &self,
         symmetric_state_handle: Handle,
-        out: &mut [u8],
+        raw: &mut [u8],
     ) -> Result<(), CryptoError> {
         let mut symmetric_state = self.handles.symmetric_state.get(symmetric_state_handle)?;
-        symmetric_state.squeeze_key(out)
+        symmetric_state.squeeze_key(raw)
     }
 
     pub fn symmetric_state_max_tag_len(
@@ -480,30 +480,25 @@ impl WasiCryptoCtx {
     pub fn symmetric_state_squeeze_tag(
         &self,
         symmetric_state_handle: guest_types::SymmetricState,
-        out_ptr: &wiggle::GuestPtr<'_, u8>,
-        out_len: guest_types::Size,
-    ) -> Result<(), CryptoError> {
-        let mut guest_borrow = wiggle::GuestBorrows::new();
-        let out: &mut [u8] =
-            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+    ) -> Result<guest_types::SymmetricTag, CryptoError> {
         Ok(self
             .ctx
-            .symmetric_state_squeeze(symmetric_state_handle.into(), out)?
+            .symmetric_state_squeeze_tag(symmetric_state_handle.into())?
             .into())
     }
 
     pub fn symmetric_state_squeeze_key(
         &self,
         symmetric_state_handle: guest_types::SymmetricState,
-        out_ptr: &wiggle::GuestPtr<'_, u8>,
-        out_len: guest_types::Size,
+        raw_ptr: &wiggle::GuestPtr<'_, u8>,
+        raw_len: guest_types::Size,
     ) -> Result<(), CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
-        let out: &mut [u8] =
-            unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
+        let raw: &mut [u8] =
+            unsafe { &mut *raw_ptr.as_array(raw_len as _).as_raw(&mut guest_borrow)? };
         Ok(self
             .ctx
-            .symmetric_state_squeeze_key(symmetric_state_handle.into(), out)?
+            .symmetric_state_squeeze_key(symmetric_state_handle.into(), raw)?
             .into())
     }
 
@@ -524,7 +519,7 @@ impl WasiCryptoCtx {
         out_len: guest_types::Size,
         data_ptr: &wiggle::GuestPtr<'_, u8>,
         data_len: guest_types::Size,
-    ) -> Result<usize, CryptoError> {
+    ) -> Result<guest_types::Size, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let out: &mut [u8] =
             unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
@@ -532,7 +527,7 @@ impl WasiCryptoCtx {
         Ok(self
             .ctx
             .symmetric_state_encrypt(symmetric_state_handle.into(), out, data)?
-            .into())
+            .try_into()?)
     }
 
     pub fn symmetric_state_encrypt_detached(
@@ -560,7 +555,7 @@ impl WasiCryptoCtx {
         out_len: guest_types::Size,
         data_ptr: &wiggle::GuestPtr<'_, u8>,
         data_len: guest_types::Size,
-    ) -> Result<usize, CryptoError> {
+    ) -> Result<guest_types::Size, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let out: &mut [u8] =
             unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
@@ -568,7 +563,7 @@ impl WasiCryptoCtx {
         Ok(self
             .ctx
             .symmetric_state_decrypt(symmetric_state_handle.into(), out, data)?
-            .into())
+            .try_into()?)
     }
 
     pub fn symmetric_state_decrypt_detached(
@@ -580,7 +575,7 @@ impl WasiCryptoCtx {
         data_len: guest_types::Size,
         raw_tag_ptr: &wiggle::GuestPtr<'_, u8>,
         raw_tag_len: guest_types::Size,
-    ) -> Result<usize, CryptoError> {
+    ) -> Result<guest_types::Size, CryptoError> {
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let out: &mut [u8] =
             unsafe { &mut *out_ptr.as_array(out_len as _).as_raw(&mut guest_borrow)? };
@@ -593,7 +588,7 @@ impl WasiCryptoCtx {
         Ok(self
             .ctx
             .symmetric_state_decrypt_detached(symmetric_state_handle.into(), out, data, raw_tag)?
-            .into())
+            .try_into()?)
     }
 
     pub fn symmetric_state_ratchet(
