@@ -115,16 +115,7 @@
     (param $value (@witx const_pointer u8))
     (param $value_len $size)
     (result $error $crypto_errno)
-  )
-
-  (@interface func (export "options_get")
-    (param $handle $options)
-    (param $name string)
-    (param $value (@witx pointer u8))
-    (param $value_max_len $size)
-    (result $error $crypto_errno)
-;;    (result $value_len $size)
-  )  
+  ) 
 
   (@interface func (export "options_set_u64")
     (param $handle $options)
@@ -132,13 +123,6 @@
     (param $value u64)
     (result $error $crypto_errno)
   )
-
-  (@interface func (export "options_get_u64")
-    (param $handle $options)
-    (param $name string)
-    (result $error $crypto_errno)
-    (result $value u64)
-  )  
 
   ;;; Return the length of an array_output object.
   (@interface func (export "array_output_len")
@@ -477,4 +461,20 @@
     (param $symmetric_key_version $version)
     (result $error $crypto_errno)
   )
+
+  (@interface func (export "symmetric_state_options_get")
+    (param $handle $symmetric_state)
+    (param $name string)
+    (param $value (@witx pointer u8))
+    (param $value_max_len $size)
+    (result $error $crypto_errno)
+    (result $value_len $size)
+  ) 
+  
+  (@interface func (export "symmetric_state_options_get_u64")
+    (param $handle $symmetric_state)
+    (param $name string)
+    (result $error $crypto_errno)
+    (result $value u64)
+  )    
 )

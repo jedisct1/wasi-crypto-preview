@@ -14,7 +14,7 @@ pub trait OptionsLike: Send + Sized {
         bail!(CryptoError::UnsupportedOption)
     }
 
-    fn get(&mut self, _name: &str) -> Result<Vec<u8>, CryptoError> {
+    fn get(&self, _name: &str) -> Result<Vec<u8>, CryptoError> {
         bail!(CryptoError::UnsupportedOption)
     }
 
@@ -22,7 +22,7 @@ pub trait OptionsLike: Send + Sized {
         bail!(CryptoError::UnsupportedOption)
     }
 
-    fn get_u64(&mut self, _name: &str) -> Result<u64, CryptoError> {
+    fn get_u64(&self, _name: &str) -> Result<u64, CryptoError> {
         bail!(CryptoError::UnsupportedOption)
     }
 }
@@ -115,6 +115,16 @@ impl CryptoCtx {
         options.set(name, value)
     }
 
+    pub fn options_set_u64(
+        &self,
+        options_handle: Handle,
+        name: &str,
+        value: u64,
+    ) -> Result<(), CryptoError> {
+        let mut options = self.handles.options.get(options_handle)?;
+        options.set_u64(name, value)
+    }
+
     pub fn options_get(
         &self,
         options_handle: Handle,
@@ -127,16 +137,6 @@ impl CryptoCtx {
         ensure!(v_len <= value.len(), CryptoError::Overflow);
         value[..v_len].copy_from_slice(&v);
         Ok(v_len)
-    }
-
-    pub fn options_set_u64(
-        &self,
-        options_handle: Handle,
-        name: &str,
-        value: u64,
-    ) -> Result<(), CryptoError> {
-        let mut options = self.handles.options.get(options_handle)?;
-        options.set_u64(name, value)
     }
 
     pub fn options_get_u64(&self, options_handle: Handle, name: &str) -> Result<u64, CryptoError> {
@@ -178,6 +178,20 @@ impl WasiCryptoCtx {
             .into())
     }
 
+    pub fn options_set_u64(
+        &self,
+        options_handle: guest_types::Options,
+        name_str: &wiggle::GuestPtr<'_, str>,
+        value: u64,
+    ) -> Result<(), CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let name_str: &str = unsafe { &*name_str.as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .options_set_u64(options_handle.into(), name_str, value)?
+            .into())
+    }
+
     pub fn options_get(
         &self,
         options_handle: guest_types::Options,
@@ -195,20 +209,6 @@ impl WasiCryptoCtx {
         Ok(self
             .ctx
             .options_get(options_handle.into(), name_str, value)?
-            .into())
-    }
-
-    pub fn options_set_u64(
-        &self,
-        options_handle: guest_types::Options,
-        name_str: &wiggle::GuestPtr<'_, str>,
-        value: u64,
-    ) -> Result<(), CryptoError> {
-        let mut guest_borrow = wiggle::GuestBorrows::new();
-        let name_str: &str = unsafe { &*name_str.as_raw(&mut guest_borrow)? };
-        Ok(self
-            .ctx
-            .options_set_u64(options_handle.into(), name_str, value)?
             .into())
     }
 

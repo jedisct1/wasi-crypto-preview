@@ -62,7 +62,7 @@ impl OptionsLike for SymmetricOptions {
         Ok(())
     }
 
-    fn get(&mut self, name: &str) -> Result<Vec<u8>, CryptoError> {
+    fn get(&self, name: &str) -> Result<Vec<u8>, CryptoError> {
         let inner = self.inner.lock();
         let value = match name.to_lowercase().as_str() {
             "context" => &inner.context,
@@ -85,7 +85,7 @@ impl OptionsLike for SymmetricOptions {
         Ok(())
     }
 
-    fn get_u64(&mut self, name: &str) -> Result<u64, CryptoError> {
+    fn get_u64(&self, name: &str) -> Result<u64, CryptoError> {
         let inner = self.inner.lock();
         let value = match name.to_lowercase().as_str() {
             "memory_limit" => &inner.memory_limit,
@@ -195,6 +195,11 @@ fn test_encryption() {
     let symmetric_state = ctx
         .symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))
         .unwrap();
+    let mut observed_nonce = [0u8; 12];
+    ctx.symmetric_state_options_get(symmetric_state, "nonce", &mut observed_nonce)
+        .unwrap();
+    assert_eq!(&nonce, &observed_nonce);
+
     let mut ciphertext_with_tag =
         vec![0u8; msg.len() + ctx.symmetric_state_max_tag_len(symmetric_state).unwrap()];
     ctx.symmetric_state_encrypt(symmetric_state, &mut ciphertext_with_tag, msg)

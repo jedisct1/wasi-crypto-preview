@@ -2,10 +2,12 @@ use super::*;
 use crate::types as guest_types;
 use crate::{CryptoCtx, WasiCryptoCtx};
 
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 pub trait SymmetricAlgorithmStateLike {
     fn alg(&self) -> SymmetricAlgorithm;
+    fn options_get(&self, _name: &str) -> Result<Vec<u8>, CryptoError>;
+    fn options_get_u64(&self, _name: &str) -> Result<u64, CryptoError>;
 
     fn absorb(&mut self, _data: &[u8]) -> Result<(), CryptoError> {
         bail!(CryptoError::InvalidOperation)
@@ -70,6 +72,22 @@ impl SymmetricState {
             SymmetricState::HmacSha2(op) => op.alg,
             SymmetricState::Sha2(op) => op.alg,
             SymmetricState::AesGcm(op) => op.alg,
+        }
+    }
+
+    fn options_get(&self, name: &str) -> Result<Vec<u8>, CryptoError> {
+        match self {
+            SymmetricState::HmacSha2(op) => op.options_get(name),
+            SymmetricState::Sha2(op) => op.options_get(name),
+            SymmetricState::AesGcm(op) => op.options_get(name),
+        }
+    }
+
+    fn options_get_u64(&self, name: &str) -> Result<u64, CryptoError> {
+        match self {
+            SymmetricState::HmacSha2(op) => op.options_get_u64(name),
+            SymmetricState::Sha2(op) => op.options_get_u64(name),
+            SymmetricState::AesGcm(op) => op.options_get_u64(name),
         }
     }
 
@@ -227,6 +245,30 @@ impl CryptoCtx {
         Ok(handle)
     }
 
+    pub fn symmetric_state_options_get(
+        &self,
+        state_handle: Handle,
+        name: &str,
+        value: &mut [u8],
+    ) -> Result<usize, CryptoError> {
+        let symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let v = symmetric_state.options_get(name)?;
+        let v_len = v.len();
+        ensure!(v_len <= value.len(), CryptoError::Overflow);
+        value[..v_len].copy_from_slice(&v);
+        Ok(v_len)
+    }
+
+    pub fn symmetric_state_options_get_u64(
+        &self,
+        state_handle: Handle,
+        name: &str,
+    ) -> Result<u64, CryptoError> {
+        let symmetric_state = self.handles.symmetric_state.get(state_handle)?;
+        let v = symmetric_state.options_get_u64(name)?;
+        Ok(v)
+    }
+
     pub fn symmetric_state_close(&self, state_handle: Handle) -> Result<(), CryptoError> {
         self.handles.symmetric_state.close(state_handle)
     }
@@ -333,6 +375,39 @@ impl WasiCryptoCtx {
                 key_handle.map(Into::into),
                 options_handle.map(Into::into),
             )?
+            .into())
+    }
+
+    pub fn symmetric_state_options_get(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        name_str: &wiggle::GuestPtr<'_, str>,
+        value_ptr: &wiggle::GuestPtr<'_, u8>,
+        value_max_len: guest_types::Size,
+    ) -> Result<guest_types::Size, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let name_str: &str = unsafe { &*name_str.as_raw(&mut guest_borrow)? };
+        let value: &mut [u8] = unsafe {
+            &mut *value_ptr
+                .as_array(value_max_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .options_get(symmetric_state_handle.into(), name_str, value)?
+            .try_into()?)
+    }
+
+    pub fn symmetric_state_options_get_u64(
+        &self,
+        symmetric_state_handle: guest_types::SymmetricState,
+        name_str: &wiggle::GuestPtr<'_, str>,
+    ) -> Result<u64, CryptoError> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let name_str: &str = unsafe { &*name_str.as_raw(&mut guest_borrow)? };
+        Ok(self
+            .ctx
+            .options_get_u64(symmetric_state_handle.into(), name_str)?
             .into())
     }
 }

@@ -18,6 +18,7 @@ pub struct AesGcmSymmetricStateInner {
 #[derivative(Debug)]
 pub struct AesGcmSymmetricState {
     pub alg: SymmetricAlgorithm,
+    options: SymmetricOptions,
     #[derivative(Debug = "ignore")]
     inner: Arc<Mutex<AesGcmSymmetricStateInner>>,
 }
@@ -119,7 +120,7 @@ impl AesGcmSymmetricState {
             SymmetricAlgorithm::Aes256Gcm => &ring::aead::AES_256_GCM,
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
-        let options = options.ok_or(CryptoError::NonceRequired)?;
+        let options = options.as_ref().ok_or(CryptoError::NonceRequired)?;
         let inner = options.inner.lock();
         let nonce_vec = inner.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
         let mut nonce = [0u8; ring::aead::NONCE_LEN];
@@ -139,6 +140,7 @@ impl AesGcmSymmetricState {
         };
         Ok(AesGcmSymmetricState {
             alg,
+            options: options.clone(),
             inner: Arc::new(Mutex::new(inner)),
         })
     }
@@ -147,6 +149,14 @@ impl AesGcmSymmetricState {
 impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
     fn alg(&self) -> SymmetricAlgorithm {
         self.alg
+    }
+
+    fn options_get(&self, name: &str) -> Result<Vec<u8>, CryptoError> {
+        self.options.get(name)
+    }
+
+    fn options_get_u64(&self, name: &str) -> Result<u64, CryptoError> {
+        self.options.get_u64(name)
     }
 
     fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {

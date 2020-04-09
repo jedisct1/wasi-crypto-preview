@@ -5,6 +5,7 @@ use super::*;
 #[derivative(Debug)]
 pub struct Sha2SymmetricState {
     pub alg: SymmetricAlgorithm,
+    options: Option<SymmetricOptions>,
     #[derivative(Debug = "ignore")]
     pub ring_ctx: ring::digest::Context,
 }
@@ -13,7 +14,7 @@ impl Sha2SymmetricState {
     pub fn new(
         alg: SymmetricAlgorithm,
         key: Option<&SymmetricKey>,
-        _options: Option<SymmetricOptions>,
+        options: Option<SymmetricOptions>,
     ) -> Result<Self, CryptoError> {
         if key.is_some() {
             return Err(CryptoError::KeyNotSupported);
@@ -25,13 +26,31 @@ impl Sha2SymmetricState {
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let ring_ctx = ring::digest::Context::new(ring_alg);
-        Ok(Sha2SymmetricState { alg, ring_ctx })
+        Ok(Sha2SymmetricState {
+            alg,
+            options,
+            ring_ctx,
+        })
     }
 }
 
 impl SymmetricAlgorithmStateLike for Sha2SymmetricState {
     fn alg(&self) -> SymmetricAlgorithm {
         self.alg
+    }
+
+    fn options_get(&self, name: &str) -> Result<Vec<u8>, CryptoError> {
+        self.options
+            .as_ref()
+            .ok_or(CryptoError::OptionNotSet)?
+            .get(name)
+    }
+
+    fn options_get_u64(&self, name: &str) -> Result<u64, CryptoError> {
+        self.options
+            .as_ref()
+            .ok_or(CryptoError::OptionNotSet)?
+            .get_u64(name)
     }
 
     fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
