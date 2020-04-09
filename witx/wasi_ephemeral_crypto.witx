@@ -441,6 +441,18 @@
   )
 
   ;;; [OPTIONAL IMPORT]
+  ;;; Generate a new managed symmetric key.
+  ;;; This function may return `$crypto_errno.unsupported_feature` if key
+  ;;; generation is not supported by the host for the chosen algorithm.
+  (@interface func (export "symmetric_managed_key_generate")
+    (param $symmetric_key_manager $symmetric_key_manager)
+    (param $algorithm string)
+    (param $options $opt_options)
+    (result $error $crypto_errno)
+    (result $handle $symmetric_key)
+  )
+
+  ;;; [OPTIONAL IMPORT]
   ;;; Create a symmetric key using an opaque key identifier.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and crypto_errno.invalid_key if the identifier

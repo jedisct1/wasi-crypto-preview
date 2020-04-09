@@ -814,6 +814,27 @@ or `$crypto_errno.unsupported_feature` if not.
 
 ---
 
+#### <a href="#symmetric_managed_key_generate" name="symmetric_managed_key_generate"></a> `symmetric_managed_key_generate(symmetric_key_manager: symmetric_key_manager, algorithm: string, options: opt_options) -> (crypto_errno, symmetric_key)`
+[OPTIONAL IMPORT]
+Generate a new managed symmetric key.
+This function may return `$crypto_errno.unsupported_feature` if key
+generation is not supported by the host for the chosen algorithm.
+
+##### Params
+- <a href="#symmetric_managed_key_generate.symmetric_key_manager" name="symmetric_managed_key_generate.symmetric_key_manager"></a> `symmetric_key_manager`: [`symmetric_key_manager`](#symmetric_key_manager)
+
+- <a href="#symmetric_managed_key_generate.algorithm" name="symmetric_managed_key_generate.algorithm"></a> `algorithm`: `string`
+
+- <a href="#symmetric_managed_key_generate.options" name="symmetric_managed_key_generate.options"></a> `options`: [`opt_options`](#opt_options)
+
+##### Results
+- <a href="#symmetric_managed_key_generate.error" name="symmetric_managed_key_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#symmetric_managed_key_generate.handle" name="symmetric_managed_key_generate.handle"></a> `handle`: [`symmetric_key`](#symmetric_key)
+
+
+---
+
 #### <a href="#symmetric_key_from_id" name="symmetric_key_from_id"></a> `symmetric_key_from_id(symmetric_key_manager: symmetric_key_manager, symmetric_key_id: ConstPointer<u8>, symmetric_key_id_len: size, symmetric_key_version: version) -> (crypto_errno, symmetric_key)`
 [OPTIONAL IMPORT]
 Create a symmetric key using an opaque key identifier.
