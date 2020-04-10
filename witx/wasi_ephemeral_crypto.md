@@ -324,11 +324,11 @@ Create a new object to set non-default options.
 Example usage:
 
 ```rust
-let options_handle = ctx.options_open();
-ctx.options_set(options_handle, "context", context);
-ctx.options_set_u64(options_handle, "threads", 4);
-let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle));
-ctx.options_close(options_handle);
+let options_handle = ctx.options_open()?;
+ctx.options_set(options_handle, "context", context)?;
+ctx.options_set_u64(options_handle, "threads", 4)?;
+let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle))?;
+ctx.options_close(options_handle)?;
 ```
 
 ##### Params
@@ -345,6 +345,8 @@ ctx.options_close(options_handle);
 #### <a href="#options_close" name="options_close"></a> `options_close(handle: options) -> crypto_errno`
 Destroy an options object.
 
+Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
+
 ##### Params
 - <a href="#options_close.handle" name="options_close.handle"></a> `handle`: [`options`](#options)
 
@@ -356,6 +358,8 @@ Destroy an options object.
 
 #### <a href="#options_set" name="options_set"></a> `options_set(handle: options, name: string, value: ConstPointer<u8>, value_len: size) -> crypto_errno`
 Set or update an option.
+
+This is used to set algorithm-specific parameters, but also to provide credentials for the key management facilities, if required.
 
 ##### Params
 - <a href="#options_set.handle" name="options_set.handle"></a> `handle`: [`options`](#options)
@@ -375,6 +379,8 @@ Set or update an option.
 #### <a href="#options_set_u64" name="options_set_u64"></a> `options_set_u64(handle: options, name: string, value: u64) -> crypto_errno`
 Set or update an integer option.
 
+This is used to set algorithm-specific parameters.
+
 ##### Params
 - <a href="#options_set_u64.handle" name="options_set_u64.handle"></a> `handle`: [`options`](#options)
 
@@ -389,7 +395,9 @@ Set or update an integer option.
 ---
 
 #### <a href="#array_output_len" name="array_output_len"></a> `array_output_len(array_output: array_output) -> (crypto_errno, size)`
-Return the length of an array_output object.
+Return the length of an [`array_output`](#array_output) object.
+
+This allows a guest to allocate a buffer of the correct size in order to copy the output of a function returning this object type.
 
 ##### Params
 - <a href="#array_output_len.array_output" name="array_output_len.array_output"></a> `array_output`: [`array_output`](#array_output)
@@ -403,8 +411,21 @@ Return the length of an array_output object.
 ---
 
 #### <a href="#array_output_pull" name="array_output_pull"></a> `array_output_pull(array_output: array_output, buf: Pointer<u8>, buf_len: size) -> crypto_errno`
-Copy an array_output into an application-allocated buffer.
-The array_output handle becomes invalid after this operation.
+Copy the content of an [`array_output`](#array_output) object into an application-allocated buffer.
+
+Multiple calls to that function can be made in order to consume the data in a streaming fashion, if necessary.
+
+The function returns the number of bytes that were actually copied. `0` means that the end of the stream has been reached. The total size always matches the output of `array_output_len()`.
+
+The handle is automatically closed after all the data has been consumed.
+
+Example usage:
+
+```rust
+let len = ctx.array_output_len(output_handle)?;
+let mut out = vec![0u8; len];
+ctx.array_output_pull(output_handle, &mut out)?;
+```
 
 ##### Params
 - <a href="#array_output_pull.array_output" name="array_output_pull.array_output"></a> `array_output`: [`array_output`](#array_output)
@@ -423,6 +444,11 @@ The array_output handle becomes invalid after this operation.
 [OPTIONAL IMPORT]
 Create a context to the key manager.
 
+The set of required and supported options is defined by the host.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+This is also an optional import, meaning that the function may not even exist.
+
 ##### Params
 - <a href="#signature_keypair_manager_open.options" name="signature_keypair_manager_open.options"></a> `options`: [`opt_options`](#opt_options)
 
@@ -438,6 +464,9 @@ Create a context to the key manager.
 [OPTIONAL IMPORT]
 Destroy a key manager context.
 
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+This is also an optional import, meaning that the function may not even exist.
+
 ##### Params
 - <a href="#signature_keypair_manager_close.kp_manager" name="signature_keypair_manager_close.kp_manager"></a> `kp_manager`: [`signature_keypair_manager`](#signature_keypair_manager)
 
@@ -450,8 +479,15 @@ Destroy a key manager context.
 #### <a href="#signature_managed_keypair_generate" name="signature_managed_keypair_generate"></a> `signature_managed_keypair_generate(kp_manager: signature_keypair_manager, algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
 [OPTIONAL IMPORT]
 Generate a new managed key pair.
-This function may return `$crypto_errno.unsupported_feature` if key
-generation is not supported by the host for the chosen algorithm.
+
+The key pair is generated and stored by the key management facilities.
+
+It may be used through its identifier, but the host may not allow it to be exported.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host,
+or `unsupported_algorithm` if a key cannot be created for the chosen algorithm.
+
+This is also an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#signature_managed_keypair_generate.kp_manager" name="signature_managed_keypair_generate.kp_manager"></a> `kp_manager`: [`signature_keypair_manager`](#signature_keypair_manager)
@@ -469,9 +505,19 @@ generation is not supported by the host for the chosen algorithm.
 ---
 
 #### <a href="#signature_keypair_generate" name="signature_keypair_generate"></a> `signature_keypair_generate(algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
-Generate a new key pair.
-This function may return `$crypto_errno.unsupported_feature` if key
-generation is not supported by the host for the chosen algorithm.
+Generate a new key pair for signatures.
+
+Internally, a key pair stores the supplied algorithm and optional parameters.
+
+Trying to use that key pair with different parameters will throw an `invalid_key` error.
+
+This function may return `$crypto_errno.unsupported_feature` if key generation is not supported by the host for the chosen algorithm.
+
+Example usage:
+
+```rust
+let kp = ctx.signature_keypair_generate("RSA_PKCS1_2048_8192_SHA512", None)?;
+```
 
 ##### Params
 - <a href="#signature_keypair_generate.algorithm" name="signature_keypair_generate.algorithm"></a> `algorithm`: `string`
@@ -487,10 +533,11 @@ generation is not supported by the host for the chosen algorithm.
 ---
 
 #### <a href="#signature_keypair_import" name="signature_keypair_import"></a> `signature_keypair_import(algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: keypair_encoding) -> (crypto_errno, signature_keypair)`
-Import a key pair.
-This function may return `$crypto_errno.unsupported_algorithm` if the
-encoding scheme is not supported, or crypto_errno.invalid_key if the key
-cannot be decoded.
+Import a key pair for signatures.
+
+This function creates a [`signature_keypair`](#signature_keypair) object from existing material.
+
+It may return `unsupported_algorithm` if the encoding scheme is not supported, or `invalid_key` if the key cannot be decoded.
 
 ##### Params
 - <a href="#signature_keypair_import.algorithm" name="signature_keypair_import.algorithm"></a> `algorithm`: `string`
@@ -511,8 +558,11 @@ cannot be decoded.
 
 #### <a href="#signature_keypair_id" name="signature_keypair_id"></a> `signature_keypair_id(kp: signature_keypair, kp_id: Pointer<u8>, kp_id_max_len: size) -> (crypto_errno, size, version)`
 [OPTIONAL IMPORT]
-Return the key identifier and version, if these are available
-or `$crypto_errno.unsupported_feature` if not.
+Return the key identifier and version of a managed key.
+
+If the key is not managed, `unsupported_feature` is returned instead.
+
+This is an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#signature_keypair_id.kp" name="signature_keypair_id.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
@@ -1057,13 +1107,13 @@ The version can be a actual version number, as well as
 
 ---
 
-#### <a href="#symmetric_state_open" name="symmetric_state_open"></a> `symmetric_state_open(alg_str: string, key: opt_symmetric_key, options: opt_options) -> (crypto_errno, symmetric_state)`
+#### <a href="#symmetric_state_open" name="symmetric_state_open"></a> `symmetric_state_open(algorithm: string, key: opt_symmetric_key, options: opt_options) -> (crypto_errno, symmetric_state)`
 Retrieve a parameter from the current state.
 In particular, `symmetric_state_options_get("nonce")` can be used
 to get a nonce that as automatically generated.
 
 ##### Params
-- <a href="#symmetric_state_open.alg_str" name="symmetric_state_open.alg_str"></a> `alg_str`: `string`
+- <a href="#symmetric_state_open.algorithm" name="symmetric_state_open.algorithm"></a> `algorithm`: `string`
 
 - <a href="#symmetric_state_open.key" name="symmetric_state_open.key"></a> `key`: [`opt_symmetric_key`](#opt_symmetric_key)
 

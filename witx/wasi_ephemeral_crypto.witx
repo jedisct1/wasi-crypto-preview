@@ -294,11 +294,11 @@
   ;;; Example usage:
   ;;;
   ;;; ```rust
-  ;;; let options_handle = ctx.options_open();
-  ;;; ctx.options_set(options_handle, "context", context);
-  ;;; ctx.options_set_u64(options_handle, "threads", 4);
-  ;;; let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle));
-  ;;; ctx.options_close(options_handle);
+  ;;; let options_handle = ctx.options_open()?;
+  ;;; ctx.options_set(options_handle, "context", context)?;
+  ;;; ctx.options_set_u64(options_handle, "threads", 4)?;
+  ;;; let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle))?;
+  ;;; ctx.options_close(options_handle)?;
   ;;; ```
   (@interface func (export "options_open")
     (param $options_type $options_type)
@@ -307,12 +307,16 @@
   )
 
   ;;; Destroy an options object.
+  ;;;
+  ;;; Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
   (@interface func (export "options_close")
     (param $handle $options)
     (result $error $crypto_errno)
   )
 
   ;;; Set or update an option.
+  ;;;
+  ;;; This is used to set algorithm-specific parameters, but also to provide credentials for the key management facilities, if required.
   (@interface func (export "options_set")
     (param $handle $options)
     (param $name string)
@@ -322,6 +326,8 @@
   )
 
   ;;; Set or update an integer option.
+  ;;;
+  ;;; This is used to set algorithm-specific parameters.
   (@interface func (export "options_set_u64")
     (param $handle $options)
     (param $name string)
@@ -329,15 +335,30 @@
     (result $error $crypto_errno)
   )
 
-  ;;; Return the length of an array_output object.
+  ;;; Return the length of an `array_output` object.
+  ;;;
+  ;;; This allows a guest to allocate a buffer of the correct size in order to copy the output of a function returning this object type.
   (@interface func (export "array_output_len")
     (param $array_output $array_output)
     (result $error $crypto_errno)
     (result $len $size)
   )
 
-  ;;; Copy an array_output into an application-allocated buffer.
-  ;;; The array_output handle becomes invalid after this operation.
+  ;;; Copy the content of an `array_output` object into an application-allocated buffer.
+  ;;;
+  ;;; Multiple calls to that function can be made in order to consume the data in a streaming fashion, if necessary.
+  ;;;
+  ;;; The function returns the number of bytes that were actually copied. `0` means that the end of the stream has been reached. The total size always matches the output of `array_output_len()`.
+  ;;;
+  ;;; The handle is automatically closed after all the data has been consumed.
+  ;;;
+  ;;; Example usage:
+  ;;;
+  ;;; ```rust
+  ;;; let len = ctx.array_output_len(output_handle)?;
+  ;;; let mut out = vec![0u8; len];
+  ;;; ctx.array_output_pull(output_handle, &mut out)?;
+  ;;; ```
   (@interface func (export "array_output_pull")
     (param $array_output $array_output)
     (param $buf (@witx pointer u8))
@@ -347,6 +368,11 @@
 
   ;;; [OPTIONAL IMPORT]
   ;;; Create a context to the key manager.
+  ;;;
+  ;;; The set of required and supported options is defined by the host.
+  ;;;
+  ;;; The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+  ;;; This is also an optional import, meaning that the function may not even exist.
   (@interface func (export "signature_keypair_manager_open")
     (param $options $opt_options)
     (result $error $crypto_errno)
@@ -355,6 +381,9 @@
 
   ;;; [OPTIONAL IMPORT]
   ;;; Destroy a key manager context.
+  ;;;
+  ;;; The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+  ;;; This is also an optional import, meaning that the function may not even exist.
   (@interface func (export "signature_keypair_manager_close")
     (param $kp_manager $signature_keypair_manager)
     (result $error $crypto_errno)
@@ -362,8 +391,15 @@
 
   ;;; [OPTIONAL IMPORT]
   ;;; Generate a new managed key pair.
-  ;;; This function may return `$crypto_errno.unsupported_feature` if key
-  ;;; generation is not supported by the host for the chosen algorithm.
+  ;;;
+  ;;; The key pair is generated and stored by the key management facilities.
+  ;;;
+  ;;; It may be used through its identifier, but the host may not allow it to be exported.
+  ;;;
+  ;;; The function returns the `unsupported_feature` error code if key management facilities are not supported by the host,
+  ;;; or `unsupported_algorithm` if a key cannot be created for the chosen algorithm.
+  ;;;
+  ;;; This is also an optional import, meaning that the function may not even exist.
   (@interface func (export "signature_managed_keypair_generate")
     (param $kp_manager $signature_keypair_manager)
     (param $algorithm string)
@@ -372,9 +408,19 @@
     (result $handle $signature_keypair)
   )
 
-  ;;; Generate a new key pair.
-  ;;; This function may return `$crypto_errno.unsupported_feature` if key
-  ;;; generation is not supported by the host for the chosen algorithm.
+  ;;; Generate a new key pair for signatures.
+  ;;;
+  ;;; Internally, a key pair stores the supplied algorithm and optional parameters.
+  ;;;
+  ;;; Trying to use that key pair with different parameters will throw an `invalid_key` error.
+  ;;;
+  ;;; This function may return `$crypto_errno.unsupported_feature` if key generation is not supported by the host for the chosen algorithm.
+  ;;;
+  ;;; Example usage:
+  ;;;
+  ;;; ```rust
+  ;;; let kp = ctx.signature_keypair_generate("RSA_PKCS1_2048_8192_SHA512", None)?;
+  ;;; ```
   (@interface func (export "signature_keypair_generate")
     (param $algorithm string)
     (param $options $opt_options)
@@ -382,10 +428,11 @@
     (result $handle $signature_keypair)
   )
 
-  ;;; Import a key pair.
-  ;;; This function may return `$crypto_errno.unsupported_algorithm` if the
-  ;;; encoding scheme is not supported, or crypto_errno.invalid_key if the key
-  ;;; cannot be decoded.
+  ;;; Import a key pair for signatures.
+  ;;;
+  ;;; This function creates a `signature_keypair` object from existing material.
+  ;;;
+  ;;; It may return `unsupported_algorithm` if the encoding scheme is not supported, or `invalid_key` if the key cannot be decoded.
   (@interface func (export "signature_keypair_import")
     (param $algorithm string)
     (param $encoded (@witx const_pointer u8))
@@ -396,8 +443,11 @@
   )
 
   ;;; [OPTIONAL IMPORT]
-  ;;; Return the key identifier and version, if these are available
-  ;;; or `$crypto_errno.unsupported_feature` if not.
+  ;;; Return the key identifier and version of a managed key.
+  ;;;
+  ;;; If the key is not managed, `unsupported_feature` is returned instead.
+  ;;;
+  ;;; This is an optional import, meaning that the function may not even exist.
   (@interface func (export "signature_keypair_id")
     (param $kp $signature_keypair)
     (param $kp_id (@witx pointer u8))
@@ -699,7 +749,7 @@
   ;;; In particular, `symmetric_state_options_get("nonce")` can be used
   ;;; to get a nonce that as automatically generated.
   (@interface func (export "symmetric_state_open")
-    (param $alg_str string)
+    (param $algorithm string)
     (param $key $opt_symmetric_key)
     (param $options $opt_options)
     (result $error $crypto_errno)
