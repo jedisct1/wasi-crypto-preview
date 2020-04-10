@@ -923,6 +923,121 @@
   ;;; - If not, the function will fail and return the dedicated `nonce_required` error code.
   ;;;
   ;;; A nonce that was automatically generated can be retrieved after the function returns with `symmetric_state_get(state_handle, "nonce")`.
+  ;;;
+  ;;; **Sample usage patterns:**
+  ;;;
+  ;;; - **Hashing**
+  ;;;
+  ;;; ```rust
+  ;;; let mut out = [0u8; 64];
+  ;;; let state_handle = ctx.symmetric_state_open("SHAKE-128", None, None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"data")?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"more_data")?;
+  ;;; ctx.symmetric_state_squeeze(state_handle, &mut out)?;
+  ;;; ```
+  ;;;
+  ;;; - **MAC**
+  ;;;
+  ;;; ```rust
+  ;;; let mut out = [0u8; 64];
+  ;;; let key_handle = ctx.symmetric_key_import("HMAC/SHA-512", b"key")?;
+  ;;; let state_handle = ctx.symmetric_state_open("HMAC/SHA-512", Some(key_handle), None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"data")?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"more_data")?;
+  ;;; ctx.symmetric_state_squeeze(state_handle, &mut out)?;
+  ;;; ```
+  ;;;
+  ;;; - **Tuple hashing**
+  ;;;
+  ;;; ```rust
+  ;;; let mut out = [0u8; 64];
+  ;;; let state_handle = ctx.symmetric_state_open("TupleHashXOF256", None, None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"value 1")?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"value 2")?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"value 3")?;
+  ;;; ctx.symmetric_state_squeeze(state_handle, &mut out)?;
+  ;;; ```
+  ;;; Unlike MACs and regular hash functions, inputs are domain separated instead of being concatenated.
+  ;;;
+  ;;; - **Key derivation using extract-and-expand**
+  ;;;
+  ;;; Extract:
+  ;;;
+  ;;; ```rust
+  ;;; let key_handle = ctx.symmetric_key_import("HKDF-EXTRACT/SHA-512", b"key")?;
+  ;;; let state_handle = symmetric_state_open("HKDF-EXTRACT/SHA-512", Some(key_handle), None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"seed")?;
+  ;;; let prk_handle = ctx.symmetric_state_squeeze_key(state_handle)?;
+  ;;; ```
+  ;;; Expand:
+  ;;;
+  ;;; ```rust
+  ;;; let mut subkey = vec![0u8; 32];
+  ;;; let state_handle = symmetric_state_open("HKDF-EXPAND/SHA-512", Some(prk_handle), None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"salt")?;
+  ;;; ctx.symmetric_state_squeeze(state_handle, &mut subkey)?;
+  ;;; ```
+  ;;;
+  ;;; - **Key derivation using a XOF**
+  ;;;
+  ;;; ```rust
+  ;;; let mut subkey1 = vec![0u8; 32];
+  ;;; let mut subkey2 = vec![0u8; 32];
+  ;;; let key_handle = ctx.symmetric_key_import("BLAKE3", b"key")?;
+  ;;; let state_handle = symmetric_state_open("BLAKE3", Some(key_handle), None)?;
+  ;;; ctx.symmetric_absorb(state_handle, b"context")?;
+  ;;; ctx.squeeze(state_handle, &mut subkey1)?;
+  ;;; ctx.squeeze(state_handle, &mut subkey2)?;
+  ;;; ```
+  ;;;
+  ;;; - **Password hashing**
+  ;;;
+  ;;; ```rust
+  ;;; let options_handle = ctx.symmetric_options_open()?;  
+  ;;; ctx.symmetric_options_set_u64(options_handle, "memlimit", 1 * 1024 * 1024 * 1024)?;
+  ;;; ctx.symmetric_options_set_u64(options_handle, "opslimit", 5)?;
+  ;;; ctx.symmetric_options_set_u64(options_handle, "parallelism", 8)?;
+  ;;;
+  ;;; let state_handle = ctx.symmetric_state_open("Argon2id", None, Some(options))?;
+  ;;; ctx.symmtric_state_absorb(state_handle, b"password")?;
+  ;;;
+  ;;; let pw_str_handle = ctx.symmetric_state_squeeze_tag(state_handle)?;
+  ;;; let mut pw_str = vec![0u8; ctx.symmetric_tag_len(pw_str_handle)?];
+  ;;; ctx.symmetric_tag_pull(pw_str_handle, &mut pw_str)?;
+  ;;; ```
+  ;;;
+  ;;; - **AEAD encryption with an explicit nonce**
+  ;;;  
+  ;;; ```rust
+  ;;; let key_handle = ctx.symmetric_key_generate("AES-256-GCM", None)?;
+  ;;; let message = b"test";
+  ;;;
+  ;;; let options_handle = ctx.symmetric_options_open()?;
+  ;;; ctx.symmetric_options_set(options_handle, "nonce", nonce)?;
+  ;;;
+  ;;; let state_handle = ctx.symmetric_state_open("AES-256-GCM", Some(key_handle), Some(options_handle))?;
+  ;;; let mut ciphertext = vec![0u8; message.len() + ctx.symmetric_state_max_tag_len(state_handle)?];
+  ;;; ctx.symmetric_state_absorb(state_handle, "additional data")?;
+  ;;; ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, message)?;
+  ;;; ```
+  ;;;
+  ;;; - **AEAD encryption with automatic nonce generation**
+  ;;;  
+  ;;; ```rust
+  ;;; let key_handle = ctx.symmetric_key_generate("XChaCha20-Poly1305", None)?;
+  ;;; let message = b"test";
+  ;;; let mut nonce = [0u8; 24];
+  ;;;
+  ;;; let state_handle = ctx.symmetric_state_open("XChaCha20-Poly1305", Some(key_handle), None)?;
+  ;;;
+  ;;; let nonce_handle = ctx.symmetric_state_options_get(state_handle, "nonce")?;
+  ;;; ctx.array_output_pull(nonce_handle, &mut nonce)?;
+  ;;;
+  ;;; let mut ciphertext = vec![0u8; message.len() + ctx.symmetric_state_max_tag_len(state_handle)?];
+  ;;; ctx.symmetric_state_absorb(state_handle, "additional data")?;
+  ;;; ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, message)?;
+  ;;; ```  
+
   (@interface func (export "symmetric_state_open")
     (param $algorithm string)
     (param $key $opt_symmetric_key)
@@ -1019,6 +1134,8 @@
   ;;; Compute a new key, that can be used to resume a session without storing a nonce.
   ;;;
   ;;; This is similar to `symmetric_state_squeeze()` with a different domain.
+  ;;;
+  ;;; For extract-then-expand constructions, this returns the PRK.
   ;;;
   ;;; `invalid_operation` is returned for algorithms not supporting this operation.
   (@interface func (export "symmetric_state_squeeze_key")
