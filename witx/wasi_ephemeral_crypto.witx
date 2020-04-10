@@ -366,7 +366,7 @@
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Create a context to the key manager.
   ;;;
   ;;; The set of required and supported options is defined by the host.
@@ -379,7 +379,7 @@
     (result $handle $signature_keypair_manager)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Destroy a key manager context.
   ;;;
   ;;; The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
@@ -389,7 +389,7 @@
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Generate a new managed key pair.
   ;;;
   ;;; The key pair is generated and stored by the key management facilities.
@@ -442,7 +442,7 @@
     (result $handle $signature_keypair)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Return the key identifier and version of a managed key.
   ;;;
   ;;; If the key is not managed, `unsupported_feature` is returned instead.
@@ -457,7 +457,7 @@
     (result $version $version)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Create a key pair using an opaque key identifier.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and `$crypto_errno.invalid_key` if the identifier
@@ -472,7 +472,7 @@
     (result $handle $signature_keypair)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Invalidate a key pair given a key identifier and a version.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and `$crypto_errno.invalid_key` if the identifier
@@ -487,7 +487,7 @@
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Export the key pair as the given encoding format.
   ;;; May return `$crypto_errno.prohibited_operation` if this operation is
   ;;; not available or `$crypto_errno.unsupported_encoding` if the encoding
@@ -676,7 +676,7 @@
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Create a context to access a key manager.
   (@interface func (export "symmetric_key_manager_open")
     (param $options $opt_options)
@@ -684,14 +684,14 @@
     (result $handle $symmetric_key_manager)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Destroy a key manager.
   (@interface func (export "symmetric_key_manager_close")
     (param $symmetric_key_manager $symmetric_key_manager)
     (result $error $crypto_errno)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Return the symmetric key identifier and version, if these are available
   ;;; or `$crypto_errno.unsupported_feature` if not.
   (@interface func (export "symmetric_key_id")
@@ -703,7 +703,7 @@
     (result $version $version)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Generate a new managed symmetric key.
   ;;; This function may return `$crypto_errno.unsupported_feature` if key
   ;;; generation is not supported by the host for the chosen algorithm.
@@ -715,7 +715,7 @@
     (result $handle $symmetric_key)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Create a symmetric key using an opaque key identifier.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and crypto_errno.invalid_key if the identifier
@@ -730,7 +730,7 @@
     (result $handle $symmetric_key)
   )
 
-  ;;; [OPTIONAL IMPORT]
+  ;;; __(optional)__
   ;;; Invalidate a symmetric key given a key identifier and a version.
   ;;; Return `$crypto_errno.unsupported_feature` if this operation is not
   ;;; supported by the host, and `$crypto_errno.invalid_key` if the identifier

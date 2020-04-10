@@ -441,7 +441,7 @@ ctx.array_output_pull(output_handle, &mut out)?;
 ---
 
 #### <a href="#signature_keypair_manager_open" name="signature_keypair_manager_open"></a> `signature_keypair_manager_open(options: opt_options) -> (crypto_errno, signature_keypair_manager)`
-[OPTIONAL IMPORT]
+__(optional)__
 Create a context to the key manager.
 
 The set of required and supported options is defined by the host.
@@ -461,7 +461,7 @@ This is also an optional import, meaning that the function may not even exist.
 ---
 
 #### <a href="#signature_keypair_manager_close" name="signature_keypair_manager_close"></a> `signature_keypair_manager_close(kp_manager: signature_keypair_manager) -> crypto_errno`
-[OPTIONAL IMPORT]
+__(optional)__
 Destroy a key manager context.
 
 The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
@@ -477,7 +477,7 @@ This is also an optional import, meaning that the function may not even exist.
 ---
 
 #### <a href="#signature_managed_keypair_generate" name="signature_managed_keypair_generate"></a> `signature_managed_keypair_generate(kp_manager: signature_keypair_manager, algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
-[OPTIONAL IMPORT]
+__(optional)__
 Generate a new managed key pair.
 
 The key pair is generated and stored by the key management facilities.
@@ -557,7 +557,7 @@ It may return `unsupported_algorithm` if the encoding scheme is not supported, o
 ---
 
 #### <a href="#signature_keypair_id" name="signature_keypair_id"></a> `signature_keypair_id(kp: signature_keypair, kp_id: Pointer<u8>, kp_id_max_len: size) -> (crypto_errno, size, version)`
-[OPTIONAL IMPORT]
+__(optional)__
 Return the key identifier and version of a managed key.
 
 If the key is not managed, `unsupported_feature` is returned instead.
@@ -582,7 +582,7 @@ This is an optional import, meaning that the function may not even exist.
 ---
 
 #### <a href="#signature_keypair_from_id" name="signature_keypair_from_id"></a> `signature_keypair_from_id(kp_manager: signature_keypair_manager, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> (crypto_errno, signature_keypair)`
-[OPTIONAL IMPORT]
+__(optional)__
 Create a key pair using an opaque key identifier.
 Return `$crypto_errno.unsupported_feature` if this operation is not
 supported by the host, and `$crypto_errno.invalid_key` if the identifier
@@ -607,7 +607,7 @@ The version can be an actual version number or $version.latest .
 ---
 
 #### <a href="#signature_keypair_invalidate" name="signature_keypair_invalidate"></a> `signature_keypair_invalidate(kp_manager: signature_keypair_manager, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> crypto_errno`
-[OPTIONAL IMPORT]
+__(optional)__
 Invalidate a key pair given a key identifier and a version.
 Return `$crypto_errno.unsupported_feature` if this operation is not
 supported by the host, and `$crypto_errno.invalid_key` if the identifier
@@ -631,7 +631,7 @@ The version can be a actual version number, as well as
 ---
 
 #### <a href="#signature_keypair_export" name="signature_keypair_export"></a> `signature_keypair_export(kp: signature_keypair, encoding: keypair_encoding) -> (crypto_errno, array_output)`
-[OPTIONAL IMPORT]
+__(optional)__
 Export the key pair as the given encoding format.
 May return `$crypto_errno.prohibited_operation` if this operation is
 not available or `$crypto_errno.unsupported_encoding` if the encoding
@@ -988,7 +988,7 @@ Destroys a symmetric key.
 ---
 
 #### <a href="#symmetric_key_manager_open" name="symmetric_key_manager_open"></a> `symmetric_key_manager_open(options: opt_options) -> (crypto_errno, symmetric_key_manager)`
-[OPTIONAL IMPORT]
+__(optional)__
 Create a context to access a key manager.
 
 ##### Params
@@ -1003,7 +1003,7 @@ Create a context to access a key manager.
 ---
 
 #### <a href="#symmetric_key_manager_close" name="symmetric_key_manager_close"></a> `symmetric_key_manager_close(symmetric_key_manager: symmetric_key_manager) -> crypto_errno`
-[OPTIONAL IMPORT]
+__(optional)__
 Destroy a key manager.
 
 ##### Params
@@ -1016,7 +1016,7 @@ Destroy a key manager.
 ---
 
 #### <a href="#symmetric_key_id" name="symmetric_key_id"></a> `symmetric_key_id(symmetric_key: symmetric_key, symmetric_key_id: Pointer<u8>, symmetric_key_id_max_len: size) -> (crypto_errno, size, version)`
-[OPTIONAL IMPORT]
+__(optional)__
 Return the symmetric key identifier and version, if these are available
 or `$crypto_errno.unsupported_feature` if not.
 
@@ -1038,7 +1038,7 @@ or `$crypto_errno.unsupported_feature` if not.
 ---
 
 #### <a href="#symmetric_managed_key_generate" name="symmetric_managed_key_generate"></a> `symmetric_managed_key_generate(symmetric_key_manager: symmetric_key_manager, algorithm: string, options: opt_options) -> (crypto_errno, symmetric_key)`
-[OPTIONAL IMPORT]
+__(optional)__
 Generate a new managed symmetric key.
 This function may return `$crypto_errno.unsupported_feature` if key
 generation is not supported by the host for the chosen algorithm.
@@ -1059,7 +1059,7 @@ generation is not supported by the host for the chosen algorithm.
 ---
 
 #### <a href="#symmetric_key_from_id" name="symmetric_key_from_id"></a> `symmetric_key_from_id(symmetric_key_manager: symmetric_key_manager, symmetric_key_id: ConstPointer<u8>, symmetric_key_id_len: size, symmetric_key_version: version) -> (crypto_errno, symmetric_key)`
-[OPTIONAL IMPORT]
+__(optional)__
 Create a symmetric key using an opaque key identifier.
 Return `$crypto_errno.unsupported_feature` if this operation is not
 supported by the host, and crypto_errno.invalid_key if the identifier
@@ -1084,7 +1084,7 @@ The version can be an actual version number or `$version.latest`.
 ---
 
 #### <a href="#symmetric_key_invalidate" name="symmetric_key_invalidate"></a> `symmetric_key_invalidate(symmetric_key_manager: symmetric_key_manager, symmetric_key_id: ConstPointer<u8>, symmetric_key_id_len: size, symmetric_key_version: version) -> crypto_errno`
-[OPTIONAL IMPORT]
+__(optional)__
 Invalidate a symmetric key given a key identifier and a version.
 Return `$crypto_errno.unsupported_feature` if this operation is not
 supported by the host, and `$crypto_errno.invalid_key` if the identifier
