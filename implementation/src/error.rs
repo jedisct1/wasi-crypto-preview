@@ -59,6 +59,8 @@ pub enum CryptoError {
     OptionNotSet,
     #[error("Key not found")]
     KeyNotFound,
+    #[error("Parameters missing")]
+    ParametersMissing,
 }
 
 impl From<TryFromIntError> for CryptoError {
@@ -96,6 +98,7 @@ impl From<CryptoError> for guest_types::CryptoErrno {
             CryptoError::NonceRequired => guest_types::CryptoErrno::NonceRequired,
             CryptoError::OptionNotSet => guest_types::CryptoErrno::OptionNotSet,
             CryptoError::KeyNotFound => guest_types::CryptoErrno::KeyNotFound,
+            CryptoError::ParametersMissing => guest_types::CryptoErrno::ParametersMissing,
         }
     }
 }

@@ -124,6 +124,11 @@ A key or key pair matching the requested identifier cannot be found using the su
 
 This error is returned by a key manager via the `signature_keypair_from_id()` function.
 
+- <a href="#crypto_errno.parameters_missing" name="crypto_errno.parameters_missing"></a> `parameters_missing`
+The algorithm requires parameters that haven't been set.
+
+Non-generic options are required and must be given by building an [`options`](#options) set and giving that object to functions instantiating that algorithm.
+
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a key pair.
 
@@ -447,7 +452,7 @@ ctx.array_output_pull(output_handle, &mut out)?;
 
 #### <a href="#signature_keypair_manager_open" name="signature_keypair_manager_open"></a> `signature_keypair_manager_open(options: opt_options) -> (crypto_errno, signature_keypair_manager)`
 __(optional)__
-Create a context to the key manager.
+Create a signature context for the key manager.
 
 The set of required and supported options is defined by the host.
 
@@ -490,7 +495,9 @@ The key pair is generated and stored by the key management facilities.
 It may be used through its identifier, but the host may not allow it to be exported.
 
 The function returns the `unsupported_feature` error code if key management facilities are not supported by the host,
-or `unsupported_algorithm` if a key cannot be created for the chosen algorithm.
+or `unsupported_algorithm` if a key pair cannot be created for the chosen algorithm.
+
+The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
 
 This is also an optional import, meaning that the function may not even exist.
 
@@ -518,6 +525,8 @@ Trying to use that key pair with different parameters will throw an `invalid_key
 
 This function may return `$crypto_errno.unsupported_feature` if key generation is not supported by the host for the chosen algorithm.
 
+The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
+
 Example usage:
 
 ```rust
@@ -544,6 +553,8 @@ This function creates a [`signature_keypair`](#signature_keypair) object from ex
 
 It may return `unsupported_algorithm` if the encoding scheme is not supported, or `invalid_key` if the key cannot be decoded.
 
+The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
+
 ##### Params
 - <a href="#signature_keypair_import.algorithm" name="signature_keypair_import.algorithm"></a> `algorithm`: `string`
 
@@ -563,7 +574,7 @@ It may return `unsupported_algorithm` if the encoding scheme is not supported, o
 
 #### <a href="#signature_keypair_id" name="signature_keypair_id"></a> `signature_keypair_id(kp: signature_keypair, kp_id: Pointer<u8>, kp_id_max_len: size) -> (crypto_errno, size, version)`
 __(optional)__
-Return the key identifier and version of a managed signature key pair.
+Return the key pair identifier and version of a managed signature key pair.
 
 If the key pair is not managed, `unsupported_feature` is returned instead.
 
@@ -592,7 +603,7 @@ Return a managed signature key pair from a key identifier.
 
 `kp_version` can be set to `version_latest` to retrieve the most recent version of a key pair.
 
-If no key matching the provided information is found, `key_not_found` is returned instead.
+If no key pair matching the provided information is found, `key_not_found` is returned instead.
 
 This is an optional import, meaning that the function may not even exist.
 
@@ -701,7 +712,10 @@ Import a signature public key.
 The returned object can be used to verify signatures.
 
 The function may return `unsupported_encoding` if importing from the given format is not implemented or incompatible with the key type.
+
 It may also return `invalid_key` if the key doesn't appear to match the supplied algorithm.
+
+Finally, the function may return `unsupported_algorithm` if the algorithm is not supported by the host.
 
 ##### Params
 - <a href="#signature_publickey_import.algorithm" name="signature_publickey_import.algorithm"></a> `algorithm`: `string`
@@ -776,6 +790,8 @@ Create a signature object.
 This object can be used along with a public key to verify an existing signature.
 
 It may return `invalid_signature` if the signature is invalid or incompatible with the specified algorithm, as well as `unsupported_encoding` if the encoding is not compatible with the signature type.
+
+The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
 
 ##### Params
 - <a href="#signature_import.algorithm" name="signature_import.algorithm"></a> `algorithm`: `string`
@@ -1064,15 +1080,19 @@ This function may return `unsupported_feature` if key generation is not supporte
 
 ---
 
-#### <a href="#symmetric_key_import" name="symmetric_key_import"></a> `symmetric_key_import(algorithm: string, encoded: ConstPointer<u8>, encoded_len: size) -> (crypto_errno, symmetric_key)`
-Import a symmetric key.
+#### <a href="#symmetric_key_import" name="symmetric_key_import"></a> `symmetric_key_import(algorithm: string, raw: ConstPointer<u8>, raw_len: size) -> (crypto_errno, symmetric_key)`
+Create a symmetric key from raw material.
+
+The algorithm is internally stored along with the key, and trying to use the key with an operation expecting a different algorithm will return `invalid_key`.
+
+The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
 
 ##### Params
 - <a href="#symmetric_key_import.algorithm" name="symmetric_key_import.algorithm"></a> `algorithm`: `string`
 
-- <a href="#symmetric_key_import.encoded" name="symmetric_key_import.encoded"></a> `encoded`: `ConstPointer<u8>`
+- <a href="#symmetric_key_import.raw" name="symmetric_key_import.raw"></a> `raw`: `ConstPointer<u8>`
 
-- <a href="#symmetric_key_import.encoded_len" name="symmetric_key_import.encoded_len"></a> `encoded_len`: [`size`](#size)
+- <a href="#symmetric_key_import.raw_len" name="symmetric_key_import.raw_len"></a> `raw_len`: [`size`](#size)
 
 ##### Results
 - <a href="#symmetric_key_import.error" name="symmetric_key_import.error"></a> `error`: [`crypto_errno`](#crypto_errno)
@@ -1083,7 +1103,9 @@ Import a symmetric key.
 ---
 
 #### <a href="#symmetric_key_close" name="symmetric_key_close"></a> `symmetric_key_close(symmetric_key: symmetric_key) -> crypto_errno`
-Destroys a symmetric key.
+Destroy a symmetric key.
+
+Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
 
 ##### Params
 - <a href="#symmetric_key_close.symmetric_key" name="symmetric_key_close.symmetric_key"></a> `symmetric_key`: [`symmetric_key`](#symmetric_key)
@@ -1096,7 +1118,12 @@ Destroys a symmetric key.
 
 #### <a href="#symmetric_key_manager_open" name="symmetric_key_manager_open"></a> `symmetric_key_manager_open(options: opt_options) -> (crypto_errno, symmetric_key_manager)`
 __(optional)__
-Create a context to access a key manager.
+Create a context for the key manager, for symmetric operations.
+
+The set of required and supported options is defined by the host.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+This is also an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#symmetric_key_manager_open.options" name="symmetric_key_manager_open.options"></a> `options`: [`opt_options`](#opt_options)
@@ -1111,7 +1138,10 @@ Create a context to access a key manager.
 
 #### <a href="#symmetric_key_manager_close" name="symmetric_key_manager_close"></a> `symmetric_key_manager_close(symmetric_key_manager: symmetric_key_manager) -> crypto_errno`
 __(optional)__
-Destroy a key manager.
+Destroy a key manager context.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+This is also an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#symmetric_key_manager_close.symmetric_key_manager" name="symmetric_key_manager_close.symmetric_key_manager"></a> `symmetric_key_manager`: [`symmetric_key_manager`](#symmetric_key_manager)
@@ -1122,10 +1152,43 @@ Destroy a key manager.
 
 ---
 
+#### <a href="#symmetric_managed_key_generate" name="symmetric_managed_key_generate"></a> `symmetric_managed_key_generate(symmetric_key_manager: symmetric_key_manager, algorithm: string, options: opt_options) -> (crypto_errno, symmetric_key)`
+__(optional)__
+Generate a new symmetric key.
+
+The key is generated and stored by the key management facilities.
+
+It may be used through its identifier, but the host may not allow it to be exported.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host,
+or `unsupported_algorithm` if a key cannot be created for the chosen algorithm.
+
+The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
+
+This is also an optional import, meaning that the function may not even exist.
+
+##### Params
+- <a href="#symmetric_managed_key_generate.symmetric_key_manager" name="symmetric_managed_key_generate.symmetric_key_manager"></a> `symmetric_key_manager`: [`symmetric_key_manager`](#symmetric_key_manager)
+
+- <a href="#symmetric_managed_key_generate.algorithm" name="symmetric_managed_key_generate.algorithm"></a> `algorithm`: `string`
+
+- <a href="#symmetric_managed_key_generate.options" name="symmetric_managed_key_generate.options"></a> `options`: [`opt_options`](#opt_options)
+
+##### Results
+- <a href="#symmetric_managed_key_generate.error" name="symmetric_managed_key_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#symmetric_managed_key_generate.handle" name="symmetric_managed_key_generate.handle"></a> `handle`: [`symmetric_key`](#symmetric_key)
+
+
+---
+
 #### <a href="#symmetric_key_id" name="symmetric_key_id"></a> `symmetric_key_id(symmetric_key: symmetric_key, symmetric_key_id: Pointer<u8>, symmetric_key_id_max_len: size) -> (crypto_errno, size, version)`
 __(optional)__
-Return the symmetric key identifier and version, if these are available
-or `$crypto_errno.unsupported_feature` if not.
+Return the key identifier and version of a managed symmetric key pair.
+
+If the key is not managed, `unsupported_feature` is returned instead.
+
+This is an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#symmetric_key_id.symmetric_key" name="symmetric_key_id.symmetric_key"></a> `symmetric_key`: [`symmetric_key`](#symmetric_key)
@@ -1144,34 +1207,15 @@ or `$crypto_errno.unsupported_feature` if not.
 
 ---
 
-#### <a href="#symmetric_managed_key_generate" name="symmetric_managed_key_generate"></a> `symmetric_managed_key_generate(symmetric_key_manager: symmetric_key_manager, algorithm: string, options: opt_options) -> (crypto_errno, symmetric_key)`
-__(optional)__
-Generate a new managed symmetric key.
-This function may return `$crypto_errno.unsupported_feature` if key
-generation is not supported by the host for the chosen algorithm.
-
-##### Params
-- <a href="#symmetric_managed_key_generate.symmetric_key_manager" name="symmetric_managed_key_generate.symmetric_key_manager"></a> `symmetric_key_manager`: [`symmetric_key_manager`](#symmetric_key_manager)
-
-- <a href="#symmetric_managed_key_generate.algorithm" name="symmetric_managed_key_generate.algorithm"></a> `algorithm`: `string`
-
-- <a href="#symmetric_managed_key_generate.options" name="symmetric_managed_key_generate.options"></a> `options`: [`opt_options`](#opt_options)
-
-##### Results
-- <a href="#symmetric_managed_key_generate.error" name="symmetric_managed_key_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#symmetric_managed_key_generate.handle" name="symmetric_managed_key_generate.handle"></a> `handle`: [`symmetric_key`](#symmetric_key)
-
-
----
-
 #### <a href="#symmetric_key_from_id" name="symmetric_key_from_id"></a> `symmetric_key_from_id(symmetric_key_manager: symmetric_key_manager, symmetric_key_id: ConstPointer<u8>, symmetric_key_id_len: size, symmetric_key_version: version) -> (crypto_errno, symmetric_key)`
 __(optional)__
-Create a symmetric key using an opaque key identifier.
-Return `$crypto_errno.unsupported_feature` if this operation is not
-supported by the host, and crypto_errno.invalid_key if the identifier
-is invalid.
-The version can be an actual version number or `$version.latest`.
+Return a managed symmetric key from a key identifier.
+
+`kp_version` can be set to `version_latest` to retrieve the most recent version of a key pair.
+
+If no key matching the provided information is found, `key_not_found` is returned instead.
+
+This is an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#symmetric_key_from_id.symmetric_key_manager" name="symmetric_key_from_id.symmetric_key_manager"></a> `symmetric_key_manager`: [`symmetric_key_manager`](#symmetric_key_manager)
@@ -1193,11 +1237,16 @@ The version can be an actual version number or `$version.latest`.
 #### <a href="#symmetric_key_invalidate" name="symmetric_key_invalidate"></a> `symmetric_key_invalidate(symmetric_key_manager: symmetric_key_manager, symmetric_key_id: ConstPointer<u8>, symmetric_key_id_len: size, symmetric_key_version: version) -> crypto_errno`
 __(optional)__
 Invalidate a symmetric key given a key identifier and a version.
-Return `$crypto_errno.unsupported_feature` if this operation is not
-supported by the host, and `$crypto_errno.invalid_key` if the identifier
-is invalid.
-The version can be a actual version number, as well as
-`$version.latest` or `$version.all`.
+
+This asks the key manager to delete or revoke a key or a version of a key.
+
+Once this function returns, [`symmetric_key_from_id`](#symmetric_key_from_id) will return that key any longer.
+
+`kp_version` can be set to a version number, to [`version.latest`](#version.latest) to invalidate the current version, or to [`version.all`](#version.all) to invalidate all versions of a key.
+
+The function returns `unsupported_feature` if this operation is not supported by the host, and `key_not_found` if the identifier and version don't match any existing key pair.
+
+This is an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#symmetric_key_invalidate.symmetric_key_manager" name="symmetric_key_invalidate.symmetric_key_manager"></a> `symmetric_key_manager`: [`symmetric_key_manager`](#symmetric_key_manager)
@@ -1215,9 +1264,35 @@ The version can be a actual version number, as well as
 ---
 
 #### <a href="#symmetric_state_open" name="symmetric_state_open"></a> `symmetric_state_open(algorithm: string, key: opt_symmetric_key, options: opt_options) -> (crypto_errno, symmetric_state)`
-Retrieve a parameter from the current state.
-In particular, `symmetric_state_options_get("nonce")` can be used
-to get a nonce that as automatically generated.
+Create a new state to aborb and produce data using symmetric operations.
+
+The state remains valid after every operation in order to support incremental updates.
+
+The function has two optional parameters: a key and an options set.
+
+It will fail with a `key_not_supported` error code if a key was provided but the chosen algorithm doesn't natively support keying.
+
+On the other hand, if a key is required, but was not provided, a `key_required` error will be thrown.
+
+Some algorithms may require additional parameters. They have to be supplied as an options set:
+
+```rust
+let options_handle = ctx.options_open()?;
+ctx.options_set("context", b"My application")?;
+ctx.options_set_u64("fanout", 16)?;
+let state_handle = ctx.symmetric_state_open("BLAKE2b-512", None, Some(options_handle))?;
+```
+
+If some parameters are mandatory but were not set, the `parameters_missing` error code will be returned.
+
+A notable exception is the `nonce` parameter, that is common to most AEAD constructions.
+
+If a nonce is required but was not supplied:
+
+- If it is safe to do so, the host will automatically generate a nonce. This is true for nonces that are large enough to be randomly generated, or if the host is able to maintain a global counter.
+- If not, the function will fail and return the dedicated `nonce_required` error code.
+
+A nonce that was automatically generated can be retrieved after the function returns with `symmetric_state_get(state_handle, "nonce")`.
 
 ##### Params
 - <a href="#symmetric_state_open.algorithm" name="symmetric_state_open.algorithm"></a> `algorithm`: `string`
@@ -1236,8 +1311,12 @@ to get a nonce that as automatically generated.
 
 #### <a href="#symmetric_state_options_get" name="symmetric_state_options_get"></a> `symmetric_state_options_get(handle: symmetric_state, name: string, value: Pointer<u8>, value_max_len: size) -> (crypto_errno, size)`
 Retrieve a parameter from the current state.
-In particular, `symmetric_state_options_get("nonce")` can be used
-to get a nonce that as automatically generated.
+
+In particular, `symmetric_state_options_get("nonce")` can be used to get a nonce that as automatically generated.
+
+The function may return `options_not_set` if an option was not set, which is different from an empty value.
+
+It may also return `unsupported_option` if the option doesn't exist for the chosen algorithm.
 
 ##### Params
 - <a href="#symmetric_state_options_get.handle" name="symmetric_state_options_get.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1258,8 +1337,12 @@ to get a nonce that as automatically generated.
 
 #### <a href="#symmetric_state_options_get_u64" name="symmetric_state_options_get_u64"></a> `symmetric_state_options_get_u64(handle: symmetric_state, name: string) -> (crypto_errno, u64)`
 Retrieve an integer parameter from the current state.
-In particular, `symmetric_state_options_get("nonce")` can be used
-to get a nonce that as automatically generated.
+
+In particular, `symmetric_state_options_get("nonce")` can be used to get a nonce that as automatically generated.
+
+The function may return `options_not_set` if an option was not set.
+
+It may also return `unsupported_option` if the option doesn't exist for the chosen algorithm.
 
 ##### Params
 - <a href="#symmetric_state_options_get_u64.handle" name="symmetric_state_options_get_u64.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1277,6 +1360,8 @@ to get a nonce that as automatically generated.
 #### <a href="#symmetric_state_close" name="symmetric_state_close"></a> `symmetric_state_close(handle: symmetric_state) -> crypto_errno`
 Destroy a symmetric state.
 
+Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
+
 ##### Params
 - <a href="#symmetric_state_close.handle" name="symmetric_state_close.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
 
@@ -1288,8 +1373,17 @@ Destroy a symmetric state.
 
 #### <a href="#symmetric_state_absorb" name="symmetric_state_absorb"></a> `symmetric_state_absorb(handle: symmetric_state, data: ConstPointer<u8>, data_len: size) -> crypto_errno`
 Absorb data into the state.
-This can be data to be hashed for a hash function,
-or additional data for an AEAD.
+
+- **Hash functions:** adds data to be hashed.
+- **MAC functions:** adds data to be authenticated.
+- **Tuplehash-like constructions:** adds a new tuple to the state.
+- **Key derivation functions:** adds to the IKM or to the subkey information.
+- **AEAD constructions:** adds additional data to be authenticated.
+- **Stateful hash objects, permutation-based constructions:** absorbs.
+
+If the chosen algorithm doesn't accept input data, the `invalid_operation` error code is returned.
+
+If too much data has been fed for the algorithm, `overflow` may be thrown.
 
 ##### Params
 - <a href="#symmetric_state_absorb.handle" name="symmetric_state_absorb.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1306,8 +1400,13 @@ or additional data for an AEAD.
 
 #### <a href="#symmetric_state_squeeze" name="symmetric_state_squeeze"></a> `symmetric_state_squeeze(handle: symmetric_state, out: Pointer<u8>, out_len: size) -> crypto_errno`
 Squeeze bytes from the state.
-This can be the output of a hash function (with limits on
-the output length), a XOF, a stream cipher or a KDF.
+
+- **Hash functions:** this tries to output an `out_len` bytes digest from the absorbed data. The hash function output will be truncated if necessary. If the requested size is too large, the `invalid_len` error code is returned.
+- **Key derivation functions:** : outputs an arbitrary-long derived key.
+- **RNGs, DRBGs, stream ciphers:**: outputs arbitrary-long data.
+- **Stateful hash objects, permutation-based constructions:** squeeze.
+
+Other kinds of algorithms may return `invalid_operation` instead.
 
 ##### Params
 - <a href="#symmetric_state_squeeze.handle" name="symmetric_state_squeeze.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1323,9 +1422,13 @@ the output length), a XOF, a stream cipher or a KDF.
 ---
 
 #### <a href="#symmetric_state_squeeze_tag" name="symmetric_state_squeeze_tag"></a> `symmetric_state_squeeze_tag(handle: symmetric_state) -> (crypto_errno, symmetric_tag)`
-Compute and return a tag for all the data injected into
-the state so far. This can be a MAC or a self-contained
-verification tag for a password hashing function.
+Compute and return a tag for all the data injected into the state so far.
+
+- **MAC functions**: returns a tag authenticating the absorbed data.
+- **Tuplehash-like constructions:** returns a tag authenticating all the absorbed tuples.
+- **Password-hashing functions:** returns a standard string containing all the required parameters for password verification.
+
+Other kinds of algorithms may return `invalid_operation` instead.
 
 ##### Params
 - <a href="#symmetric_state_squeeze_tag.handle" name="symmetric_state_squeeze_tag.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1339,8 +1442,11 @@ verification tag for a password hashing function.
 ---
 
 #### <a href="#symmetric_state_squeeze_key" name="symmetric_state_squeeze_key"></a> `symmetric_state_squeeze_key(handle: symmetric_state, raw: Pointer<u8>, raw_len: size) -> crypto_errno`
-Compute a new key, that can be used to resume a session
-without storing a nonce.
+Compute a new key, that can be used to resume a session without storing a nonce.
+
+This is similar to `symmetric_state_squeeze()` with a different domain.
+
+`invalid_operation` is returned for algorithms not supporting this operation.
 
 ##### Params
 - <a href="#symmetric_state_squeeze_key.handle" name="symmetric_state_squeeze_key.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1356,7 +1462,15 @@ without storing a nonce.
 ---
 
 #### <a href="#symmetric_state_max_tag_len" name="symmetric_state_max_tag_len"></a> `symmetric_state_max_tag_len(handle: symmetric_state) -> (crypto_errno, size)`
-Return the maximum length of a for the current algorithm.
+Return the maximum length of an authentication tag for the current algorithm.
+
+This allows guests to compute the size required to store a ciphertext along with its authentication tag.
+
+The returned length may include the encryption mode's padding requirements in addition to the actual tag.
+
+For an encryption operation, the size of the output buffer should be `input_len + symmetric_state_max_tag_len()`.
+
+For a decryption operation, the size of the buffer that will store the decrypted data can be reduced to `ciphertext_len - symmetric_state_max_tag_len()` only if the algorithm is known to have a fixed tag length.
 
 ##### Params
 - <a href="#symmetric_state_max_tag_len.handle" name="symmetric_state_max_tag_len.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1370,13 +1484,17 @@ Return the maximum length of a for the current algorithm.
 ---
 
 #### <a href="#symmetric_state_encrypt" name="symmetric_state_encrypt"></a> `symmetric_state_encrypt(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size) -> (crypto_errno, size)`
-Encrypt data.
-With authenticated encryption, the output will include
-the authentication tag. Therefore, `$out_len` must be
-at least `symmetric_state_max_tag_len()` byte larger than
-the input.
-If `out` and `data` are the same address, encryption may
-happen in-place.
+Encrypt data with an attached tag.
+
+- **Stream cipher:** adds the input to the stream cipher output. `out_len` and `data_len` can be equal, as no authentication tags will be added.
+- **AEAD:** encrypts `data` into `out`, including the authentication tag to the output. Additional data must have been previously absorbed using `symmetric_state_absorb()`. The `symmetric_state_max_tag_len()` function can be used to retrieve the overhead of adding the tag, as well as padding if necessary.
+- **SHOE, Xoodyak, Strobe:** encrypts data, squeezes a tag and appends it to the output.
+
+If `out` and `data` are the same address, encryption may happen in-place.
+
+The function returns the actual size of the ciphertext along with the tag.
+
+`invalid_operation` is returned for algorithms not supporting encryption.
 
 ##### Params
 - <a href="#symmetric_state_encrypt.handle" name="symmetric_state_encrypt.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1399,8 +1517,16 @@ happen in-place.
 
 #### <a href="#symmetric_state_encrypt_detached" name="symmetric_state_encrypt_detached"></a> `symmetric_state_encrypt_detached(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size) -> (crypto_errno, symmetric_tag)`
 Encrypt data, with a detached tag.
-If `out` and `data` are the same address, encryption may
-happen in-place.
+
+- **Stream cipher:** returns `invalid_operation` since stream ciphers do not include authentication tags.
+- **AEAD:** encrypts `data` into `out` and returns the tag separately. Additional data must have been previously absorbed using `symmetric_state_absorb()`. The output and input buffers can be of the same length.
+- **SHOE, Xoodyak, Strobe:** encrypts data and squeezes a tag.
+
+If `out` and `data` are the same address, encryption may happen in-place.
+
+The function returns the tag.
+
+`invalid_operation` is returned for algorithms not supporting encryption.
 
 ##### Params
 - <a href="#symmetric_state_encrypt_detached.handle" name="symmetric_state_encrypt_detached.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1422,9 +1548,17 @@ happen in-place.
 ---
 
 #### <a href="#symmetric_state_decrypt" name="symmetric_state_decrypt"></a> `symmetric_state_decrypt(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size) -> (crypto_errno, size)`
-Decrypt data with an attached tag.
-If `out` and `data` are the same address, decryption may
-happen in-place.
+- **Stream cipher:** adds the input to the stream cipher output. `out_len` and `data_len` can be equal, as no authentication tags will be added.
+- **AEAD:** decrypts `data` into `out`. Additional data must have been previously absorbed using `symmetric_state_absorb()`.
+- **SHOE, Xoodyak, Strobe:** decrypts data, squeezes a tag and verify that it matches the one that was appended to the ciphertext.
+
+If `out` and `data` are the same address, decryption may happen in-place.
+
+The function returns the actual size of the decrypted message.
+
+`invalid_tag` is returned if the tag didn't verify.
+
+`invalid_operation` is returned for algorithms not supporting encryption.
 
 ##### Params
 - <a href="#symmetric_state_decrypt.handle" name="symmetric_state_decrypt.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1446,9 +1580,19 @@ happen in-place.
 ---
 
 #### <a href="#symmetric_state_decrypt_detached" name="symmetric_state_decrypt_detached"></a> `symmetric_state_decrypt_detached(handle: symmetric_state, out: Pointer<u8>, out_len: size, data: ConstPointer<u8>, data_len: size, raw_tag: ConstPointer<u8>, raw_tag_len: size) -> (crypto_errno, size)`
-Decrypt data with a detached tag.
-If `out` and `data` are the same address, decryption may
-happen in-place.
+- **Stream cipher:** returns `invalid_operation` since stream ciphers do not include authentication tags.
+- **AEAD:** decrypts `data` into `out`. Additional data must have been previously absorbed using `symmetric_state_absorb()`.
+- **SHOE, Xoodyak, Strobe:** decrypts data, squeezes a tag and verify that it matches the expected one.
+
+`raw_tag` is the expected tag, as raw bytes.
+
+If `out` and `data` are the same address, decryption may happen in-place.
+
+The function returns the actual size of the decrypted message.
+
+`invalid_tag` is returned if the tag verification failed.
+
+`invalid_operation` is returned for algorithms not supporting encryption.
 
 ##### Params
 - <a href="#symmetric_state_decrypt_detached.handle" name="symmetric_state_decrypt_detached.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1475,6 +1619,10 @@ happen in-place.
 
 #### <a href="#symmetric_state_ratchet" name="symmetric_state_ratchet"></a> `symmetric_state_ratchet(handle: symmetric_state) -> crypto_errno`
 Make it impossible to recover the previous state.
+
+This operation is supported by some systems keeping a rolling state over an entire session, for forward security.
+
+`invalid_operation` is returned for algorithms not supporting ratcheting.
 
 ##### Params
 - <a href="#symmetric_state_ratchet.handle" name="symmetric_state_ratchet.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
