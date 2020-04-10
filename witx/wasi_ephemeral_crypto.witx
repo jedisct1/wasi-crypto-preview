@@ -121,32 +121,57 @@
   )
 )
 
+;;; Encoding to use for importing or exporting a key pair.
 (typename $keypair_encoding
   (enum u16
+    ;;; Raw bytes.
     $raw
+
+    ;;; PCSK8 encoding.
     $pkcs8
+
+    ;;; DER encoding.
     $der
+
+    ;;; PEM encoding.
     $pem
   )
 )
 
+;;; Encoding to use for importing or exporting a public key.
 (typename $publickey_encoding
   (enum u16
+    ;;; Raw bytes.
     $raw
+
+    ;;; DER encoding.
     $der
+
+    ;;; PEM encoding.
     $pem
+
+    ;;; SEC encoding.
     $sec
+
+    ;;; Compressed SEC encoding.
     $compressed_sec
   )
 )
 
+;;; Encoding to use for importing or exporting a signature.
 (typename $signature_encoding
   (enum u16
+    ;;; Raw bytes.
     $raw
+
+    ;;; DER encoding.
     $der
   )
 )
 
+;;; Type of an options set.
+;;;
+;;; This is used when creating a new options set with `options_open()`.
 (typename $options_type
   (enum u16
     $signatures
@@ -154,38 +179,113 @@
   )
 )
 
+;;; Version of a managed key.
+;;;
+;;; A version can be an arbitrary `u64` integer, with the expection of some reserved values.
 (typename $version
   (int u64
     ;;; Key doesn't support versioning.
+
     (const $unspecified 0xff00000000000000)
-    ;;; Retrieve the latest version of a key.
+    ;;; Use the latest version of a key.
+
     (const $latest 0xff00000000000001)
+
     ;;; Perform an operation over all versions of a key.
     (const $all 0xff00000000000002)
   )
 )
 
+;;; Size of a value.
 (typename $size (@witx usize))
 
+;;; Handle for functions returning output whose size may be large or not known in advance.
+;;;
+;;; An `array_output` object contains a host-allocated byte array.
+;;;
+;;; A guest can get the size of that array after a function returns in order to then allocate a buffer of the correct size.
+;;; In addition, the content of such an object can be consumed by a guest in a streaming fashion.
+;;;
+;;; An `array_output` handle is automatically closed after its full content has been consumed.
 (typename $array_output (handle))
+
+;;; A set of options.
+;;;
+;;; This type is used to set non-default parameters.
+;;;
+;;; The exact set of allowed options depends on the algorithm being used.
 (typename $options (handle))
+
+;;; A handle to the optional key management facilities offered by a host.
+;;;
+;;; This is used to generate, retrieve and invalidate managed signature key pairs.
 (typename $signature_keypair_manager (handle))
+
+;;; A key pair for signatures.
 (typename $signature_keypair (handle))
+
+;;; A state to absorb data to be signed.
+;;;
+;;; After a signature has been computed or verified, the state remains valid for further operations.
+;;;
+;;; A subsequent signature would sign all the data accumulated since the creation of the state object.
 (typename $signature_state (handle))
+
+;;; A signature.
 (typename $signature (handle))
+
+;;; A public key that can be used to verify a signature.
 (typename $signature_publickey (handle))
+
+;;; A state to absorb signed data to be verified.
 (typename $signature_verification_state (handle))
+
+;;; A handle to the optional key management facilities offered by a host.
+;;;
+;;; This is used to generate, retrieve and invalidate managed symmetric keys.
 (typename $symmetric_key_manager (handle))
+
+;;; A state to perform symmetric operations.
+;;;
+;;; The state is not reset nor invalidated after an option has been performed.
+;;; Incremental updates and sessions are thus supported.
 (typename $symmetric_state (handle))
+
+;;; A symmetric key.
+;;;
+;;; The key can be imported from raw bytes, or can be a reference to a managed key.
+;;;
+;;; If it was imported, the host will wipe it from memory as soon as the handle is closed.
 (typename $symmetric_key (handle))
+
+;;; An authentication tag.
+;;;
+;;; This is an object returned by functions computing authentication tags.
+;;;
+;;; A tag can be compared against another tag (directly supplied as raw bytes) in constant time with the `symmetric_tag_verify()` function.
+;;;
+;;; This object type can't be directly created from raw bytes. They are only returned by functions computing MACs.
+;;;
+;;; The host is reponsible for securely wiping them from memory on close.
 (typename $symmetric_tag (handle))
 
+;;; Options index, only required by the Interface Types translation layer.
 (typename $opt_options_u (enum u8 $some $none))
+
+;;; An optional options set.
+;;;
+;;; This union simulates an `Option<Options>` type to make the `options` parameter of some functions optional.
 (typename $opt_options (union $opt_options_u (field $some $options) (empty $none)))
 
+;;; Symmetric key index, only required by the Interface Types translation layer.
 (typename $opt_symmetric_key_u (enum u8 $some $none))
+
+;;; An optional symmetric key.
+;;;
+;;; This union simulates an `Option<SymmetricKey>` type to make the `symmetric_key` parameter of some functions optional.
 (typename $opt_symmetric_key (union $opt_symmetric_key_u (field $some $symmetric_key) (empty $none)))
 
+;;; A WASI cryptography submodule proposal.
 (module $wasi_ephemeral_crypto
   (import "memory" (memory))
 

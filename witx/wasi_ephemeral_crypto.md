@@ -120,37 +120,54 @@ The caller tried to read the value of an option that was not set.
 This error is used to make the distinction between an empty option, and an option that was not set and left to its default value.
 
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
+Encoding to use for importing or exporting a key pair.
 
 ### Variants
 - <a href="#keypair_encoding.raw" name="keypair_encoding.raw"></a> `raw`
+Raw bytes.
 
 - <a href="#keypair_encoding.pkcs8" name="keypair_encoding.pkcs8"></a> `pkcs8`
+PCSK8 encoding.
 
 - <a href="#keypair_encoding.der" name="keypair_encoding.der"></a> `der`
+DER encoding.
 
 - <a href="#keypair_encoding.pem" name="keypair_encoding.pem"></a> `pem`
+PEM encoding.
 
 ## <a href="#publickey_encoding" name="publickey_encoding"></a> `publickey_encoding`: Enum(`u16`)
+Encoding to use for importing or exporting a public key.
 
 ### Variants
 - <a href="#publickey_encoding.raw" name="publickey_encoding.raw"></a> `raw`
+Raw bytes.
 
 - <a href="#publickey_encoding.der" name="publickey_encoding.der"></a> `der`
+DER encoding.
 
 - <a href="#publickey_encoding.pem" name="publickey_encoding.pem"></a> `pem`
+PEM encoding.
 
 - <a href="#publickey_encoding.sec" name="publickey_encoding.sec"></a> `sec`
+SEC encoding.
 
 - <a href="#publickey_encoding.compressed_sec" name="publickey_encoding.compressed_sec"></a> `compressed_sec`
+Compressed SEC encoding.
 
 ## <a href="#signature_encoding" name="signature_encoding"></a> `signature_encoding`: Enum(`u16`)
+Encoding to use for importing or exporting a signature.
 
 ### Variants
 - <a href="#signature_encoding.raw" name="signature_encoding.raw"></a> `raw`
+Raw bytes.
 
 - <a href="#signature_encoding.der" name="signature_encoding.der"></a> `der`
+DER encoding.
 
 ## <a href="#options_type" name="options_type"></a> `options_type`: Enum(`u16`)
+Type of an options set.
+
+This is used when creating a new options set with `options_open()`.
 
 ### Variants
 - <a href="#options_type.signatures" name="options_type.signatures"></a> `signatures`
@@ -158,56 +175,107 @@ This error is used to make the distinction between an empty option, and an optio
 - <a href="#options_type.symmetric" name="options_type.symmetric"></a> `symmetric`
 
 ## <a href="#version" name="version"></a> `version`: Int(`u64`)
+Version of a managed key.
+
+A version can be an arbitrary `u64` integer, with the expection of some reserved values.
 
 ### Consts
 - <a href="#version.unspecified" name="version.unspecified"></a> `unspecified`
 Key doesn't support versioning.
 
 - <a href="#version.latest" name="version.latest"></a> `latest`
-Retrieve the latest version of a key.
+Use the latest version of a key.
 
 - <a href="#version.all" name="version.all"></a> `all`
 Perform an operation over all versions of a key.
 
 ## <a href="#size" name="size"></a> `size`: `usize`
+Size of a value.
 
 ## <a href="#array_output" name="array_output"></a> `array_output`
+Handle for functions returning output whose size may be large or not known in advance.
+
+An [`array_output`](#array_output) object contains a host-allocated byte array.
+
+A guest can get the size of that array after a function returns in order to then allocate a buffer of the correct size.
+In addition, the content of such an object can be consumed by a guest in a streaming fashion.
+
+An [`array_output`](#array_output) handle is automatically closed after its full content has been consumed.
 
 ### Supertypes
 ## <a href="#options" name="options"></a> `options`
+A set of options.
+
+This type is used to set non-default parameters.
+
+The exact set of allowed options depends on the algorithm being used.
 
 ### Supertypes
 ## <a href="#signature_keypair_manager" name="signature_keypair_manager"></a> `signature_keypair_manager`
+A handle to the optional key management facilities offered by a host.
+
+This is used to generate, retrieve and invalidate managed signature key pairs.
 
 ### Supertypes
 ## <a href="#signature_keypair" name="signature_keypair"></a> `signature_keypair`
+A key pair for signatures.
 
 ### Supertypes
 ## <a href="#signature_state" name="signature_state"></a> `signature_state`
+A state to absorb data to be signed.
+
+After a signature has been computed or verified, the state remains valid for further operations.
+
+A subsequent signature would sign all the data accumulated since the creation of the state object.
 
 ### Supertypes
 ## <a href="#signature" name="signature"></a> `signature`
+A signature.
 
 ### Supertypes
 ## <a href="#signature_publickey" name="signature_publickey"></a> `signature_publickey`
+A public key that can be used to verify a signature.
 
 ### Supertypes
 ## <a href="#signature_verification_state" name="signature_verification_state"></a> `signature_verification_state`
+A state to absorb signed data to be verified.
 
 ### Supertypes
 ## <a href="#symmetric_key_manager" name="symmetric_key_manager"></a> `symmetric_key_manager`
+A handle to the optional key management facilities offered by a host.
+
+This is used to generate, retrieve and invalidate managed symmetric keys.
 
 ### Supertypes
 ## <a href="#symmetric_state" name="symmetric_state"></a> `symmetric_state`
+A state to perform symmetric operations.
+
+The state is not reset nor invalidated after an option has been performed.
+Incremental updates and sessions are thus supported.
 
 ### Supertypes
 ## <a href="#symmetric_key" name="symmetric_key"></a> `symmetric_key`
+A symmetric key.
+
+The key can be imported from raw bytes, or can be a reference to a managed key.
+
+If it was imported, the host will wipe it from memory as soon as the handle is closed.
 
 ### Supertypes
 ## <a href="#symmetric_tag" name="symmetric_tag"></a> `symmetric_tag`
+An authentication tag.
+
+This is an object returned by functions computing authentication tags.
+
+A tag can be compared against another tag (directly supplied as raw bytes) in constant time with the `symmetric_tag_verify()` function.
+
+This object type can't be directly created from raw bytes. They are only returned by functions computing MACs.
+
+The host is reponsible for securely wiping them from memory on close.
 
 ### Supertypes
 ## <a href="#opt_options_u" name="opt_options_u"></a> `opt_options_u`: Enum(`u8`)
+Options index, only required by the Interface Types translation layer.
 
 ### Variants
 - <a href="#opt_options_u.some" name="opt_options_u.some"></a> `some`
@@ -215,6 +283,9 @@ Perform an operation over all versions of a key.
 - <a href="#opt_options_u.none" name="opt_options_u.none"></a> `none`
 
 ## <a href="#opt_options" name="opt_options"></a> `opt_options`: Union
+An optional options set.
+
+This union simulates an `Option<Options>` type to make the [`options`](#options) parameter of some functions optional.
 
 ### Union variants
 - <a href="#opt_options.some" name="opt_options.some"></a> `some`: [`options`](#options)
@@ -222,6 +293,7 @@ Perform an operation over all versions of a key.
 - <a href="#opt_options.none" name="opt_options.none"></a> `none`
 
 ## <a href="#opt_symmetric_key_u" name="opt_symmetric_key_u"></a> `opt_symmetric_key_u`: Enum(`u8`)
+Symmetric key index, only required by the Interface Types translation layer.
 
 ### Variants
 - <a href="#opt_symmetric_key_u.some" name="opt_symmetric_key_u.some"></a> `some`
@@ -229,6 +301,9 @@ Perform an operation over all versions of a key.
 - <a href="#opt_symmetric_key_u.none" name="opt_symmetric_key_u.none"></a> `none`
 
 ## <a href="#opt_symmetric_key" name="opt_symmetric_key"></a> `opt_symmetric_key`: Union
+An optional symmetric key.
+
+This union simulates an `Option<SymmetricKey>` type to make the [`symmetric_key`](#symmetric_key) parameter of some functions optional.
 
 ### Union variants
 - <a href="#opt_symmetric_key.some" name="opt_symmetric_key.some"></a> `some`: [`symmetric_key`](#symmetric_key)
