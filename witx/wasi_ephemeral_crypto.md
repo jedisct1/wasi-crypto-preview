@@ -1408,6 +1408,25 @@ ctx.symmetric_state_absorb(state_handle, "additional data")?;
 ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, message)?;
 ```
 
+- **Session authenticated modes**
+
+```rust
+let mut out = [0u8; 16];
+let mut out2 = [0u8; 16];
+let mut ciphertext = [0u8; 20];
+let key_handle = ctx.symmetric_key_generate("Xoodyak-256", None)?;
+let state_handle = ctx.symmetric_state_open("Xoodyak-256", Some(key_handle), None)?;
+ctx.symmetric_state_absorb(state_handle, b"data")?;
+ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, b"abcd")?;
+ctx.symmetric_state_absorb(state_handle, b"more data")?;
+ctx.symmetric_state_squeeze(state_handle, &mut out)?;
+ctx.symmetric_state_squeeze(state_handle, &mut out2)?;
+ctx.symmetric_state_ratchet(state_handle)?;
+ctx.symmetric_state_absorb(state_handle, b"more data")?;
+let next_key_handle = ctx.symmetric_state_squeeze_key(state_handle)?;
+// ...
+```
+
 ##### Params
 - <a href="#symmetric_state_open.algorithm" name="symmetric_state_open.algorithm"></a> `algorithm`: `string`
 

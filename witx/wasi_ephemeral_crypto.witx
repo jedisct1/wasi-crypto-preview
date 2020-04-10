@@ -993,7 +993,7 @@
   ;;; - **Password hashing**
   ;;;
   ;;; ```rust
-  ;;; let options_handle = ctx.symmetric_options_open()?;  
+  ;;; let options_handle = ctx.symmetric_options_open()?;
   ;;; ctx.symmetric_options_set_u64(options_handle, "memlimit", 1 * 1024 * 1024 * 1024)?;
   ;;; ctx.symmetric_options_set_u64(options_handle, "opslimit", 5)?;
   ;;; ctx.symmetric_options_set_u64(options_handle, "parallelism", 8)?;
@@ -1007,7 +1007,7 @@
   ;;; ```
   ;;;
   ;;; - **AEAD encryption with an explicit nonce**
-  ;;;  
+  ;;;
   ;;; ```rust
   ;;; let key_handle = ctx.symmetric_key_generate("AES-256-GCM", None)?;
   ;;; let message = b"test";
@@ -1022,7 +1022,7 @@
   ;;; ```
   ;;;
   ;;; - **AEAD encryption with automatic nonce generation**
-  ;;;  
+  ;;;
   ;;; ```rust
   ;;; let key_handle = ctx.symmetric_key_generate("XChaCha20-Poly1305", None)?;
   ;;; let message = b"test";
@@ -1036,7 +1036,26 @@
   ;;; let mut ciphertext = vec![0u8; message.len() + ctx.symmetric_state_max_tag_len(state_handle)?];
   ;;; ctx.symmetric_state_absorb(state_handle, "additional data")?;
   ;;; ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, message)?;
-  ;;; ```  
+  ;;; ```
+  ;;;
+  ;;; - **Session authenticated modes**
+  ;;;
+  ;;; ```rust
+  ;;; let mut out = [0u8; 16];
+  ;;; let mut out2 = [0u8; 16];
+  ;;; let mut ciphertext = [0u8; 20];
+  ;;; let key_handle = ctx.symmetric_key_generate("Xoodyak-256", None)?;
+  ;;; let state_handle = ctx.symmetric_state_open("Xoodyak-256", Some(key_handle), None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"data")?;
+  ;;; ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, b"abcd")?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"more data")?;
+  ;;; ctx.symmetric_state_squeeze(state_handle, &mut out)?;
+  ;;; ctx.symmetric_state_squeeze(state_handle, &mut out2)?;
+  ;;; ctx.symmetric_state_ratchet(state_handle)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"more data")?;
+  ;;; let next_key_handle = ctx.symmetric_state_squeeze_key(state_handle)?;
+  ;;; // ...
+  ;;; ```
 
   (@interface func (export "symmetric_state_open")
     (param $algorithm string)
