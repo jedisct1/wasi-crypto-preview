@@ -289,7 +289,17 @@
 (module $wasi_ephemeral_crypto
   (import "memory" (memory))
 
-  ;;; Create a new object to set options.
+  ;;; Create a new object to set non-default options.
+  ;;;
+  ;;; Example usage:
+  ;;;
+  ;;; ```rust
+  ;;; let options_handle = ctx.options_open();
+  ;;; ctx.options_set(options_handle, "context", context);
+  ;;; ctx.options_set_u64(options_handle, "threads", 4);
+  ;;; let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle));
+  ;;; ctx.options_close(options_handle);
+  ;;; ```
   (@interface func (export "options_open")
     (param $options_type $options_type)
     (result $error $crypto_errno)

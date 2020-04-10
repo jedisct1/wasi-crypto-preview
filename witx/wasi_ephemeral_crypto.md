@@ -319,7 +319,17 @@ This union simulates an `Option<SymmetricKey>` type to make the [`symmetric_key`
 ---
 
 #### <a href="#options_open" name="options_open"></a> `options_open(options_type: options_type) -> (crypto_errno, options)`
-Create a new object to set options.
+Create a new object to set non-default options.
+
+Example usage:
+
+```rust
+let options_handle = ctx.options_open();
+ctx.options_set(options_handle, "context", context);
+ctx.options_set_u64(options_handle, "threads", 4);
+let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle));
+ctx.options_close(options_handle);
+```
 
 ##### Params
 - <a href="#options_open.options_type" name="options_open.options_type"></a> `options_type`: [`options_type`](#options_type)
