@@ -327,6 +327,8 @@
   ;;; Set or update an option.
   ;;;
   ;;; This is used to set algorithm-specific parameters, but also to provide credentials for the key management facilities, if required.
+  ;;;
+  ;;; This function may return `unsupported_option` if an option that doesn't exist for any implemented algorithms is specified.
   (@interface func (export "options_set")
     (param $handle $options)
     (param $name string)
@@ -338,6 +340,8 @@
   ;;; Set or update an integer option.
   ;;;
   ;;; This is used to set algorithm-specific parameters.
+  ;;;
+  ;;; This function may return `unsupported_option` if an option that doesn't exist for any implemented algorithms is specified.
   (@interface func (export "options_set_u64")
     (param $handle $options)
     (param $name string)
