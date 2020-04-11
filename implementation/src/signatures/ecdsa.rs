@@ -93,15 +93,19 @@ pub struct EcdsaSignature {
     pub encoded: Vec<u8>,
 }
 
-impl AsRef<[u8]> for EcdsaSignature {
-    fn as_ref(&self) -> &[u8] {
-        &self.encoded
-    }
-}
-
 impl EcdsaSignature {
     pub fn new(encoding: SignatureEncoding, encoded: Vec<u8>) -> Self {
         EcdsaSignature { encoding, encoded }
+    }
+}
+
+impl SignatureLike for EcdsaSignature {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_ref(&self) -> &[u8] {
+        &self.encoded
     }
 }
 
@@ -127,7 +131,7 @@ impl SignatureStateLike for EcdsaSignatureState {
             .as_ref()
             .to_vec();
         let signature = EcdsaSignature::new(SignatureEncoding::Raw, encoded_signature);
-        Ok(Signature::Ecdsa(signature))
+        Ok(Signature::new(Box::new(signature)))
     }
 }
 
@@ -150,7 +154,11 @@ impl SignatureVerificationStateLike for EcdsaSignatureVerificationState {
     }
 
     fn verify(&self, signature: &Signature) -> Result<(), CryptoError> {
-        let signature = signature.as_ecdsa()?;
+        let signature = signature.inner();
+        let signature = signature
+            .as_any()
+            .downcast_ref::<EcdsaSignature>()
+            .ok_or(CryptoError::InvalidSignature)?;
         let ring_alg = match (self.pk.alg, signature.encoding) {
             (SignatureAlgorithm::ECDSA_P256_SHA256, SignatureEncoding::Raw) => {
                 &ring::signature::ECDSA_P256_SHA256_FIXED

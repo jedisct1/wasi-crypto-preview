@@ -66,15 +66,19 @@ impl Drop for EddsaSignatureKeyPair {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EddsaSignature(pub Vec<u8>);
 
-impl AsRef<[u8]> for EddsaSignature {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
 impl EddsaSignature {
     pub fn new(encoded: Vec<u8>) -> Self {
         EddsaSignature(encoded)
+    }
+}
+
+impl SignatureLike for EddsaSignature {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 
@@ -99,7 +103,7 @@ impl SignatureStateLike for EddsaSignatureState {
     fn sign(&mut self) -> Result<Signature, CryptoError> {
         let signature_u8 = self.kp.ring_kp.sign(&self.input).as_ref().to_vec();
         let signature = EddsaSignature(signature_u8);
-        Ok(Signature::Eddsa(signature))
+        Ok(Signature::new(Box::new(signature)))
     }
 }
 
@@ -122,7 +126,11 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
     }
 
     fn verify(&self, signature: &Signature) -> Result<(), CryptoError> {
-        let signature = signature.as_eddsa()?;
+        let signature = signature.inner();
+        let signature = signature
+            .as_any()
+            .downcast_ref::<EddsaSignature>()
+            .ok_or(CryptoError::InvalidSignature)?;
         let ring_alg = match self.pk.alg {
             SignatureAlgorithm::Ed25519 => &ring::signature::ED25519,
             _ => bail!(CryptoError::UnsupportedAlgorithm),

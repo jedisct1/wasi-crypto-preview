@@ -64,17 +64,22 @@ impl RsaSignatureKeyPair {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RsaSignature(pub Vec<u8>);
 
-impl AsRef<[u8]> for RsaSignature {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
 impl RsaSignature {
     pub fn new(encoded: Vec<u8>) -> Self {
         RsaSignature(encoded)
     }
 }
+
+impl SignatureLike for RsaSignature {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 #[derive(Debug)]
 pub struct RsaSignatureState {
     pub kp: RsaSignatureKeyPair,
@@ -108,7 +113,7 @@ impl SignatureStateLike for RsaSignatureState {
             .sign(padding_alg, &rng, &self.input, &mut signature_u8)
             .map_err(|_| CryptoError::AlgorithmFailure)?;
         let signature = RsaSignature(signature_u8);
-        Ok(Signature::Rsa(signature))
+        Ok(Signature::new(Box::new(signature)))
     }
 }
 
@@ -131,7 +136,11 @@ impl SignatureVerificationStateLike for RsaSignatureVerificationState {
     }
 
     fn verify(&self, signature: &Signature) -> Result<(), CryptoError> {
-        let signature = signature.as_rsa()?;
+        let signature = signature.inner();
+        let signature = signature
+            .as_any()
+            .downcast_ref::<RsaSignature>()
+            .ok_or(CryptoError::InvalidSignature)?;
         let ring_alg = match self.pk.alg {
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
                 &ring::signature::RSA_PKCS1_2048_8192_SHA256

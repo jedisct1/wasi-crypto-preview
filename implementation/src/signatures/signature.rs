@@ -14,20 +14,14 @@ use crate::handles::*;
 use crate::types as guest_types;
 use crate::{CryptoCtx, HandleManagers, WasiCryptoCtx};
 
-#[derive(Clone, Debug)]
-pub enum Signature {
-    Ecdsa(EcdsaSignature),
-    Eddsa(EddsaSignature),
-    Rsa(RsaSignature),
+#[derive(Clone)]
+pub struct Signature {
+    inner: Arc<Mutex<Box<dyn SignatureLike>>>,
 }
 
 impl AsRef<[u8]> for Signature {
     fn as_ref(&self) -> &[u8] {
-        match self {
-            Signature::Ecdsa(signature) => signature.as_ref(),
-            Signature::Eddsa(signature) => signature.as_ref(),
-            Signature::Rsa(signature) => signature.as_ref(),
-        }
+        self.inner().as_ref().as_ref()
     }
 }
 
@@ -40,56 +34,57 @@ impl PartialEq for Signature {
 impl Eq for Signature {}
 
 impl Signature {
+    pub fn new(signature_like: Box<dyn SignatureLike>) -> Self {
+        Signature {
+            inner: Arc::new(Mutex::new(signature_like)),
+        }
+    }
+
     fn from_raw(alg: SignatureAlgorithm, encoded: &[u8]) -> Result<Self, CryptoError> {
         let signature = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => {
                 ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
-                Signature::Ecdsa(EcdsaSignature::new(
+                Signature::new(Box::new(EcdsaSignature::new(
                     SignatureEncoding::Raw,
                     encoded.to_vec(),
-                ))
+                )))
             }
             SignatureAlgorithm::ECDSA_P384_SHA384 => {
                 ensure!(encoded.len() == 96, CryptoError::InvalidSignature);
-                Signature::Ecdsa(EcdsaSignature::new(
+                Signature::new(Box::new(EcdsaSignature::new(
                     SignatureEncoding::Raw,
                     encoded.to_vec(),
-                ))
+                )))
             }
             SignatureAlgorithm::Ed25519 => {
                 ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
-                Signature::Eddsa(EddsaSignature::new(encoded.to_vec()))
+                Signature::new(Box::new(EddsaSignature::new(encoded.to_vec())))
             }
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
             | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
-                Signature::Rsa(RsaSignature::new(encoded.to_vec()))
+                Signature::new(Box::new(RsaSignature::new(encoded.to_vec())))
             }
         };
         Ok(signature)
     }
 
-    pub fn as_ecdsa(&self) -> Result<&EcdsaSignature, CryptoError> {
-        match self {
-            Signature::Ecdsa(signature) => Ok(signature),
-            _ => bail!(CryptoError::InvalidSignature),
-        }
+    pub fn inner(&self) -> MutexGuard<Box<dyn SignatureLike>> {
+        self.inner.lock()
     }
 
-    pub fn as_eddsa(&self) -> Result<&EddsaSignature, CryptoError> {
-        match self {
-            Signature::Eddsa(signature) => Ok(signature),
-            _ => bail!(CryptoError::InvalidSignature),
-        }
+    pub fn locked<T, U>(&self, mut f: T) -> U
+    where
+        T: FnMut(MutexGuard<Box<dyn SignatureLike>>) -> U,
+    {
+        f(self.inner())
     }
+}
 
-    pub fn as_rsa(&self) -> Result<&RsaSignature, CryptoError> {
-        match self {
-            Signature::Rsa(signature) => Ok(signature),
-            _ => bail!(CryptoError::InvalidSignature),
-        }
-    }
+pub trait SignatureLike: Sync + Send {
+    fn as_any(&self) -> &dyn Any;
+    fn as_ref(&self) -> &[u8];
 }
 
 #[derive(Clone)]
