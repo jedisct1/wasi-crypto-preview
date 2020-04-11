@@ -19,15 +19,13 @@ pub struct Signature {
     inner: Arc<Mutex<Box<dyn SignatureLike>>>,
 }
 
-impl AsRef<[u8]> for Signature {
-    fn as_ref(&self) -> &[u8] {
-        self.inner().as_ref().as_ref()
-    }
-}
-
 impl PartialEq for Signature {
     fn eq(&self, other: &Self) -> bool {
-        ring::constant_time::verify_slices_are_equal(self.as_ref(), other.as_ref()).is_ok()
+        let v1 = self.inner();
+        let v1 = v1.as_ref();
+        let v2 = other.inner();
+        let v2 = v2.as_ref();
+        ring::constant_time::verify_slices_are_equal(v1.as_ref(), v2.as_ref()).is_ok()
     }
 }
 
@@ -206,7 +204,7 @@ impl CryptoCtx {
         }
         let signature = self.handles.signature.get(signature_handle)?;
         let array_output_handle =
-            ArrayOutput::register(&self.handles, signature.as_ref().to_vec())?;
+            ArrayOutput::register(&self.handles, signature.inner().as_ref().as_ref().to_vec())?;
         Ok(array_output_handle)
     }
 
