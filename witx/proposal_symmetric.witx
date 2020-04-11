@@ -1,7 +1,7 @@
 (module $wasi_ephemeral_crypto_symmetric
   (import "memory" (memory))
 
-  ;;; Generate a new symmetric key for a gigven algorithm.
+  ;;; Generate a new symmetric key for a given algorithm.
   ;;;
   ;;; `options` can be `None` to use the default parameters, or an algoritm-specific set of parameters to override.
   ;;;
@@ -175,12 +175,23 @@
   ;;; - **MAC**
   ;;;
   ;;; ```rust
-  ;;; let mut out = [0u8; 64];
+  ;;; let mut raw_tag = [0u8; 64];
   ;;; let key_handle = ctx.symmetric_key_import("HMAC/SHA-512", b"key")?;
   ;;; let state_handle = ctx.symmetric_state_open("HMAC/SHA-512", Some(key_handle), None)?;
   ;;; ctx.symmetric_state_absorb(state_handle, b"data")?;
   ;;; ctx.symmetric_state_absorb(state_handle, b"more_data")?;
-  ;;; ctx.symmetric_state_squeeze(state_handle, &mut out)?;
+  ;;; let computed_tag_handle = ctx.symmetric_state_squeeze_tag(state_handle)?;
+  ;;; ctx.symmetric_tag_pull(computed_tag_handle, &mut raw_tag)?;
+  ;;; ```
+  ;;;
+  ;;; Verification:
+  ;;;
+  ;;; ```rust
+  ;;; let state_handle = ctx.symmetric_state_open("HMAC/SHA-512", Some(key_handle), None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"data")?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"more_data")?;
+  ;;; let computed_tag_handle = ctx.symmetric_state_squeeze_tag(state_handle)?;
+  ;;; ctx.symmetric_tag_verify(computed_tag_handle, expected_raw_tag)?;
   ;;; ```
   ;;;
   ;;; - **Tuple hashing**
@@ -513,6 +524,15 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Return the length of an authentication tag.
+  ;;;
+  ;;; This function can be used by a guest to allocate the correct buffer size to copy a computed authentication tag.
+  (@interface func (export "symmetric_tag_len")
+    (param $symmetric_tag $symmetric_tag)
+    (result $error $crypto_errno)
+    (result $len $size)
+  )
+
   ;;; Copy an authentication tag into a guest-allocated buffer.
   ;;;
   ;;; The handle automatically becomes invalid after this operation. Manually closing it is not required.
@@ -525,6 +545,8 @@
   ;;; ```
   ;;;
   ;;; The function returns `overflow` if the supplied buffer is too small to copy the tag.
+  ;;;
+  ;;; Otherwise, it returns the number of bytes that have been copied.
   (@interface func (export "symmetric_tag_pull")
     (param $symmetric_tag $symmetric_tag)
     (param $buf (@witx pointer u8))
@@ -537,6 +559,16 @@
   ;;; The expected tag must be provided as a raw byte string.
   ;;;
   ;;; The function returns `invalid_tag` if the tags don't match.
+  ;;;
+  ;;; Example usage:
+  ;;;
+  ;;; ```rust
+  ;;; let key_handle = ctx.symmetric_key_import("HMAC/SHA-256", b"key")?;
+  ;;; let state_handle = ctx.symmetric_state_open("HMAC/SHA-256", Some(key_handle), None)?;
+  ;;; ctx.symmetric_state_absorb(state_handle, b"data")?;
+  ;;; let computed_tag_handle = ctx.symmetric_state_squeeze_tag(state_handle)?;
+  ;;; ctx.symmetric_tag_verify(computed_tag_handle, expected_raw_tag)?;
+  ;;; ```
   (@interface func (export "symmetric_tag_verify")
     (param $symmetric_tag $symmetric_tag)
     (param $expected_raw_tag_ptr (@witx const_pointer u8))
@@ -544,7 +576,9 @@
     (result $error $crypto_errno)
   )
 
-  ;;; Destroy an authentication tag.
+  ;;; Explicitly destroy an unused authentication tag.
+  ;;;
+  ;;; This is usually not necessary, as `symmetric_tag_pull()` automaticaly closes a tag after it has been copied.
   ;;;
   ;;; Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
   (@interface func (export "symmetric_tag_close")
