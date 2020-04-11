@@ -146,7 +146,7 @@ impl AesGcmSymmetricState {
     }
 }
 
-impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
+impl SymmetricStateLike for AesGcmSymmetricState {
     fn alg(&self) -> SymmetricAlgorithm {
         self.alg
     }
@@ -168,7 +168,7 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
         Ok(ring::aead::MAX_TAG_LEN)
     }
 
-    fn encrypt(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
+    fn encrypt_unchecked(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
         let data_len = data.len();
         let tag = self.encrypt_detached(&mut out[..data_len], data)?;
         let out_len = data_len + tag.as_ref().len();
@@ -176,7 +176,7 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
         Ok(out_len)
     }
 
-    fn encrypt_detached(
+    fn encrypt_detached_unchecked(
         &mut self,
         out: &mut [u8],
         data: &[u8],
@@ -192,7 +192,7 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
         Ok(symmetric_tag)
     }
 
-    fn decrypt(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
+    fn decrypt_unchecked(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
         let mut in_out = data.to_vec();
         let mut inner = self.inner.lock();
         let ring_ad = ring::aead::Aad::from(inner.ad.clone());
@@ -205,7 +205,7 @@ impl SymmetricAlgorithmStateLike for AesGcmSymmetricState {
         Ok(out_len)
     }
 
-    fn decrypt_detached(
+    fn decrypt_detached_unchecked(
         &mut self,
         out: &mut [u8],
         data: &[u8],
