@@ -26,7 +26,7 @@ impl SymmetricState {
     where
         T: FnMut(MutexGuard<Box<dyn SymmetricStateLike>>) -> U,
     {
-        f(self.inner.lock())
+        f(self.inner())
     }
 
     fn open(
@@ -90,7 +90,7 @@ pub trait SymmetricStateLike: Sync + Send {
             out.len() >= data.len() + self.max_tag_len()?,
             CryptoError::Overflow
         );
-        self.encrypt(out, data)
+        self.encrypt_unchecked(out, data)
     }
 
     fn encrypt_detached_unchecked(
@@ -127,7 +127,7 @@ pub trait SymmetricStateLike: Sync + Send {
             Ok(out_len) => Ok(out_len),
             Err(e) => {
                 out.iter_mut().for_each(|x| *x = 0);
-                return Err(e);
+                Err(e)
             }
         }
     }
