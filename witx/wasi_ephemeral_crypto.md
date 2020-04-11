@@ -321,7 +321,7 @@ This union simulates an `Option<SymmetricKey>` type to make the [`symmetric_key`
 - <a href="#opt_symmetric_key.none" name="opt_symmetric_key.none"></a> `none`
 
 # Modules
-## <a href="#wasi_ephemeral_crypto" name="wasi_ephemeral_crypto"></a> wasi_ephemeral_crypto
+## <a href="#wasi_ephemeral_crypto_common" name="wasi_ephemeral_crypto_common"></a> wasi_ephemeral_crypto_common
 ### Imports
 #### Memory
 ### Functions
@@ -371,6 +371,8 @@ Set or update an option.
 
 This is used to set algorithm-specific parameters, but also to provide credentials for the key management facilities, if required.
 
+This function may return `unsupported_option` if an option that doesn't exist for any implemented algorithms is specified.
+
 ##### Params
 - <a href="#options_set.handle" name="options_set.handle"></a> `handle`: [`options`](#options)
 
@@ -390,6 +392,8 @@ This is used to set algorithm-specific parameters, but also to provide credentia
 Set or update an integer option.
 
 This is used to set algorithm-specific parameters.
+
+This function may return `unsupported_option` if an option that doesn't exist for any implemented algorithms is specified.
 
 ##### Params
 - <a href="#options_set_u64.handle" name="options_set_u64.handle"></a> `handle`: [`options`](#options)
@@ -447,6 +451,10 @@ ctx.array_output_pull(output_handle, &mut out)?;
 ##### Results
 - <a href="#array_output_pull.error" name="array_output_pull.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
+## <a href="#wasi_ephemeral_crypto_signatures" name="wasi_ephemeral_crypto_signatures"></a> wasi_ephemeral_crypto_signatures
+### Imports
+#### Memory
+### Functions
 
 ---
 
@@ -996,67 +1004,10 @@ This function can be used by a guest to allocate the correct buffer size to copy
 
 - <a href="#symmetric_tag_len.len" name="symmetric_tag_len.len"></a> `len`: [`size`](#size)
 
-
----
-
-#### <a href="#symmetric_tag_pull" name="symmetric_tag_pull"></a> `symmetric_tag_pull(symmetric_tag: symmetric_tag, buf: Pointer<u8>, buf_len: size) -> crypto_errno`
-Copy an authentication tag into a guest-allocated buffer.
-
-The handle automatically becomes invalid after this operation. Manually closing it is not required.
-
-Example usage:
-
-```rust
-let mut raw_tag = [0u8; 16];
-ctx.symmetric_tag_pull(raw_tag_handle, &mut raw_tag)?;
-```
-
-The function returns `overflow` if the supplied buffer is too small to copy the tag.
-
-##### Params
-- <a href="#symmetric_tag_pull.symmetric_tag" name="symmetric_tag_pull.symmetric_tag"></a> `symmetric_tag`: [`symmetric_tag`](#symmetric_tag)
-
-- <a href="#symmetric_tag_pull.buf" name="symmetric_tag_pull.buf"></a> `buf`: `Pointer<u8>`
-
-- <a href="#symmetric_tag_pull.buf_len" name="symmetric_tag_pull.buf_len"></a> `buf_len`: [`size`](#size)
-
-##### Results
-- <a href="#symmetric_tag_pull.error" name="symmetric_tag_pull.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-
----
-
-#### <a href="#symmetric_tag_verify" name="symmetric_tag_verify"></a> `symmetric_tag_verify(symmetric_tag: symmetric_tag, expected_raw_tag_ptr: ConstPointer<u8>, expected_raw_tag_len: size) -> crypto_errno`
-Verify that a computed authentication tag matches the expected value, in constant-time.
-
-The expected tag must be provided as a raw byte string.
-
-The function returns `invalid_tag` if the tags don't match.
-
-##### Params
-- <a href="#symmetric_tag_verify.symmetric_tag" name="symmetric_tag_verify.symmetric_tag"></a> `symmetric_tag`: [`symmetric_tag`](#symmetric_tag)
-
-- <a href="#symmetric_tag_verify.expected_raw_tag_ptr" name="symmetric_tag_verify.expected_raw_tag_ptr"></a> `expected_raw_tag_ptr`: `ConstPointer<u8>`
-
-- <a href="#symmetric_tag_verify.expected_raw_tag_len" name="symmetric_tag_verify.expected_raw_tag_len"></a> `expected_raw_tag_len`: [`size`](#size)
-
-##### Results
-- <a href="#symmetric_tag_verify.error" name="symmetric_tag_verify.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-
----
-
-#### <a href="#symmetric_tag_close" name="symmetric_tag_close"></a> `symmetric_tag_close(symmetric_tag: symmetric_tag) -> crypto_errno`
-Destroy an authentication tag.
-
-Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
-
-##### Params
-- <a href="#symmetric_tag_close.symmetric_tag" name="symmetric_tag_close.symmetric_tag"></a> `symmetric_tag`: [`symmetric_tag`](#symmetric_tag)
-
-##### Results
-- <a href="#symmetric_tag_close.error" name="symmetric_tag_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
+## <a href="#wasi_ephemeral_crypto_symmetric" name="wasi_ephemeral_crypto_symmetric"></a> wasi_ephemeral_crypto_symmetric
+### Imports
+#### Memory
+### Functions
 
 ---
 
@@ -1764,5 +1715,66 @@ This operation is supported by some systems keeping a rolling state over an enti
 
 ##### Results
 - <a href="#symmetric_state_ratchet.error" name="symmetric_state_ratchet.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
+#### <a href="#symmetric_tag_pull" name="symmetric_tag_pull"></a> `symmetric_tag_pull(symmetric_tag: symmetric_tag, buf: Pointer<u8>, buf_len: size) -> crypto_errno`
+Copy an authentication tag into a guest-allocated buffer.
+
+The handle automatically becomes invalid after this operation. Manually closing it is not required.
+
+Example usage:
+
+```rust
+let mut raw_tag = [0u8; 16];
+ctx.symmetric_tag_pull(raw_tag_handle, &mut raw_tag)?;
+```
+
+The function returns `overflow` if the supplied buffer is too small to copy the tag.
+
+##### Params
+- <a href="#symmetric_tag_pull.symmetric_tag" name="symmetric_tag_pull.symmetric_tag"></a> `symmetric_tag`: [`symmetric_tag`](#symmetric_tag)
+
+- <a href="#symmetric_tag_pull.buf" name="symmetric_tag_pull.buf"></a> `buf`: `Pointer<u8>`
+
+- <a href="#symmetric_tag_pull.buf_len" name="symmetric_tag_pull.buf_len"></a> `buf_len`: [`size`](#size)
+
+##### Results
+- <a href="#symmetric_tag_pull.error" name="symmetric_tag_pull.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
+#### <a href="#symmetric_tag_verify" name="symmetric_tag_verify"></a> `symmetric_tag_verify(symmetric_tag: symmetric_tag, expected_raw_tag_ptr: ConstPointer<u8>, expected_raw_tag_len: size) -> crypto_errno`
+Verify that a computed authentication tag matches the expected value, in constant-time.
+
+The expected tag must be provided as a raw byte string.
+
+The function returns `invalid_tag` if the tags don't match.
+
+##### Params
+- <a href="#symmetric_tag_verify.symmetric_tag" name="symmetric_tag_verify.symmetric_tag"></a> `symmetric_tag`: [`symmetric_tag`](#symmetric_tag)
+
+- <a href="#symmetric_tag_verify.expected_raw_tag_ptr" name="symmetric_tag_verify.expected_raw_tag_ptr"></a> `expected_raw_tag_ptr`: `ConstPointer<u8>`
+
+- <a href="#symmetric_tag_verify.expected_raw_tag_len" name="symmetric_tag_verify.expected_raw_tag_len"></a> `expected_raw_tag_len`: [`size`](#size)
+
+##### Results
+- <a href="#symmetric_tag_verify.error" name="symmetric_tag_verify.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
+#### <a href="#symmetric_tag_close" name="symmetric_tag_close"></a> `symmetric_tag_close(symmetric_tag: symmetric_tag) -> crypto_errno`
+Destroy an authentication tag.
+
+Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
+
+##### Params
+- <a href="#symmetric_tag_close.symmetric_tag" name="symmetric_tag_close.symmetric_tag"></a> `symmetric_tag`: [`symmetric_tag`](#symmetric_tag)
+
+##### Results
+- <a href="#symmetric_tag_close.error" name="symmetric_tag_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
 
