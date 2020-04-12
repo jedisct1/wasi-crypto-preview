@@ -6,23 +6,25 @@ mod key_manager;
 mod sha2;
 mod state;
 mod tag;
+mod xoodyak;
 
+use self::aes_gcm::*;
+use self::hkdf::*;
+use self::hmac_sha2::*;
+use self::key::*;
+use self::sha2::*;
+use self::xoodyak::*;
 use crate::error::*;
 use crate::handles::*;
 use crate::options::*;
-use aes_gcm::*;
-use hkdf::*;
-use hmac_sha2::*;
 use parking_lot::Mutex;
-use sha2::*;
 use std::any::Any;
 use std::convert::TryFrom;
 use std::sync::Arc;
 
-pub use key::SymmetricKey;
-pub use key_manager::*;
-pub use state::SymmetricState;
-pub use tag::SymmetricTag;
+pub use self::key::SymmetricKey;
+pub use self::state::SymmetricState;
+pub use self::tag::SymmetricTag;
 
 #[derive(Debug, Default)]
 pub struct SymmetricOptionsInner {
@@ -113,6 +115,8 @@ pub enum SymmetricAlgorithm {
     Sha512_256,
     Aes128Gcm,
     Aes256Gcm,
+    Xoodyak128,
+    Xoodyak256,
 }
 
 impl TryFrom<&str> for SymmetricAlgorithm {
@@ -131,6 +135,8 @@ impl TryFrom<&str> for SymmetricAlgorithm {
             "SHA-512/256" => Ok(SymmetricAlgorithm::Sha512_256),
             "AES-128-GCM" => Ok(SymmetricAlgorithm::Aes128Gcm),
             "AES-256-GCM" => Ok(SymmetricAlgorithm::Aes256Gcm),
+            "XOODYAK-128" => Ok(SymmetricAlgorithm::Xoodyak128),
+            "XOODYAK-256" => Ok(SymmetricAlgorithm::Xoodyak256),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }
