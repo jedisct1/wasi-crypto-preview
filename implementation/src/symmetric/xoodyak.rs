@@ -101,10 +101,14 @@ impl XoodyakSymmetricState {
                 Some(key)
             }
         };
+        let nonce = options
+            .as_ref()
+            .and_then(|options| options.inner.lock().nonce.as_ref().cloned());
+        let nonce = nonce.as_ref().map(|x| x.as_slice());
         let xoodyak_state = match key {
             None => XoodyakAny::Hash(XoodyakHash::new()),
             Some(key) => XoodyakAny::Keyed(
-                XoodyakKeyed::new(key.as_raw()?, None, None)
+                XoodyakKeyed::new(key.as_raw()?, nonce, None, None)
                     .map_err(|_| CryptoError::InvalidKey)?,
             ),
         };
@@ -166,7 +170,7 @@ impl SymmetricStateLike for XoodyakSymmetricState {
             .len()
             .checked_add(XOODYAK_AUTH_TAG_BYTES)
             .ok_or(CryptoError::Overflow)?;
-        match self.xoodyak_state.aead_encrypt(out, None, None, Some(data)) {
+        match self.xoodyak_state.aead_encrypt(out, Some(data)) {
             Err(XoodyakError::KeyRequired) => Err(CryptoError::InvalidOperation),
             Err(_) => Err(CryptoError::Overflow),
             Ok(()) => Ok(ct_len),
@@ -178,10 +182,7 @@ impl SymmetricStateLike for XoodyakSymmetricState {
         out: &mut [u8],
         data: &[u8],
     ) -> Result<SymmetricTag, CryptoError> {
-        match self
-            .xoodyak_state
-            .aead_encrypt_detached(out, None, None, Some(data))
-        {
+        match self.xoodyak_state.aead_encrypt_detached(out, Some(data)) {
             Err(XoodyakError::KeyRequired) => Err(CryptoError::InvalidOperation),
             Err(_) => Err(CryptoError::Overflow),
             Ok(xoodyak_tag) => {
@@ -196,7 +197,7 @@ impl SymmetricStateLike for XoodyakSymmetricState {
             .len()
             .checked_sub(XOODYAK_AUTH_TAG_BYTES)
             .ok_or(CryptoError::Overflow)?;
-        match self.xoodyak_state.aead_decrypt(out, None, None, data) {
+        match self.xoodyak_state.aead_decrypt(out, data) {
             Err(XoodyakError::KeyRequired) => Err(CryptoError::InvalidOperation),
             Err(_) => Err(CryptoError::Overflow),
             Ok(()) => Ok(msg_len),
@@ -213,13 +214,10 @@ impl SymmetricStateLike for XoodyakSymmetricState {
         let mut raw_tag_ = [0u8; XOODYAK_AUTH_TAG_BYTES];
         ensure!(raw_tag.len() == raw_tag_.len(), CryptoError::InvalidTag);
         raw_tag_.copy_from_slice(raw_tag);
-        match self.xoodyak_state.aead_decrypt_detached(
-            out,
-            &raw_tag_.into(),
-            None,
-            None,
-            Some(data),
-        ) {
+        match self
+            .xoodyak_state
+            .aead_decrypt_detached(out, &raw_tag_.into(), Some(data))
+        {
             Err(XoodyakError::KeyRequired) => Err(CryptoError::InvalidOperation),
             Err(_) => Err(CryptoError::InvalidTag),
             Ok(()) => Ok(msg_len),
