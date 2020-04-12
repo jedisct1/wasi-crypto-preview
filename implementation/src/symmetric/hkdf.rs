@@ -142,7 +142,7 @@ impl SymmetricStateLike for HkdfSymmetricState {
         Ok(())
     }
 
-    fn squeeze_key(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {
+    fn squeeze_key(&mut self, alg_str: &str) -> Result<SymmetricKey, CryptoError> {
         let ring_alg = match self.alg {
             SymmetricAlgorithm::HkdfSha256Extract => ring::hmac::HMAC_SHA256,
             SymmetricAlgorithm::HkdfSha512Extract => ring::hmac::HMAC_SHA512,
@@ -150,10 +150,9 @@ impl SymmetricStateLike for HkdfSymmetricState {
         };
         let ring_salt = ring::hmac::Key::new(ring_alg, &self.data);
         let ring_prk = ring::hmac::sign(&ring_salt, &self.key);
+        let builder = SymmetricKey::builder(alg_str)?;
         let raw = ring_prk.as_ref();
-        ensure!(out.len() >= raw.len(), CryptoError::Overflow);
-        out.copy_from_slice(raw);
-        Ok(())
+        builder.import(&raw)
     }
 
     fn squeeze(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {

@@ -152,9 +152,11 @@ impl SymmetricStateLike for XoodyakSymmetricState {
         Ok(())
     }
 
-    fn squeeze_key(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {
-        self.xoodyak_state.squeeze_key(out);
-        Ok(())
+    fn squeeze_key(&mut self, alg_str: &str) -> Result<SymmetricKey, CryptoError> {
+        let builder = SymmetricKey::builder(alg_str)?;
+        let mut raw = vec![0u8; builder.key_len()?];
+        self.xoodyak_state.squeeze_key(&mut raw);
+        builder.import(&raw)
     }
 
     fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
