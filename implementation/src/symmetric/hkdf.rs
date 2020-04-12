@@ -72,17 +72,8 @@ impl HkdfSymmetricKeyBuilder {
 
 impl SymmetricKeyBuilder for HkdfSymmetricKeyBuilder {
     fn generate(&self, _options: Option<SymmetricOptions>) -> Result<SymmetricKey, CryptoError> {
-        let key_len = match self.alg {
-            SymmetricAlgorithm::HkdfSha256Expand | SymmetricAlgorithm::HkdfSha256Extract => {
-                ring::digest::SHA256_OUTPUT_LEN
-            }
-            SymmetricAlgorithm::HkdfSha512Expand | SymmetricAlgorithm::HkdfSha512Extract => {
-                ring::digest::SHA512_OUTPUT_LEN
-            }
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
-        };
         let rng = ring::rand::SystemRandom::new();
-        let mut raw = vec![0u8; key_len];
+        let mut raw = vec![0u8; self.key_len()?];
         rng.fill(&mut raw).map_err(|_| CryptoError::RNGError)?;
         self.import(&raw)
     }
@@ -90,6 +81,18 @@ impl SymmetricKeyBuilder for HkdfSymmetricKeyBuilder {
     fn import(&self, raw: &[u8]) -> Result<SymmetricKey, CryptoError> {
         let key = HkdfSymmetricKey::new(self.alg, raw)?;
         Ok(SymmetricKey::new(Box::new(key)))
+    }
+
+    fn key_len(&self) -> Result<usize, CryptoError> {
+        match self.alg {
+            SymmetricAlgorithm::HkdfSha256Expand | SymmetricAlgorithm::HkdfSha256Extract => {
+                Ok(ring::digest::SHA256_OUTPUT_LEN)
+            }
+            SymmetricAlgorithm::HkdfSha512Expand | SymmetricAlgorithm::HkdfSha512Extract => {
+                Ok(ring::digest::SHA512_OUTPUT_LEN)
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        }
     }
 }
 
