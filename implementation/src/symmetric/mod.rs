@@ -283,3 +283,62 @@ fn tag_to_vec(ctx: &crate::CryptoCtx, symmetric_tag: Handle) -> Result<Vec<u8>, 
     ctx.symmetric_tag_pull(symmetric_tag, &mut bytes)?;
     Ok(bytes)
 }
+
+#[test]
+fn test_session() {
+    use crate::CryptoCtx;
+
+    let ctx = CryptoCtx::new();
+
+    let msg = b"test";
+    let mut msg2 = vec![0u8; msg.len()];
+    let mut squeezed = [0u8; 32];
+    let mut squeezed_2 = [0u8; 32];
+    let key_handle = ctx.symmetric_key_generate("XOODYAK-128", None).unwrap();
+
+    let symmetric_state = ctx
+        .symmetric_state_open("XOODYAK-128", Some(key_handle), None)
+        .unwrap();
+
+    ctx.symmetric_state_absorb(symmetric_state, b"data")
+        .unwrap();
+    ctx.symmetric_state_squeeze(symmetric_state, &mut squeezed)
+        .unwrap();
+
+    let mut ciphertext_with_tag =
+        vec![0u8; msg.len() + ctx.symmetric_state_max_tag_len(symmetric_state).unwrap()];
+    ctx.symmetric_state_encrypt(symmetric_state, &mut ciphertext_with_tag, msg)
+        .unwrap();
+
+    ctx.symmetric_state_absorb(symmetric_state, b"more_data")
+        .unwrap();
+
+    ctx.symmetric_state_ratchet(symmetric_state).unwrap();
+
+    ctx.symmetric_state_squeeze(symmetric_state, &mut squeezed)
+        .unwrap();
+    ctx.symmetric_state_close(symmetric_state).unwrap();
+
+    //
+
+    let symmetric_state = ctx
+        .symmetric_state_open("XOODYAK-128", Some(key_handle), None)
+        .unwrap();
+    ctx.symmetric_state_absorb(symmetric_state, b"data")
+        .unwrap();
+    ctx.symmetric_state_squeeze(symmetric_state, &mut squeezed_2)
+        .unwrap();
+
+    ctx.symmetric_state_decrypt(symmetric_state, &mut msg2, &ciphertext_with_tag)
+        .unwrap();
+
+    ctx.symmetric_state_absorb(symmetric_state, b"more_data")
+        .unwrap();
+
+    ctx.symmetric_state_ratchet(symmetric_state).unwrap();
+
+    ctx.symmetric_state_squeeze(symmetric_state, &mut squeezed_2)
+        .unwrap();
+    ctx.symmetric_state_close(symmetric_state).unwrap();
+    assert_eq!(squeezed, squeezed_2);
+}

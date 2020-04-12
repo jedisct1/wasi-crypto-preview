@@ -4,8 +4,7 @@ use super::*;
 use ring::rand::SecureRandom;
 use zeroize::Zeroize;
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct HkdfSymmetricState {
     pub alg: SymmetricAlgorithm,
     options: Option<SymmetricOptions>,
