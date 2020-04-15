@@ -35,30 +35,7 @@
   )
 
   ;;; __(optional)__
-  ;;; Create a context for the key manager, for symmetric operations.
-  ;;;
-  ;;; The set of required and supported options is defined by the host.
-  ;;;
-  ;;; The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
-  ;;; This is also an optional import, meaning that the function may not even exist.
-  (@interface func (export "symmetric_key_manager_open")
-    (param $options $opt_options)
-    (result $error $crypto_errno)
-    (result $handle $symmetric_key_manager)
-  )
-
-  ;;; __(optional)__
-  ;;; Destroy a key manager context.
-  ;;;
-  ;;; The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
-  ;;; This is also an optional import, meaning that the function may not even exist.
-  (@interface func (export "symmetric_key_manager_close")
-    (param $symmetric_key_manager $symmetric_key_manager)
-    (result $error $crypto_errno)
-  )
-
-  ;;; __(optional)__
-  ;;; Generate a new symmetric key.
+  ;;; Generate a new managed symmetric key.
   ;;;
   ;;; The key is generated and stored by the key management facilities.
   ;;;
@@ -71,7 +48,7 @@
   ;;;
   ;;; This is also an optional import, meaning that the function may not even exist.
   (@interface func (export "symmetric_managed_key_generate")
-    (param $symmetric_key_manager $symmetric_key_manager)
+    (param $key_manager $key_manager)
     (param $algorithm string)
     (param $options $opt_options)
     (result $error $crypto_errno)
@@ -102,32 +79,12 @@
   ;;;
   ;;; This is an optional import, meaning that the function may not even exist.
   (@interface func (export "symmetric_key_from_id")
-    (param $symmetric_key_manager $symmetric_key_manager)
+    (param $key_manager $key_manager)
     (param $symmetric_key_id (@witx const_pointer u8))
     (param $symmetric_key_id_len $size)
     (param $symmetric_key_version $version)
     (result $error $crypto_errno)
     (result $handle $symmetric_key)
-  )
-
-  ;;; __(optional)__
-  ;;; Invalidate a symmetric key given a key identifier and a version.
-  ;;;
-  ;;; This asks the key manager to delete or revoke a key or a version of a key.
-  ;;;
-  ;;; Once this function returns, `symmetric_key_from_id` will return that key any longer.
-  ;;;
-  ;;; `kp_version` can be set to a version number, to `version.latest` to invalidate the current version, or to `version.all` to invalidate all versions of a key.
-  ;;;
-  ;;; The function returns `unsupported_feature` if this operation is not supported by the host, and `key_not_found` if the identifier and version don't match any existing key pair.
-  ;;;
-  ;;; This is an optional import, meaning that the function may not even exist.
-  (@interface func (export "symmetric_key_invalidate")
-    (param $symmetric_key_manager $symmetric_key_manager)
-    (param $symmetric_key_id (@witx const_pointer u8))
-    (param $symmetric_key_id_len $size)
-    (param $symmetric_key_version $version)
-    (result $error $crypto_errno)
   )
 
   ;;; Create a new state to aborb and produce data using symmetric operations.

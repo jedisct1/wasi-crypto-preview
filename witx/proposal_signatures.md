@@ -228,10 +228,10 @@ This type is used to set non-default parameters.
 The exact set of allowed options depends on the algorithm being used.
 
 ### Supertypes
-## <a href="#signature_keypair_manager" name="signature_keypair_manager"></a> `signature_keypair_manager`
+## <a href="#key_manager" name="key_manager"></a> `key_manager`
 A handle to the optional key management facilities offered by a host.
 
-This is used to generate, retrieve and invalidate managed signature key pairs.
+This is used to generate, retrieve and invalidate managed keys.
 
 ### Supertypes
 ## <a href="#signature_keypair" name="signature_keypair"></a> `signature_keypair`
@@ -256,12 +256,6 @@ A public key that can be used to verify a signature.
 ### Supertypes
 ## <a href="#signature_verification_state" name="signature_verification_state"></a> `signature_verification_state`
 A state to absorb signed data to be verified.
-
-### Supertypes
-## <a href="#symmetric_key_manager" name="symmetric_key_manager"></a> `symmetric_key_manager`
-A handle to the optional key management facilities offered by a host.
-
-This is used to generate, retrieve and invalidate managed symmetric keys.
 
 ### Supertypes
 ## <a href="#symmetric_state" name="symmetric_state"></a> `symmetric_state`
@@ -480,6 +474,69 @@ array_output_pull(output_handle, &mut out)?;
 ##### Results
 - <a href="#array_output_pull.error" name="array_output_pull.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
+
+---
+
+#### <a href="#key_manager_open" name="key_manager_open"></a> `key_manager_open(options: opt_options) -> (crypto_errno, key_manager)`
+__(optional)__
+Create a context to use a key manager.
+
+The set of required and supported options is defined by the host.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+This is also an optional import, meaning that the function may not even exist.
+
+##### Params
+- <a href="#key_manager_open.options" name="key_manager_open.options"></a> `options`: [`opt_options`](#opt_options)
+
+##### Results
+- <a href="#key_manager_open.error" name="key_manager_open.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#key_manager_open.handle" name="key_manager_open.handle"></a> `handle`: [`key_manager`](#key_manager)
+
+
+---
+
+#### <a href="#key_manager_close" name="key_manager_close"></a> `key_manager_close(key_manager: key_manager) -> crypto_errno`
+__(optional)__
+Destroy a key manager context.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host.
+This is also an optional import, meaning that the function may not even exist.
+
+##### Params
+- <a href="#key_manager_close.key_manager" name="key_manager_close.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+##### Results
+- <a href="#key_manager_close.error" name="key_manager_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
+#### <a href="#key_manager_invalidate" name="key_manager_invalidate"></a> `key_manager_invalidate(key_manager: key_manager, key_id: ConstPointer<u8>, key_id_len: size, key_version: version) -> crypto_errno`
+__(optional)__
+Invalidate a managed key or key pair given an identifier and a version.
+
+This asks the key manager to delete or revoke a stored key, a specific version of a key..
+
+`key_version` can be set to a version number, to [`version.latest`](#version.latest) to invalidate the current version, or to [`version.all`](#version.all) to invalidate all versions of a key.
+
+The function returns `unsupported_feature` if this operation is not supported by the host, and `key_not_found` if the identifier and version don't match any existing key.
+
+This is an optional import, meaning that the function may not even exist.
+
+##### Params
+- <a href="#key_manager_invalidate.key_manager" name="key_manager_invalidate.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+- <a href="#key_manager_invalidate.key_id" name="key_manager_invalidate.key_id"></a> `key_id`: `ConstPointer<u8>`
+
+- <a href="#key_manager_invalidate.key_id_len" name="key_manager_invalidate.key_id_len"></a> `key_id_len`: [`size`](#size)
+
+- <a href="#key_manager_invalidate.key_version" name="key_manager_invalidate.key_version"></a> `key_version`: [`version`](#version)
+
+##### Results
+- <a href="#key_manager_invalidate.error" name="key_manager_invalidate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
 ## <a href="#wasi_ephemeral_crypto_signatures" name="wasi_ephemeral_crypto_signatures"></a> wasi_ephemeral_crypto_signatures
 ### Imports
 #### Memory
@@ -552,6 +609,36 @@ let kp_handle = ctx.signature_keypair_import("RSA_PKCS1_2048_8192_SHA512", Keypa
 
 ---
 
+#### <a href="#signature_managed_keypair_generate" name="signature_managed_keypair_generate"></a> `signature_managed_keypair_generate(key_manager: key_manager, algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
+__(optional)__
+Generate a new managed key pair.
+
+The key pair is generated and stored by the key management facilities.
+
+It may be used through its identifier, but the host may not allow it to be exported.
+
+The function returns the `unsupported_feature` error code if key management facilities are not supported by the host,
+or `unsupported_algorithm` if a key cannot be created for the chosen algorithm.
+
+The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
+
+This is also an optional import, meaning that the function may not even exist.
+
+##### Params
+- <a href="#signature_managed_keypair_generate.key_manager" name="signature_managed_keypair_generate.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+- <a href="#signature_managed_keypair_generate.algorithm" name="signature_managed_keypair_generate.algorithm"></a> `algorithm`: `string`
+
+- <a href="#signature_managed_keypair_generate.options" name="signature_managed_keypair_generate.options"></a> `options`: [`opt_options`](#opt_options)
+
+##### Results
+- <a href="#signature_managed_keypair_generate.error" name="signature_managed_keypair_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#signature_managed_keypair_generate.handle" name="signature_managed_keypair_generate.handle"></a> `handle`: [`signature_keypair`](#signature_keypair)
+
+
+---
+
 #### <a href="#signature_keypair_id" name="signature_keypair_id"></a> `signature_keypair_id(kp: signature_keypair, kp_id: Pointer<u8>, kp_id_max_len: size) -> (crypto_errno, size, version)`
 __(optional)__
 Return the key pair identifier and version of a managed signature key pair.
@@ -577,7 +664,7 @@ This is an optional import, meaning that the function may not even exist.
 
 ---
 
-#### <a href="#signature_keypair_from_id" name="signature_keypair_from_id"></a> `signature_keypair_from_id(kp_manager: signature_keypair_manager, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> (crypto_errno, signature_keypair)`
+#### <a href="#signature_keypair_from_id" name="signature_keypair_from_id"></a> `signature_keypair_from_id(key_manager: key_manager, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> (crypto_errno, signature_keypair)`
 __(optional)__
 Return a managed signature key pair from a key identifier.
 
@@ -588,7 +675,7 @@ If no key pair matching the provided information is found, `key_not_found` is re
 This is an optional import, meaning that the function may not even exist.
 ``
 ##### Params
-- <a href="#signature_keypair_from_id.kp_manager" name="signature_keypair_from_id.kp_manager"></a> `kp_manager`: [`signature_keypair_manager`](#signature_keypair_manager)
+- <a href="#signature_keypair_from_id.key_manager" name="signature_keypair_from_id.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
 
 - <a href="#signature_keypair_from_id.kp_id" name="signature_keypair_from_id.kp_id"></a> `kp_id`: `ConstPointer<u8>`
 
@@ -600,35 +687,6 @@ This is an optional import, meaning that the function may not even exist.
 - <a href="#signature_keypair_from_id.error" name="signature_keypair_from_id.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
 - <a href="#signature_keypair_from_id.handle" name="signature_keypair_from_id.handle"></a> `handle`: [`signature_keypair`](#signature_keypair)
-
-
----
-
-#### <a href="#signature_keypair_invalidate" name="signature_keypair_invalidate"></a> `signature_keypair_invalidate(kp_manager: signature_keypair_manager, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> crypto_errno`
-__(optional)__
-Invalidate a managed key pair given a key pair identifier and a version.
-
-This asks the key manager to delete or revoke a key pair or a version of a key pair.
-
-Once this function returns, [`signature_keypair_from_id`](#signature_keypair_from_id) will return that key pair any longer.
-
-`kp_version` can be set to a version number, to [`version.latest`](#version.latest) to invalidate the current version, or to [`version.all`](#version.all) to invalidate all versions of a key.
-
-The function returns `unsupported_feature` if this operation is not supported by the host, and `key_not_found` if the identifier and version don't match any existing key pair.
-
-This is an optional import, meaning that the function may not even exist.
-
-##### Params
-- <a href="#signature_keypair_invalidate.kp_manager" name="signature_keypair_invalidate.kp_manager"></a> `kp_manager`: [`signature_keypair_manager`](#signature_keypair_manager)
-
-- <a href="#signature_keypair_invalidate.kp_id" name="signature_keypair_invalidate.kp_id"></a> `kp_id`: `ConstPointer<u8>`
-
-- <a href="#signature_keypair_invalidate.kp_id_len" name="signature_keypair_invalidate.kp_id_len"></a> `kp_id_len`: [`size`](#size)
-
-- <a href="#signature_keypair_invalidate.kp_version" name="signature_keypair_invalidate.kp_version"></a> `kp_version`: [`version`](#version)
-
-##### Results
-- <a href="#signature_keypair_invalidate.error" name="signature_keypair_invalidate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
 
 ---
