@@ -129,6 +129,13 @@ The algorithm requires parameters that haven't been set.
 
 Non-generic options are required and must be given by building an [`options`](#options) set and giving that object to functions instantiating that algorithm.
 
+- <a href="#crypto_errno.in_progress" name="crypto_errno.in_progress"></a> `in_progress`
+A requested computation is not done yet, and additional calls to the function are required.
+
+Some functions, such as functions generating key pairs and password stretching functions, can take a long time to complete.
+
+In order to avoid a host call to be blocked for too long, these functions can return prematurely, requiring additional calls with the same parameters until they complete.
+
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a key pair.
 
@@ -975,6 +982,9 @@ Squeeze bytes from the state.
 
 Other kinds of algorithms may return `invalid_operation` instead.
 
+For password-stretching functions, the function may return `in_progress`.
+In that case, the guest should retry with the same parameters until the function completes.
+
 ##### Params
 - <a href="#symmetric_state_squeeze.handle" name="symmetric_state_squeeze.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
 
@@ -996,6 +1006,9 @@ Compute and return a tag for all the data injected into the state so far.
 - **Password-hashing functions:** returns a standard string containing all the required parameters for password verification.
 
 Other kinds of algorithms may return `invalid_operation` instead.
+
+For password-stretching functions, the function may return `in_progress`.
+In that case, the guest should retry with the same parameters until the function completes.
 
 ##### Params
 - <a href="#symmetric_state_squeeze_tag.handle" name="symmetric_state_squeeze_tag.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)

@@ -129,6 +129,13 @@ The algorithm requires parameters that haven't been set.
 
 Non-generic options are required and must be given by building an [`options`](#options) set and giving that object to functions instantiating that algorithm.
 
+- <a href="#crypto_errno.in_progress" name="crypto_errno.in_progress"></a> `in_progress`
+A requested computation is not done yet, and additional calls to the function are required.
+
+Some functions, such as functions generating key pairs and password stretching functions, can take a long time to complete.
+
+In order to avoid a host call to be blocked for too long, these functions can return prematurely, requiring additional calls with the same parameters until they complete.
+
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a key pair.
 
@@ -490,6 +497,9 @@ Trying to use that key pair with different parameters will throw an `invalid_key
 This function may return `$crypto_errno.unsupported_feature` if key generation is not supported by the host for the chosen algorithm.
 
 The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
+
+Finally, if generating that type of key pair is an expensive operation, the function may return `in_progress`.
+In that case, the guest should retry with the same parameters until the function completes.
 
 Example usage:
 
