@@ -408,6 +408,28 @@ This function may return `unsupported_option` if an option that doesn't exist fo
 
 ---
 
+#### <a href="#options_set_guest_buffer" name="options_set_guest_buffer"></a> `options_set_guest_buffer(handle: options, name: string, buffer: Pointer<u8>, buffer_len: size) -> crypto_errno`
+Set or update a guest-allocated memory that the host can use or return data into.
+
+This is for example used to set the scratch buffer required by memory-hard functions.
+
+This function may return `unsupported_option` if an option that doesn't exist for any implemented algorithms is specified.
+
+##### Params
+- <a href="#options_set_guest_buffer.handle" name="options_set_guest_buffer.handle"></a> `handle`: [`options`](#options)
+
+- <a href="#options_set_guest_buffer.name" name="options_set_guest_buffer.name"></a> `name`: `string`
+
+- <a href="#options_set_guest_buffer.buffer" name="options_set_guest_buffer.buffer"></a> `buffer`: `Pointer<u8>`
+
+- <a href="#options_set_guest_buffer.buffer_len" name="options_set_guest_buffer.buffer_len"></a> `buffer_len`: [`size`](#size)
+
+##### Results
+- <a href="#options_set_guest_buffer.error" name="options_set_guest_buffer.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
 #### <a href="#array_output_len" name="array_output_len"></a> `array_output_len(array_output: array_output) -> (crypto_errno, size)`
 Return the length of an [`array_output`](#array_output) object.
 
@@ -776,7 +798,7 @@ ctx.squeeze(state_handle, &mut subkey2)?;
 ```rust
 let mut memory = vec![0u8; 1_000_000_000];
 let options_handle = ctx.symmetric_options_open()?;
-ctx.symmetric_options_set(options_handle, "memory", &mut scratch_buffer)?;
+ctx.symmetric_options_set_guest_buffer(options_handle, "memory", &mut memory)?;
 ctx.symmetric_options_set_u64(options_handle, "opslimit", 5)?;
 ctx.symmetric_options_set_u64(options_handle, "parallelism", 8)?;
 

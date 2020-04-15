@@ -346,6 +346,19 @@
     (result $error $crypto_errno)
   )
 
+  ;;; Set or update a guest-allocated memory that the host can use or return data into.
+  ;;;
+  ;;; This is for example used to set the scratch buffer required by memory-hard functions.
+  ;;;
+  ;;; This function may return `unsupported_option` if an option that doesn't exist for any implemented algorithms is specified.
+  (@interface func (export "options_set_guest_buffer")
+    (param $handle $options)
+    (param $name string)
+    (param $buffer (@witx pointer u8))
+    (param $buffer_len $size)
+    (result $error $crypto_errno)
+  )
+
   ;;; Return the length of an `array_output` object.
   ;;;
   ;;; This allows a guest to allocate a buffer of the correct size in order to copy the output of a function returning this object type.
