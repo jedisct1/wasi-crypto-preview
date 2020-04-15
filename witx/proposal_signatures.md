@@ -334,11 +334,11 @@ Create a new object to set non-default options.
 Example usage:
 
 ```rust
-let options_handle = ctx.options_open()?;
-ctx.options_set(options_handle, "context", context)?;
-ctx.options_set_u64(options_handle, "threads", 4)?;
-let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle))?;
-ctx.options_close(options_handle)?;
+let options_handle = options_open()?;
+options_set(options_handle, "context", context)?;
+options_set_u64(options_handle, "threads", 4)?;
+let state = symmetric_state_open("BLAKE3", None, Some(options_handle))?;
+options_close(options_handle)?;
 ```
 
 ##### Params
@@ -458,9 +458,9 @@ The handle is automatically closed after all the data has been consumed.
 Example usage:
 
 ```rust
-let len = ctx.array_output_len(output_handle)?;
+let len = array_output_len(output_handle)?;
 let mut out = vec![0u8; len];
-ctx.array_output_pull(output_handle, &mut out)?;
+array_output_pull(output_handle, &mut out)?;
 ```
 
 ##### Params

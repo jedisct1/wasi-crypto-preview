@@ -334,11 +334,11 @@ Create a new object to set non-default options.
 Example usage:
 
 ```rust
-let options_handle = ctx.options_open()?;
-ctx.options_set(options_handle, "context", context)?;
-ctx.options_set_u64(options_handle, "threads", 4)?;
-let state = ctx.symmetric_state_open("BLAKE3", None, Some(options_handle))?;
-ctx.options_close(options_handle)?;
+let options_handle = options_open()?;
+options_set(options_handle, "context", context)?;
+options_set_u64(options_handle, "threads", 4)?;
+let state = symmetric_state_open("BLAKE3", None, Some(options_handle))?;
+options_close(options_handle)?;
 ```
 
 ##### Params
@@ -458,9 +458,9 @@ The handle is automatically closed after all the data has been consumed.
 Example usage:
 
 ```rust
-let len = ctx.array_output_len(output_handle)?;
+let len = array_output_len(output_handle)?;
 let mut out = vec![0u8; len];
-ctx.array_output_pull(output_handle, &mut out)?;
+array_output_pull(output_handle, &mut out)?;
 ```
 
 ##### Params
@@ -767,7 +767,7 @@ Extract:
 ```rust
 let mut prk = vec![0u8; 64];
 let key_handle = ctx.symmetric_key_import("HKDF-EXTRACT/SHA-512", b"key")?;
-let state_handle = symmetric_state_open("HKDF-EXTRACT/SHA-512", Some(key_handle), None)?;
+let state_handle = ctx.symmetric_state_open("HKDF-EXTRACT/SHA-512", Some(key_handle), None)?;
 ctx.symmetric_state_absorb(state_handle, b"salt")?;
 let prk_handle = ctx.symmetric_state_squeeze_key(state_handle, "HKDF-EXPAND/SHA-512")?;
 ```
@@ -776,7 +776,7 @@ Expand:
 
 ```rust
 let mut subkey = vec![0u8; 32];
-let state_handle = symmetric_state_open("HKDF-EXPAND/SHA-512", Some(prk_handle), None)?;
+let state_handle = ctx.symmetric_state_open("HKDF-EXPAND/SHA-512", Some(prk_handle), None)?;
 ctx.symmetric_state_absorb(state_handle, b"info")?;
 ctx.symmetric_state_squeeze(state_handle, &mut subkey)?;
 ```
@@ -787,7 +787,7 @@ ctx.symmetric_state_squeeze(state_handle, &mut subkey)?;
 let mut subkey1 = vec![0u8; 32];
 let mut subkey2 = vec![0u8; 32];
 let key_handle = ctx.symmetric_key_import("BLAKE3", b"key")?;
-let state_handle = symmetric_state_open("BLAKE3", Some(key_handle), None)?;
+let state_handle = ctx.symmetric_state_open("BLAKE3", Some(key_handle), None)?;
 ctx.symmetric_absorb(state_handle, b"context")?;
 ctx.squeeze(state_handle, &mut subkey1)?;
 ctx.squeeze(state_handle, &mut subkey2)?;
@@ -828,11 +828,11 @@ ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, message)?;
 - **AEAD encryption with automatic nonce generation**
 
 ```rust
-let key_handle = ctx.symmetric_key_generate("XChaCha20-Poly1305", None)?;
+let key_handle = ctx.symmetric_key_generate("AES-256-GCM-SIV", None)?;
 let message = b"test";
 let mut nonce = [0u8; 24];
 
-let state_handle = ctx.symmetric_state_open("XChaCha20-Poly1305", Some(key_handle), None)?;
+let state_handle = ctx.symmetric_state_open("AES-256-GCM-SIV", Some(key_handle), None)?;
 
 let nonce_handle = ctx.symmetric_state_options_get(state_handle, "nonce")?;
 ctx.array_output_pull(nonce_handle, &mut nonce)?;
