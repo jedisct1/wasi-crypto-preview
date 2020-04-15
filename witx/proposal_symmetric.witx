@@ -248,7 +248,7 @@
   ;;; ctx.symmetric_options_set_u64(options_handle, "opslimit", 5)?;
   ;;; ctx.symmetric_options_set_u64(options_handle, "parallelism", 8)?;
   ;;;
-  ;;; let state_handle = ctx.symmetric_state_open("Argon2id", None, Some(options))?;
+  ;;; let state_handle = ctx.symmetric_state_open("ARGON2-ID-13", None, Some(options))?;
   ;;; ctx.symmtric_state_absorb(state_handle, b"password")?;
   ;;;
   ;;; let pw_str_handle = ctx.symmetric_state_squeeze_tag(state_handle)?;
@@ -380,6 +380,9 @@
   ;;; - **Stateful hash objects, permutation-based constructions:** squeeze.
   ;;;
   ;;; Other kinds of algorithms may return `invalid_operation` instead.
+  ;;;
+  ;;; For password-stretching functions, the function may return `in_progress`.
+  ;;; In that case, the guest should retry with the same parameters until the function completes.
   (@interface func (export "symmetric_state_squeeze")
     (param $handle $symmetric_state)
     (param $out (@witx pointer u8))
@@ -394,6 +397,9 @@
   ;;; - **Password-hashing functions:** returns a standard string containing all the required parameters for password verification.
   ;;;
   ;;; Other kinds of algorithms may return `invalid_operation` instead.
+  ;;;
+  ;;; For password-stretching functions, the function may return `in_progress`.
+  ;;; In that case, the guest should retry with the same parameters until the function completes.
   (@interface func (export "symmetric_state_squeeze_tag")
     (param $handle $symmetric_state)
     (result $error $crypto_errno)

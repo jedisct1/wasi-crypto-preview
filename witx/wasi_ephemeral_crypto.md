@@ -802,7 +802,7 @@ ctx.symmetric_options_set_guest_buffer(options_handle, "memory", &mut memory)?;
 ctx.symmetric_options_set_u64(options_handle, "opslimit", 5)?;
 ctx.symmetric_options_set_u64(options_handle, "parallelism", 8)?;
 
-let state_handle = ctx.symmetric_state_open("Argon2id", None, Some(options))?;
+let state_handle = ctx.symmetric_state_open("ARGON2-ID-13", None, Some(options))?;
 ctx.symmtric_state_absorb(state_handle, b"password")?;
 
 let pw_str_handle = ctx.symmetric_state_squeeze_tag(state_handle)?;

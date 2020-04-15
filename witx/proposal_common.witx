@@ -126,6 +126,13 @@
     ;;;
     ;;; Non-generic options are required and must be given by building an `options` set and giving that object to functions instantiating that algorithm.
     $parameters_missing
+
+    ;;; A requested computation is not done yet, and additional calls to the function are required.
+    ;;;
+    ;;; Some functions, such as functions generating key pairs and password stretching functions, can take a long time to complete.
+    ;;;
+    ;;; In order to avoid a host call to be blocked for too long, these functions can return prematurely, requiring additional calls with the same parameters until they complete.
+    $in_progress
   )
 )
 

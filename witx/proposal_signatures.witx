@@ -11,6 +11,9 @@
   ;;;
   ;;; The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
   ;;;
+  ;;; Finally, if generating that type of key pair is an expensive operation, the function may return `in_progress`.
+  ;;; In that case, the guest should retry with the same parameters until the function completes.
+  ;;;
   ;;; Example usage:
   ;;;
   ;;; ```rust
