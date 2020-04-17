@@ -1284,7 +1284,7 @@ ctx.symmetric_tag_verify(computed_tag_handle, expected_raw_tag)?;
 #### <a href="#symmetric_tag_close" name="symmetric_tag_close"></a> `symmetric_tag_close(symmetric_tag: symmetric_tag) -> crypto_errno`
 Explicitly destroy an unused authentication tag.
 
-This is usually not necessary, as `symmetric_tag_pull()` automaticaly closes a tag after it has been copied.
+This is usually not necessary, as `symmetric_tag_pull()` automatically closes a tag after it has been copied.
 
 Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
 
