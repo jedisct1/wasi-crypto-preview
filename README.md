@@ -2,9 +2,9 @@
 
 A proposal for a WASI cryptography API.
 
-* Current WITX interface definition:
-    - [signatures](witx/proposal_signatures.md)
-    - [symmetric operations](witx/proposal_symmetric.md)
+* [WITX interface definition](witx/wasi_ephemeral_crypto.md)
+    - signatures ([witx](witx/proposal_signatures.witx), [doc](witx/proposal_signatures.md))
+    - symmetric operations ([witx](witx/proposal_siymmetric.witx), [doc](witx/proposal_symmetric.md))
 * [Toy implementation](https://github.com/jedisct1/wasi-crypto-preview/tree/master/implementation)
 * [Wasmtime integration](https://github.com/jedisct1/wasmtime-crypto)
 * [Example AssemblyScript bindings](https://github.com/jedisct1/as-wasi)
