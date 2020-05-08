@@ -2,7 +2,7 @@
 
 A proposal for a WASI cryptography API.
 
-* [WITX interface definition](witx/wasi_ephemeral_crypto.md)
+* [Interface definition](witx/wasi_ephemeral_crypto.md)
     - signatures ([witx](witx/proposal_signatures.witx), [doc](witx/proposal_signatures.md))
     - symmetric operations ([witx](witx/proposal_siymmetric.witx), [doc](witx/proposal_symmetric.md))
 * [Toy implementation](https://github.com/jedisct1/wasi-crypto-preview/tree/master/implementation)
