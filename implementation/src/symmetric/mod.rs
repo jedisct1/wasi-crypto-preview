@@ -2,7 +2,7 @@ mod aes_gcm;
 mod hkdf;
 mod hmac_sha2;
 mod key;
-mod key_manager;
+mod managed_key;
 mod sha2;
 mod state;
 mod tag;

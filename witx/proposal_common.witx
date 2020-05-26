@@ -236,8 +236,8 @@
 ;;; This is used to generate, retrieve and invalidate managed keys.
 (typename $key_manager (handle))
 
-;;; A key pair for signatures.
-(typename $signature_keypair (handle))
+;;; A key pair.
+(typename $keypair (handle))
 
 ;;; A state to absorb data to be signed.
 ;;;
@@ -250,7 +250,7 @@
 (typename $signature (handle))
 
 ;;; A public key that can be used to verify a signature.
-(typename $signature_publickey (handle))
+(typename $publickey (handle))
 
 ;;; A state to absorb signed data to be verified.
 (typename $signature_verification_state (handle))

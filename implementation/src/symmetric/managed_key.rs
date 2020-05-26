@@ -4,7 +4,7 @@ use crate::version::Version;
 use crate::CryptoCtx;
 
 impl CryptoCtx {
-    pub fn signature_managed_keypair_generate(
+    pub fn managed_symmetric_key_generate(
         &self,
         _key_manager_handle: Handle,
         _alg_str: &str,
@@ -13,11 +13,11 @@ impl CryptoCtx {
         bail!(CryptoError::UnsupportedFeature)
     }
 
-    pub fn signature_keypair_from_id(
+    pub fn symmetric_key_from_id(
         &self,
         _key_manager_handle: Handle,
-        _kp_id: &[u8],
-        _kp_version: Version,
+        _symmetric_key_id: &[u8],
+        _symmetric_key_version: Version,
     ) -> Result<Handle, CryptoError> {
         bail!(CryptoError::UnsupportedFeature)
     }

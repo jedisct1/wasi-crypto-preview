@@ -274,8 +274,8 @@ Size: 4
 Alignment: 4
 
 ### Supertypes
-## <a href="#signature_keypair" name="signature_keypair"></a> `signature_keypair`
-A key pair for signatures.
+## <a href="#keypair" name="keypair"></a> `keypair`
+A key pair.
 
 Size: 4
 
@@ -302,7 +302,7 @@ Size: 4
 Alignment: 4
 
 ### Supertypes
-## <a href="#signature_publickey" name="signature_publickey"></a> `signature_publickey`
+## <a href="#publickey" name="publickey"></a> `publickey`
 A public key that can be used to verify a signature.
 
 Size: 4
@@ -646,285 +646,6 @@ This is an optional import, meaning that the function may not even exist.
 
 ---
 
-#### <a href="#signature_keypair_generate" name="signature_keypair_generate"></a> `signature_keypair_generate(algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
-Generate a new key pair for signatures.
-
-Internally, a key pair stores the supplied algorithm and optional parameters.
-
-Trying to use that key pair with different parameters will throw an `invalid_key` error.
-
-This function may return `$crypto_errno.unsupported_feature` if key generation is not supported by the host for the chosen algorithm.
-
-The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
-
-Finally, if generating that type of key pair is an expensive operation, the function may return `in_progress`.
-In that case, the guest should retry with the same parameters until the function completes.
-
-Example usage:
-
-```rust
-let kp_handle = ctx.signature_keypair_generate("RSA_PKCS1_2048_8192_SHA512", None)?;
-```
-
-##### Params
-- <a href="#signature_keypair_generate.algorithm" name="signature_keypair_generate.algorithm"></a> `algorithm`: `string`
-
-- <a href="#signature_keypair_generate.options" name="signature_keypair_generate.options"></a> `options`: [`opt_options`](#opt_options)
-
-##### Results
-- <a href="#signature_keypair_generate.error" name="signature_keypair_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_keypair_generate.handle" name="signature_keypair_generate.handle"></a> `handle`: [`signature_keypair`](#signature_keypair)
-
-
----
-
-#### <a href="#signature_keypair_import" name="signature_keypair_import"></a> `signature_keypair_import(algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: keypair_encoding) -> (crypto_errno, signature_keypair)`
-Import a key pair for signatures.
-
-This function creates a [`signature_keypair`](#signature_keypair) object from existing material.
-
-It may return `unsupported_algorithm` if the encoding scheme is not supported, or `invalid_key` if the key cannot be decoded.
-
-The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
-
-Example usage:
-
-```rust
-let kp_handle = ctx.signature_keypair_import("RSA_PKCS1_2048_8192_SHA512", KeypairEncoding::PKCS8)?;
-```
-
-##### Params
-- <a href="#signature_keypair_import.algorithm" name="signature_keypair_import.algorithm"></a> `algorithm`: `string`
-
-- <a href="#signature_keypair_import.encoded" name="signature_keypair_import.encoded"></a> `encoded`: `ConstPointer<u8>`
-
-- <a href="#signature_keypair_import.encoded_len" name="signature_keypair_import.encoded_len"></a> `encoded_len`: [`size`](#size)
-
-- <a href="#signature_keypair_import.encoding" name="signature_keypair_import.encoding"></a> `encoding`: [`keypair_encoding`](#keypair_encoding)
-
-##### Results
-- <a href="#signature_keypair_import.error" name="signature_keypair_import.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_keypair_import.handle" name="signature_keypair_import.handle"></a> `handle`: [`signature_keypair`](#signature_keypair)
-
-
----
-
-#### <a href="#signature_managed_keypair_generate" name="signature_managed_keypair_generate"></a> `signature_managed_keypair_generate(key_manager: key_manager, algorithm: string, options: opt_options) -> (crypto_errno, signature_keypair)`
-__(optional)__
-Generate a new managed key pair.
-
-The key pair is generated and stored by the key management facilities.
-
-It may be used through its identifier, but the host may not allow it to be exported.
-
-The function returns the `unsupported_feature` error code if key management facilities are not supported by the host,
-or `unsupported_algorithm` if a key cannot be created for the chosen algorithm.
-
-The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
-
-This is also an optional import, meaning that the function may not even exist.
-
-##### Params
-- <a href="#signature_managed_keypair_generate.key_manager" name="signature_managed_keypair_generate.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
-
-- <a href="#signature_managed_keypair_generate.algorithm" name="signature_managed_keypair_generate.algorithm"></a> `algorithm`: `string`
-
-- <a href="#signature_managed_keypair_generate.options" name="signature_managed_keypair_generate.options"></a> `options`: [`opt_options`](#opt_options)
-
-##### Results
-- <a href="#signature_managed_keypair_generate.error" name="signature_managed_keypair_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_managed_keypair_generate.handle" name="signature_managed_keypair_generate.handle"></a> `handle`: [`signature_keypair`](#signature_keypair)
-
-
----
-
-#### <a href="#signature_keypair_id" name="signature_keypair_id"></a> `signature_keypair_id(kp: signature_keypair, kp_id: Pointer<u8>, kp_id_max_len: size) -> (crypto_errno, size, version)`
-__(optional)__
-Return the key pair identifier and version of a managed signature key pair.
-
-If the key pair is not managed, `unsupported_feature` is returned instead.
-
-This is an optional import, meaning that the function may not even exist.
-
-##### Params
-- <a href="#signature_keypair_id.kp" name="signature_keypair_id.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
-
-- <a href="#signature_keypair_id.kp_id" name="signature_keypair_id.kp_id"></a> `kp_id`: `Pointer<u8>`
-
-- <a href="#signature_keypair_id.kp_id_max_len" name="signature_keypair_id.kp_id_max_len"></a> `kp_id_max_len`: [`size`](#size)
-
-##### Results
-- <a href="#signature_keypair_id.error" name="signature_keypair_id.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_keypair_id.kp_id_len" name="signature_keypair_id.kp_id_len"></a> `kp_id_len`: [`size`](#size)
-
-- <a href="#signature_keypair_id.version" name="signature_keypair_id.version"></a> `version`: [`version`](#version)
-
-
----
-
-#### <a href="#signature_keypair_from_id" name="signature_keypair_from_id"></a> `signature_keypair_from_id(key_manager: key_manager, kp_id: ConstPointer<u8>, kp_id_len: size, kp_version: version) -> (crypto_errno, signature_keypair)`
-__(optional)__
-Return a managed signature key pair from a key identifier.
-
-`kp_version` can be set to `version_latest` to retrieve the most recent version of a key pair.
-
-If no key pair matching the provided information is found, `key_not_found` is returned instead.
-
-This is an optional import, meaning that the function may not even exist.
-``
-##### Params
-- <a href="#signature_keypair_from_id.key_manager" name="signature_keypair_from_id.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
-
-- <a href="#signature_keypair_from_id.kp_id" name="signature_keypair_from_id.kp_id"></a> `kp_id`: `ConstPointer<u8>`
-
-- <a href="#signature_keypair_from_id.kp_id_len" name="signature_keypair_from_id.kp_id_len"></a> `kp_id_len`: [`size`](#size)
-
-- <a href="#signature_keypair_from_id.kp_version" name="signature_keypair_from_id.kp_version"></a> `kp_version`: [`version`](#version)
-
-##### Results
-- <a href="#signature_keypair_from_id.error" name="signature_keypair_from_id.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_keypair_from_id.handle" name="signature_keypair_from_id.handle"></a> `handle`: [`signature_keypair`](#signature_keypair)
-
-
----
-
-#### <a href="#signature_keypair_export" name="signature_keypair_export"></a> `signature_keypair_export(kp: signature_keypair, encoding: keypair_encoding) -> (crypto_errno, array_output)`
-Export a signature key pair as the given encoding format.
-
-May return `prohibited_operation` if this operation is denied or `unsupported_encoding` if the encoding is not supported.
-
-##### Params
-- <a href="#signature_keypair_export.kp" name="signature_keypair_export.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
-
-- <a href="#signature_keypair_export.encoding" name="signature_keypair_export.encoding"></a> `encoding`: [`keypair_encoding`](#keypair_encoding)
-
-##### Results
-- <a href="#signature_keypair_export.error" name="signature_keypair_export.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_keypair_export.encoded" name="signature_keypair_export.encoded"></a> `encoded`: [`array_output`](#array_output)
-
-
----
-
-#### <a href="#signature_keypair_publickey" name="signature_keypair_publickey"></a> `signature_keypair_publickey(kp: signature_keypair) -> (crypto_errno, signature_publickey)`
-Get a public key of a signature key pair.
-
-The returned object can be used to verify signatures.
-
-##### Params
-- <a href="#signature_keypair_publickey.kp" name="signature_keypair_publickey.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
-
-##### Results
-- <a href="#signature_keypair_publickey.error" name="signature_keypair_publickey.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_keypair_publickey.pk" name="signature_keypair_publickey.pk"></a> `pk`: [`signature_publickey`](#signature_publickey)
-
-
----
-
-#### <a href="#signature_keypair_close" name="signature_keypair_close"></a> `signature_keypair_close(kp: signature_keypair) -> crypto_errno`
-Destroys a signature key pair.
-
-The host will automatically wipe traces of the secret key from memory.
-
-If this is a managed key, the key will not be removed from persistent storage, and can be reconstructed later using the key identifier.
-
-##### Params
-- <a href="#signature_keypair_close.kp" name="signature_keypair_close.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
-
-##### Results
-- <a href="#signature_keypair_close.error" name="signature_keypair_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-
----
-
-#### <a href="#signature_publickey_import" name="signature_publickey_import"></a> `signature_publickey_import(algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: publickey_encoding) -> (crypto_errno, signature_publickey)`
-Import a signature public key.
-
-The returned object can be used to verify signatures.
-
-The function may return `unsupported_encoding` if importing from the given format is not implemented or incompatible with the key type.
-
-It may also return `invalid_key` if the key doesn't appear to match the supplied algorithm.
-
-Finally, the function may return `unsupported_algorithm` if the algorithm is not supported by the host.
-
-Example usage:
-
-```rust
-let pk_handle = ctx.signature_publickey_import(encoded, PublicKeyEncoding::Sec)?;
-```
-
-##### Params
-- <a href="#signature_publickey_import.algorithm" name="signature_publickey_import.algorithm"></a> `algorithm`: `string`
-
-- <a href="#signature_publickey_import.encoded" name="signature_publickey_import.encoded"></a> `encoded`: `ConstPointer<u8>`
-
-- <a href="#signature_publickey_import.encoded_len" name="signature_publickey_import.encoded_len"></a> `encoded_len`: [`size`](#size)
-
-- <a href="#signature_publickey_import.encoding" name="signature_publickey_import.encoding"></a> `encoding`: [`publickey_encoding`](#publickey_encoding)
-
-##### Results
-- <a href="#signature_publickey_import.error" name="signature_publickey_import.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_publickey_import.pk" name="signature_publickey_import.pk"></a> `pk`: [`signature_publickey`](#signature_publickey)
-
-
----
-
-#### <a href="#signature_publickey_export" name="signature_publickey_export"></a> `signature_publickey_export(pk: signature_publickey, encoding: publickey_encoding) -> (crypto_errno, array_output)`
-Export a public key as the given encoding format.
-
-May return `unsupported_encoding` if the encoding is not supported.
-
-##### Params
-- <a href="#signature_publickey_export.pk" name="signature_publickey_export.pk"></a> `pk`: [`signature_publickey`](#signature_publickey)
-
-- <a href="#signature_publickey_export.encoding" name="signature_publickey_export.encoding"></a> `encoding`: [`publickey_encoding`](#publickey_encoding)
-
-##### Results
-- <a href="#signature_publickey_export.error" name="signature_publickey_export.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#signature_publickey_export.encoded" name="signature_publickey_export.encoded"></a> `encoded`: [`array_output`](#array_output)
-
-
----
-
-#### <a href="#signature_publickey_verify" name="signature_publickey_verify"></a> `signature_publickey_verify(pk: signature_publickey) -> crypto_errno`
-Check that a signature public key is valid and in canonical form.
-
-This function may perform stricter checks than those made during importation at the expense of additional CPU cycles.
-
-The function returns `invalid_key` if the public key didn't pass the checks.
-
-##### Params
-- <a href="#signature_publickey_verify.pk" name="signature_publickey_verify.pk"></a> `pk`: [`signature_publickey`](#signature_publickey)
-
-##### Results
-- <a href="#signature_publickey_verify.error" name="signature_publickey_verify.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-
----
-
-#### <a href="#signature_publickey_close" name="signature_publickey_close"></a> `signature_publickey_close(pk: signature_publickey) -> crypto_errno`
-Destroys a public key.
-
-Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
-
-##### Params
-- <a href="#signature_publickey_close.pk" name="signature_publickey_close.pk"></a> `pk`: [`signature_publickey`](#signature_publickey)
-
-##### Results
-- <a href="#signature_publickey_close.error" name="signature_publickey_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-
----
-
 #### <a href="#signature_export" name="signature_export"></a> `signature_export(signature: signature, encoding: signature_encoding) -> (crypto_errno, array_output)`
 Export a signature.
 
@@ -977,7 +698,7 @@ let signature_handle = ctx.signature_import("ECDSA_P256_SHA256", SignatureEncodi
 
 ---
 
-#### <a href="#signature_state_open" name="signature_state_open"></a> `signature_state_open(kp: signature_keypair) -> (crypto_errno, signature_state)`
+#### <a href="#signature_state_open" name="signature_state_open"></a> `signature_state_open(kp: keypair) -> (crypto_errno, signature_state)`
 Create a new state to collect data to compute a signature on.
 
 This function allows data to be signed to be supplied in a streaming fashion.
@@ -987,7 +708,7 @@ The state is not closed and can be used after a signature has been computed, all
 Example usage - signature creation
 
 ```rust
-let kp_handle = ctx.signature_keypair_import("Ed25519ph", keypair, KeypairEncoding::Raw)?;
+let kp_handle = ctx.keypair_import("Ed25519ph", keypair, KeypairEncoding::Raw)?;
 let state_handle = ctx.signature_state_open(kp_handle)?;
 ctx.signature_state_update(state_handle, b"message part 1")?;
 ctx.signature_state_update(state_handle, b"message part 2")?;
@@ -996,7 +717,7 @@ let raw_sig = ctx.signature_export(sig_handle, SignatureEncoding::Raw)?;
 ```
 
 ##### Params
-- <a href="#signature_state_open.kp" name="signature_state_open.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
+- <a href="#signature_state_open.kp" name="signature_state_open.kp"></a> `kp`: [`keypair`](#keypair)
 
 ##### Results
 - <a href="#signature_state_open.error" name="signature_state_open.error"></a> `error`: [`crypto_errno`](#crypto_errno)
@@ -1056,7 +777,7 @@ Note that closing a signature state doesn't close or invalidate the key pair obj
 
 ---
 
-#### <a href="#signature_verification_state_open" name="signature_verification_state_open"></a> `signature_verification_state_open(kp: signature_publickey) -> (crypto_errno, signature_verification_state)`
+#### <a href="#signature_verification_state_open" name="signature_verification_state_open"></a> `signature_verification_state_open(kp: publickey) -> (crypto_errno, signature_verification_state)`
 Create a new state to collect data to verify a signature on.
 
 This is the verification counterpart of [`signature_state`](#signature_state).
@@ -1066,7 +787,7 @@ Data can be injected using `signature_verification_state_update()`, and the stat
 Example usage - signature verification:
 
 ```rust
-let pk_handle = ctx.signature_publickey_import("ECDSA_P256_SHA256", encoded_pk PublicKeyEncoding::CompressedSec)?;
+let pk_handle = ctx.publickey_import("ECDSA_P256_SHA256", encoded_pk, PublicKeyEncoding::CompressedSec)?;
 let signature_handle = ctx.signature_import("ECDSA_P256_SHA256", encoded_sig, PublicKeyEncoding::Der)?;
 let state_handle = ctx.signature_verification_state_open(pk_handle)?;
 ctx.signature_verification_state_update(state_handle, "message")?;
@@ -1074,7 +795,7 @@ ctx.signature_verification_state_verify(signature_handle)?;
 ```
 
 ##### Params
-- <a href="#signature_verification_state_open.kp" name="signature_verification_state_open.kp"></a> `kp`: [`signature_publickey`](#signature_publickey)
+- <a href="#signature_verification_state_open.kp" name="signature_verification_state_open.kp"></a> `kp`: [`publickey`](#publickey)
 
 ##### Results
 - <a href="#signature_verification_state_open.error" name="signature_verification_state_open.error"></a> `error`: [`crypto_errno`](#crypto_errno)
