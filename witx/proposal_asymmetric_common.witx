@@ -1,7 +1,7 @@
 (module $wasi_ephemeral_crypto_asymmetric_common
   (import "memory" (memory))
 
-  ;;; Generate a new key pair..
+  ;;; Generate a new key pair.
   ;;;
   ;;; Internally, a key pair stores the supplied algorithm and optional parameters.
   ;;;
