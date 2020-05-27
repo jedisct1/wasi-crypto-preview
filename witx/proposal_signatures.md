@@ -205,7 +205,7 @@ Size: 2
 Alignment: 2
 
 ### Variants
-- <a href="#algorithm_type.signature" name="algorithm_type.signature"></a> `signature`
+- <a href="#algorithm_type.signatures" name="algorithm_type.signatures"></a> `signatures`
 
 - <a href="#algorithm_type.symmetric" name="algorithm_type.symmetric"></a> `symmetric`
 
@@ -662,7 +662,7 @@ This is an optional import, meaning that the function may not even exist.
 
 ---
 
-#### <a href="#keypair_generate" name="keypair_generate"></a> `keypair_generate(algorithm: string, options: opt_options) -> (crypto_errno, keypair)`
+#### <a href="#keypair_generate" name="keypair_generate"></a> `keypair_generate(algorithm_type: algorithm_type, algorithm: string, options: opt_options) -> (crypto_errno, keypair)`
 Generate a new key pair.
 
 Internally, a key pair stores the supplied algorithm and optional parameters.
@@ -679,10 +679,12 @@ In that case, the guest should retry with the same parameters until the function
 Example usage:
 
 ```rust
-let kp_handle = ctx.keypair_generate("RSA_PKCS1_2048_8192_SHA512", None)?;
+let kp_handle = ctx.keypair_generate(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", None)?;
 ```
 
 ##### Params
+- <a href="#keypair_generate.algorithm_type" name="keypair_generate.algorithm_type"></a> `algorithm_type`: [`algorithm_type`](#algorithm_type)
+
 - <a href="#keypair_generate.algorithm" name="keypair_generate.algorithm"></a> `algorithm`: `string`
 
 - <a href="#keypair_generate.options" name="keypair_generate.options"></a> `options`: [`opt_options`](#opt_options)
@@ -695,7 +697,7 @@ let kp_handle = ctx.keypair_generate("RSA_PKCS1_2048_8192_SHA512", None)?;
 
 ---
 
-#### <a href="#keypair_import" name="keypair_import"></a> `keypair_import(algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: keypair_encoding) -> (crypto_errno, keypair)`
+#### <a href="#keypair_import" name="keypair_import"></a> `keypair_import(algorithm_type: algorithm_type, algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: keypair_encoding) -> (crypto_errno, keypair)`
 Import a key pair.
 
 This function creates a [`keypair`](#keypair) object from existing material.
@@ -707,10 +709,12 @@ The function may also return `unsupported_algorithm` if the algorithm is not sup
 Example usage:
 
 ```rust
-let kp_handle = ctx.keypair_import("RSA_PKCS1_2048_8192_SHA512", KeypairEncoding::PKCS8)?;
+let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", KeypairEncoding::PKCS8)?;
 ```
 
 ##### Params
+- <a href="#keypair_import.algorithm_type" name="keypair_import.algorithm_type"></a> `algorithm_type`: [`algorithm_type`](#algorithm_type)
+
 - <a href="#keypair_import.algorithm" name="keypair_import.algorithm"></a> `algorithm`: `string`
 
 - <a href="#keypair_import.encoded" name="keypair_import.encoded"></a> `encoded`: `ConstPointer<u8>`
@@ -727,7 +731,7 @@ let kp_handle = ctx.keypair_import("RSA_PKCS1_2048_8192_SHA512", KeypairEncoding
 
 ---
 
-#### <a href="#keypair_generate_managed" name="keypair_generate_managed"></a> `keypair_generate_managed(key_manager: key_manager, algorithm: string, options: opt_options) -> (crypto_errno, keypair)`
+#### <a href="#keypair_generate_managed" name="keypair_generate_managed"></a> `keypair_generate_managed(key_manager: key_manager, algorithm_type: algorithm_type, algorithm: string, options: opt_options) -> (crypto_errno, keypair)`
 __(optional)__
 Generate a new managed key pair.
 
@@ -744,6 +748,8 @@ This is also an optional import, meaning that the function may not even exist.
 
 ##### Params
 - <a href="#keypair_generate_managed.key_manager" name="keypair_generate_managed.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+- <a href="#keypair_generate_managed.algorithm_type" name="keypair_generate_managed.algorithm_type"></a> `algorithm_type`: [`algorithm_type`](#algorithm_type)
 
 - <a href="#keypair_generate_managed.algorithm" name="keypair_generate_managed.algorithm"></a> `algorithm`: `string`
 
@@ -857,7 +863,7 @@ If this is a managed key, the key will not be removed from persistent storage, a
 
 ---
 
-#### <a href="#publickey_import" name="publickey_import"></a> `publickey_import(algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: publickey_encoding) -> (crypto_errno, publickey)`
+#### <a href="#publickey_import" name="publickey_import"></a> `publickey_import(algorithm_type: algorithm_type, algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: publickey_encoding) -> (crypto_errno, publickey)`
 Import a public key.
 
 The function may return `unsupported_encoding` if importing from the given format is not implemented or incompatible with the key type.
@@ -869,10 +875,12 @@ Finally, the function may return `unsupported_algorithm` if the algorithm is not
 Example usage:
 
 ```rust
-let pk_handle = ctx.publickey_import(encoded, PublicKeyEncoding::Sec)?;
+let pk_handle = ctx.publickey_import(AlgorithmType::Signatures, encoded, PublicKeyEncoding::Sec)?;
 ```
 
 ##### Params
+- <a href="#publickey_import.algorithm_type" name="publickey_import.algorithm_type"></a> `algorithm_type`: [`algorithm_type`](#algorithm_type)
+
 - <a href="#publickey_import.algorithm" name="publickey_import.algorithm"></a> `algorithm`: `string`
 
 - <a href="#publickey_import.encoded" name="publickey_import.encoded"></a> `encoded`: `ConstPointer<u8>`
@@ -1003,7 +1011,7 @@ The state is not closed and can be used after a signature has been computed, all
 Example usage - signature creation
 
 ```rust
-let kp_handle = ctx.keypair_import("Ed25519ph", keypair, KeypairEncoding::Raw)?;
+let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "Ed25519ph", keypair, KeypairEncoding::Raw)?;
 let state_handle = ctx.signature_state_open(kp_handle)?;
 ctx.signature_state_update(state_handle, b"message part 1")?;
 ctx.signature_state_update(state_handle, b"message part 2")?;
@@ -1082,8 +1090,8 @@ Data can be injected using `signature_verification_state_update()`, and the stat
 Example usage - signature verification:
 
 ```rust
-let pk_handle = ctx.publickey_import("ECDSA_P256_SHA256", encoded_pk, PublicKeyEncoding::CompressedSec)?;
-let signature_handle = ctx.signature_import("ECDSA_P256_SHA256", encoded_sig, PublicKeyEncoding::Der)?;
+let pk_handle = ctx.publickey_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_pk, PublicKeyEncoding::CompressedSec)?;
+let signature_handle = ctx.signature_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_sig, PublicKeyEncoding::Der)?;
 let state_handle = ctx.signature_verification_state_open(pk_handle)?;
 ctx.signature_verification_state_update(state_handle, "message")?;
 ctx.signature_verification_state_verify(signature_handle)?;

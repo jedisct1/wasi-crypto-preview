@@ -235,7 +235,7 @@ fn test_hkdf() {
 
 #[test]
 fn test_encryption() {
-    use crate::CryptoCtx;
+    use crate::{AlgorithmType, CryptoCtx};
 
     let ctx = CryptoCtx::new();
 

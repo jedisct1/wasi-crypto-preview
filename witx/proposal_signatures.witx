@@ -54,7 +54,7 @@
   ;;; Example usage - signature creation
   ;;;
   ;;; ```rust
-  ;;; let kp_handle = ctx.keypair_import("Ed25519ph", keypair, KeypairEncoding::Raw)?;
+  ;;; let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "Ed25519ph", keypair, KeypairEncoding::Raw)?;
   ;;; let state_handle = ctx.signature_state_open(kp_handle)?;
   ;;; ctx.signature_state_update(state_handle, b"message part 1")?;
   ;;; ctx.signature_state_update(state_handle, b"message part 2")?;
@@ -105,8 +105,8 @@
   ;;; Example usage - signature verification:
   ;;;
   ;;; ```rust
-  ;;; let pk_handle = ctx.publickey_import("ECDSA_P256_SHA256", encoded_pk, PublicKeyEncoding::CompressedSec)?;
-  ;;; let signature_handle = ctx.signature_import("ECDSA_P256_SHA256", encoded_sig, PublicKeyEncoding::Der)?;
+  ;;; let pk_handle = ctx.publickey_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_pk, PublicKeyEncoding::CompressedSec)?;
+  ;;; let signature_handle = ctx.signature_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_sig, PublicKeyEncoding::Der)?;
   ;;; let state_handle = ctx.signature_verification_state_open(pk_handle)?;
   ;;; ctx.signature_verification_state_update(state_handle, "message")?;
   ;;; ctx.signature_verification_state_verify(signature_handle)?;

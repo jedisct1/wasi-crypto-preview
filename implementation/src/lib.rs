@@ -19,6 +19,7 @@ mod symmetric;
 mod version;
 mod wasi_glue;
 
+use crate::types as guest_types;
 use array_output::*;
 use asymmetric_common::*;
 use handles::*;
@@ -76,6 +77,21 @@ pub struct HandleManagers {
     pub symmetric_state: HandlesManager<SymmetricState>,
     pub symmetric_key: HandlesManager<SymmetricKey>,
     pub symmetric_tag: HandlesManager<SymmetricTag>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum AlgorithmType {
+    Signatures,
+    Symmetric,
+}
+
+impl From<guest_types::AlgorithmType> for AlgorithmType {
+    fn from(options_type: guest_types::AlgorithmType) -> Self {
+        match options_type {
+            guest_types::AlgorithmType::Signatures => AlgorithmType::Signatures,
+            guest_types::AlgorithmType::Symmetric => AlgorithmType::Symmetric,
+        }
+    }
 }
 
 pub struct CryptoCtx {

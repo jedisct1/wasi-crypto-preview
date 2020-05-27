@@ -17,9 +17,10 @@
   ;;; Example usage:
   ;;;
   ;;; ```rust
-  ;;; let kp_handle = ctx.keypair_generate("RSA_PKCS1_2048_8192_SHA512", None)?;
+  ;;; let kp_handle = ctx.keypair_generate(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", None)?;
   ;;; ```
   (@interface func (export "keypair_generate")
+    (param $algorithm_type $algorithm_type)
     (param $algorithm string)
     (param $options $opt_options)
     (result $error $crypto_errno)
@@ -37,9 +38,10 @@
   ;;; Example usage:
   ;;;
   ;;; ```rust
-  ;;; let kp_handle = ctx.keypair_import("RSA_PKCS1_2048_8192_SHA512", KeypairEncoding::PKCS8)?;
+  ;;; let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", KeypairEncoding::PKCS8)?;
   ;;; ```
   (@interface func (export "keypair_import")
+    (param $algorithm_type $algorithm_type)
     (param $algorithm string)
     (param $encoded (@witx const_pointer u8))
     (param $encoded_len $size)
@@ -63,6 +65,7 @@
   ;;; This is also an optional import, meaning that the function may not even exist.
   (@interface func (export "keypair_generate_managed")
     (param $key_manager $key_manager)
+    (param $algorithm_type $algorithm_type)
     (param $algorithm string)
     (param $options $opt_options)
     (result $error $crypto_errno)
@@ -140,9 +143,10 @@
   ;;; Example usage:
   ;;;
   ;;; ```rust
-  ;;; let pk_handle = ctx.publickey_import(encoded, PublicKeyEncoding::Sec)?;
+  ;;; let pk_handle = ctx.publickey_import(AlgorithmType::Signatures, encoded, PublicKeyEncoding::Sec)?;
   ;;; ```
   (@interface func (export "publickey_import")
+    (param $algorithm_type $algorithm_type)
     (param $algorithm string)
     (param $encoded (@witx const_pointer u8))
     (param $encoded_len $size)
