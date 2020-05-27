@@ -20,12 +20,13 @@ mod version;
 mod wasi_glue;
 
 use array_output::*;
+use asymmetric_common::*;
 use handles::*;
 use options::*;
 use signatures::*;
 use symmetric::*;
 
-pub use asymmetric_common::{KeyPair, KeyPairEncoding, PublicKey, PublicKeyEncoding};
+pub use asymmetric_common::{KeyPairEncoding, PublicKeyEncoding};
 pub use error::CryptoError;
 pub use handles::Handle;
 pub use signatures::SignatureEncoding;
