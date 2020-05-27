@@ -101,11 +101,11 @@ pub enum OptionsType {
     Symmetric,
 }
 
-impl From<guest_types::OptionsType> for OptionsType {
-    fn from(options_type: guest_types::OptionsType) -> Self {
+impl From<guest_types::AlgorithmType> for OptionsType {
+    fn from(options_type: guest_types::AlgorithmType) -> Self {
         match options_type {
-            guest_types::OptionsType::Signatures => OptionsType::Signatures,
-            guest_types::OptionsType::Symmetric => OptionsType::Symmetric,
+            guest_types::AlgorithmType::Signatures => OptionsType::Signatures,
+            guest_types::AlgorithmType::Symmetric => OptionsType::Symmetric,
         }
     }
 }

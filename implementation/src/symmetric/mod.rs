@@ -243,7 +243,7 @@ fn test_encryption() {
     let nonce = [42u8; 12];
     let key_handle = ctx.symmetric_key_generate("AES-256-GCM", None).unwrap();
 
-    let options_handle = ctx.options_open(OptionsType::Symmetric).unwrap();
+    let options_handle = ctx.options_open(AlgorithmType::Symmetric).unwrap();
     ctx.options_set(options_handle, "nonce", &nonce).unwrap();
 
     let symmetric_state = ctx

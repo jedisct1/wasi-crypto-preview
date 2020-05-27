@@ -197,19 +197,17 @@ Raw bytes.
 - <a href="#signature_encoding.der" name="signature_encoding.der"></a> `der`
 DER encoding.
 
-## <a href="#options_type" name="options_type"></a> `options_type`: Enum(`u16`)
-Type of an options set.
-
-This is used when creating a new options set with `options_open()`.
+## <a href="#algorithm_type" name="algorithm_type"></a> `algorithm_type`: Enum(`u16`)
+An algorithm category.
 
 Size: 2
 
 Alignment: 2
 
 ### Variants
-- <a href="#options_type.signatures" name="options_type.signatures"></a> `signatures`
+- <a href="#algorithm_type.signature" name="algorithm_type.signature"></a> `signature`
 
-- <a href="#options_type.symmetric" name="options_type.symmetric"></a> `symmetric`
+- <a href="#algorithm_type.symmetric" name="algorithm_type.symmetric"></a> `symmetric`
 
 ## <a href="#version" name="version"></a> `version`: Int(`u64`)
 Version of a managed key.
@@ -447,13 +445,13 @@ Alignment: 4
 
 ---
 
-#### <a href="#options_open" name="options_open"></a> `options_open(options_type: options_type) -> (crypto_errno, options)`
+#### <a href="#options_open" name="options_open"></a> `options_open(algorithm_type: algorithm_type) -> (crypto_errno, options)`
 Create a new object to set non-default options.
 
 Example usage:
 
 ```rust
-let options_handle = options_open()?;
+let options_handle = options_open(algorithm_type::symmetric)?;
 options_set(options_handle, "context", context)?;
 options_set_u64(options_handle, "threads", 4)?;
 let state = symmetric_state_open("BLAKE3", None, Some(options_handle))?;
@@ -461,7 +459,7 @@ options_close(options_handle)?;
 ```
 
 ##### Params
-- <a href="#options_open.options_type" name="options_open.options_type"></a> `options_type`: [`options_type`](#options_type)
+- <a href="#options_open.algorithm_type" name="options_open.algorithm_type"></a> `algorithm_type`: [`algorithm_type`](#algorithm_type)
 
 ##### Results
 - <a href="#options_open.error" name="options_open.error"></a> `error`: [`crypto_errno`](#crypto_errno)

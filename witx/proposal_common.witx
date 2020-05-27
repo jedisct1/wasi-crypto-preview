@@ -184,10 +184,8 @@
   )
 )
 
-;;; Type of an options set.
-;;;
-;;; This is used when creating a new options set with `options_open()`.
-(typename $options_type
+;;; An algorithm category.
+(typename $algorithm_type
   (enum u16
     $signatures
     $symmetric
@@ -303,14 +301,14 @@
   ;;; Example usage:
   ;;;
   ;;; ```rust
-  ;;; let options_handle = options_open()?;
+  ;;; let options_handle = options_open(algorithm_type::symmetric)?;
   ;;; options_set(options_handle, "context", context)?;
   ;;; options_set_u64(options_handle, "threads", 4)?;
   ;;; let state = symmetric_state_open("BLAKE3", None, Some(options_handle))?;
   ;;; options_close(options_handle)?;
   ;;; ```
   (@interface func (export "options_open")
-    (param $options_type $options_type)
+    (param $algorithm_type $algorithm_type)
     (result $error $crypto_errno)
     (result $handle $options)
   )
