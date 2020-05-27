@@ -4,7 +4,7 @@ use crate::version::Version;
 use crate::CryptoCtx;
 
 impl CryptoCtx {
-    pub fn managed_keypair_generate(
+    pub fn keypair_generate_managed(
         &self,
         _key_manager_handle: Handle,
         _alg_str: &str,

@@ -4,7 +4,7 @@ use crate::version::Version;
 use crate::CryptoCtx;
 
 impl CryptoCtx {
-    pub fn managed_symmetric_key_generate(
+    pub fn symmetric_key_generate_managed(
         &self,
         _key_manager_handle: Handle,
         _alg_str: &str,

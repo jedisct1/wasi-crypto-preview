@@ -9,7 +9,7 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
 {
     // --- keypair_manager
 
-    fn managed_keypair_generate(
+    fn keypair_generate_managed(
         &self,
         key_manager_handle: guest_types::KeyManager,
         alg_str: &wiggle::GuestPtr<'_, str>,
@@ -23,7 +23,7 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
         };
         Ok(self
             .ctx
-            .managed_keypair_generate(
+            .keypair_generate_managed(
                 key_manager_handle.into(),
                 alg_str,
                 options_handle.map(Into::into),

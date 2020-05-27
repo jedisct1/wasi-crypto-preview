@@ -720,7 +720,7 @@ Objects are reference counted. It is safe to close an object immediately after t
 
 ---
 
-#### <a href="#managed_symmetric_key_generate" name="managed_symmetric_key_generate"></a> `managed_symmetric_key_generate(key_manager: key_manager, algorithm: string, options: opt_options) -> (crypto_errno, symmetric_key)`
+#### <a href="#symmetric_key_generate_managed" name="symmetric_key_generate_managed"></a> `symmetric_key_generate_managed(key_manager: key_manager, algorithm: string, options: opt_options) -> (crypto_errno, symmetric_key)`
 __(optional)__
 Generate a new managed symmetric key.
 
@@ -736,16 +736,16 @@ The function may also return `unsupported_algorithm` if the algorithm is not sup
 This is also an optional import, meaning that the function may not even exist.
 
 ##### Params
-- <a href="#managed_symmetric_key_generate.key_manager" name="managed_symmetric_key_generate.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+- <a href="#symmetric_key_generate_managed.key_manager" name="symmetric_key_generate_managed.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
 
-- <a href="#managed_symmetric_key_generate.algorithm" name="managed_symmetric_key_generate.algorithm"></a> `algorithm`: `string`
+- <a href="#symmetric_key_generate_managed.algorithm" name="symmetric_key_generate_managed.algorithm"></a> `algorithm`: `string`
 
-- <a href="#managed_symmetric_key_generate.options" name="managed_symmetric_key_generate.options"></a> `options`: [`opt_options`](#opt_options)
+- <a href="#symmetric_key_generate_managed.options" name="symmetric_key_generate_managed.options"></a> `options`: [`opt_options`](#opt_options)
 
 ##### Results
-- <a href="#managed_symmetric_key_generate.error" name="managed_symmetric_key_generate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+- <a href="#symmetric_key_generate_managed.error" name="symmetric_key_generate_managed.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
-- <a href="#managed_symmetric_key_generate.handle" name="managed_symmetric_key_generate.handle"></a> `handle`: [`symmetric_key`](#symmetric_key)
+- <a href="#symmetric_key_generate_managed.handle" name="symmetric_key_generate_managed.handle"></a> `handle`: [`symmetric_key`](#symmetric_key)
 
 
 ---

@@ -61,7 +61,7 @@
   ;;; The function may also return `unsupported_algorithm` if the algorithm is not supported by the host.
   ;;;
   ;;; This is also an optional import, meaning that the function may not even exist.
-  (@interface func (export "managed_keypair_generate")
+  (@interface func (export "keypair_generate_managed")
     (param $key_manager $key_manager)
     (param $algorithm string)
     (param $options $opt_options)
