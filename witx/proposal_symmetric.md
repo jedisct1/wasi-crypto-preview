@@ -433,7 +433,7 @@ Create a new object to set non-default options.
 Example usage:
 
 ```rust
-let options_handle = options_open(algorithm_type::symmetric)?;
+let options_handle = options_open(AlgorithmType::Symmetric)?;
 options_set(options_handle, "context", context)?;
 options_set_u64(options_handle, "threads", 4)?;
 let state = symmetric_state_open("BLAKE3", None, Some(options_handle))?;
