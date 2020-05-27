@@ -1,3 +1,13 @@
+;;; `$signature_keypair` is just an alias for `$keypair`
+;;;
+;;; However, bindings may want to define a specialized type `signature_keypair` as a super class of `keypair`, with additional methods such as `sign`.
+(typename $signature_keypair $keypair)
+
+;;; `$signature_publickey` is just an alias for `$publickey`
+;;;
+;;; However, bindings may want to define a specialized type `signature_publickey` as a super class of `publickey`, with additional methods such as `verify`.
+(typename $signature_publickey $publickey)
+
 (module $wasi_ephemeral_crypto_signatures
   (import "memory" (memory))
 
@@ -52,7 +62,7 @@
   ;;; let raw_sig = ctx.signature_export(sig_handle, SignatureEncoding::Raw)?;
   ;;; ```
   (@interface func (export "signature_state_open")
-    (param $kp $keypair)
+    (param $kp $signature_keypair)
     (result $error $crypto_errno)
     (result $state $signature_state)
   )
@@ -102,7 +112,7 @@
   ;;; ctx.signature_verification_state_verify(signature_handle)?;
   ;;; ```
   (@interface func (export "signature_verification_state_open")
-    (param $kp $publickey)
+    (param $kp $signature_publickey)
     (result $error $crypto_errno)
     (result $state $signature_verification_state)
   )

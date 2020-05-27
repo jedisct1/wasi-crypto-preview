@@ -421,6 +421,24 @@ Alignment: 4
 
 - <a href="#opt_symmetric_key.none" name="opt_symmetric_key.none"></a> `none`
 
+## <a href="#signature_keypair" name="signature_keypair"></a> `signature_keypair`: [`keypair`](#keypair)
+`$signature_keypair` is just an alias for `$keypair`
+
+However, bindings may want to define a specialized type [`signature_keypair`](#signature_keypair) as a super class of [`keypair`](#keypair), with additional methods such as `sign`.
+
+Size: 4
+
+Alignment: 4
+
+## <a href="#signature_publickey" name="signature_publickey"></a> `signature_publickey`: [`publickey`](#publickey)
+`$signature_publickey` is just an alias for `$publickey`
+
+However, bindings may want to define a specialized type [`signature_publickey`](#signature_publickey) as a super class of [`publickey`](#publickey), with additional methods such as `verify`.
+
+Size: 4
+
+Alignment: 4
+
 # Modules
 ## <a href="#wasi_ephemeral_crypto_common" name="wasi_ephemeral_crypto_common"></a> wasi_ephemeral_crypto_common
 ### Imports
@@ -977,7 +995,7 @@ let signature_handle = ctx.signature_import("ECDSA_P256_SHA256", SignatureEncodi
 
 ---
 
-#### <a href="#signature_state_open" name="signature_state_open"></a> `signature_state_open(kp: keypair) -> (crypto_errno, signature_state)`
+#### <a href="#signature_state_open" name="signature_state_open"></a> `signature_state_open(kp: signature_keypair) -> (crypto_errno, signature_state)`
 Create a new state to collect data to compute a signature on.
 
 This function allows data to be signed to be supplied in a streaming fashion.
@@ -996,7 +1014,7 @@ let raw_sig = ctx.signature_export(sig_handle, SignatureEncoding::Raw)?;
 ```
 
 ##### Params
-- <a href="#signature_state_open.kp" name="signature_state_open.kp"></a> `kp`: [`keypair`](#keypair)
+- <a href="#signature_state_open.kp" name="signature_state_open.kp"></a> `kp`: [`signature_keypair`](#signature_keypair)
 
 ##### Results
 - <a href="#signature_state_open.error" name="signature_state_open.error"></a> `error`: [`crypto_errno`](#crypto_errno)
@@ -1056,7 +1074,7 @@ Note that closing a signature state doesn't close or invalidate the key pair obj
 
 ---
 
-#### <a href="#signature_verification_state_open" name="signature_verification_state_open"></a> `signature_verification_state_open(kp: publickey) -> (crypto_errno, signature_verification_state)`
+#### <a href="#signature_verification_state_open" name="signature_verification_state_open"></a> `signature_verification_state_open(kp: signature_publickey) -> (crypto_errno, signature_verification_state)`
 Create a new state to collect data to verify a signature on.
 
 This is the verification counterpart of [`signature_state`](#signature_state).
@@ -1074,7 +1092,7 @@ ctx.signature_verification_state_verify(signature_handle)?;
 ```
 
 ##### Params
-- <a href="#signature_verification_state_open.kp" name="signature_verification_state_open.kp"></a> `kp`: [`publickey`](#publickey)
+- <a href="#signature_verification_state_open.kp" name="signature_verification_state_open.kp"></a> `kp`: [`signature_publickey`](#signature_publickey)
 
 ##### Results
 - <a href="#signature_verification_state_open.error" name="signature_verification_state_open.error"></a> `error`: [`crypto_errno`](#crypto_errno)
