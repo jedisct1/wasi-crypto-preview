@@ -1,6 +1,6 @@
 use super::*;
 use crate::types as guest_types;
-use crate::{CryptoCtx, HandleManagers};
+use crate::{AlgorithmType, CryptoCtx, HandleManagers};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PublicKeyEncoding {
@@ -36,14 +36,18 @@ impl PublicKey {
     }
 
     fn import(
-        alg: AsymmetricAlgorithm,
+        alg_type: AlgorithmType,
+        alg_str: &str,
         encoded: &[u8],
         encoding: PublicKeyEncoding,
     ) -> Result<PublicKey, CryptoError> {
-        match alg {
-            AsymmetricAlgorithm::Signature(alg) => Ok(PublicKey::Signature(
-                SignaturePublicKey::import(alg, encoded, encoding)?,
-            )),
+        match alg_type {
+            AlgorithmType::Signatures => Ok(PublicKey::Signature(SignaturePublicKey::import(
+                SignatureAlgorithm::try_from(alg_str)?,
+                encoded,
+                encoding,
+            )?)),
+            _ => bail!(CryptoError::InvalidOperation),
         }
     }
 
@@ -67,12 +71,12 @@ impl PublicKey {
 impl CryptoCtx {
     pub fn publickey_import(
         &self,
+        alg_type: AlgorithmType,
         alg_str: &str,
         encoded: &[u8],
         encoding: PublicKeyEncoding,
     ) -> Result<Handle, CryptoError> {
-        let alg = AsymmetricAlgorithm::try_from(alg_str)?;
-        let pk = PublicKey::import(alg, encoded, encoding)?;
+        let pk = PublicKey::import(alg_type, alg_str, encoded, encoding)?;
         let handle = self.handles.publickey.register(pk)?;
         Ok(handle)
     }

@@ -1,6 +1,6 @@
 use crate::error::*;
 use crate::types as guest_types;
-use crate::{AlgorithmType, WasiCryptoCtx};
+use crate::WasiCryptoCtx;
 
 use std::convert::TryInto;
 
@@ -12,14 +12,10 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
     fn keypair_generate_managed(
         &self,
         key_manager_handle: guest_types::KeyManager,
-        algorithm_type: guest_types::AlgorithmType,
+        alg_type: guest_types::AlgorithmType,
         alg_str: &wiggle::GuestPtr<'_, str>,
         options_handle: &guest_types::OptOptions,
     ) -> Result<guest_types::Keypair, guest_types::CryptoErrno> {
-        ensure!(
-            AlgorithmType::from(algorithm_type) == AlgorithmType::Signatures,
-            CryptoError::InvalidOperation.into()
-        );
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let options_handle = match *options_handle {
@@ -30,6 +26,7 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
             .ctx
             .keypair_generate_managed(
                 key_manager_handle.into(),
+                alg_type.into(),
                 alg_str,
                 options_handle.map(Into::into),
             )?
@@ -59,14 +56,10 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
 
     fn keypair_generate(
         &self,
-        algorithm_type: guest_types::AlgorithmType,
+        alg_type: guest_types::AlgorithmType,
         alg_str: &wiggle::GuestPtr<'_, str>,
         options_handle: &guest_types::OptOptions,
     ) -> Result<guest_types::Keypair, guest_types::CryptoErrno> {
-        ensure!(
-            AlgorithmType::from(algorithm_type) == AlgorithmType::Signatures,
-            CryptoError::InvalidOperation.into()
-        );
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let options_handle = match *options_handle {
@@ -75,22 +68,18 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
         };
         Ok(self
             .ctx
-            .keypair_generate(alg_str, options_handle.map(Into::into))?
+            .keypair_generate(alg_type.into(), alg_str, options_handle.map(Into::into))?
             .into())
     }
 
     fn keypair_import(
         &self,
-        algorithm_type: guest_types::AlgorithmType,
+        alg_type: guest_types::AlgorithmType,
         alg_str: &wiggle::GuestPtr<'_, str>,
         encoded_ptr: &wiggle::GuestPtr<'_, u8>,
         encoded_len: guest_types::Size,
         encoding: guest_types::KeypairEncoding,
     ) -> Result<guest_types::Keypair, guest_types::CryptoErrno> {
-        ensure!(
-            AlgorithmType::from(algorithm_type) == AlgorithmType::Signatures,
-            CryptoError::InvalidOperation.into()
-        );
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let encoded: &[u8] = unsafe {
@@ -100,7 +89,7 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
         };
         Ok(self
             .ctx
-            .keypair_import(alg_str, encoded, encoding.into())?
+            .keypair_import(alg_type.into(), alg_str, encoded, encoding.into())?
             .into())
     }
 
@@ -151,16 +140,12 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
 
     fn publickey_import(
         &self,
-        algorithm_type: guest_types::AlgorithmType,
+        alg_type: guest_types::AlgorithmType,
         alg_str: &wiggle::GuestPtr<'_, str>,
         encoded_ptr: &wiggle::GuestPtr<'_, u8>,
         encoded_len: guest_types::Size,
         encoding: guest_types::PublickeyEncoding,
     ) -> Result<guest_types::Publickey, guest_types::CryptoErrno> {
-        ensure!(
-            AlgorithmType::from(algorithm_type) == AlgorithmType::Signatures,
-            CryptoError::InvalidOperation.into()
-        );
         let mut guest_borrow = wiggle::GuestBorrows::new();
         let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
         let encoded: &[u8] = unsafe {
@@ -170,7 +155,7 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
         };
         Ok(self
             .ctx
-            .publickey_import(alg_str, encoded, encoding.into())?
+            .publickey_import(alg_type.into(), alg_str, encoded, encoding.into())?
             .into())
     }
 

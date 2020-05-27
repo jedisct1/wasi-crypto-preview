@@ -64,11 +64,13 @@ impl OptionsLike for SignatureOptions {
 
 #[test]
 fn test_signatures() {
-    use crate::CryptoCtx;
+    use crate::{AlgorithmType, CryptoCtx};
 
     let ctx = CryptoCtx::new();
 
-    let kp_handle = ctx.keypair_generate("ECDSA_P256_SHA256", None).unwrap();
+    let kp_handle = ctx
+        .keypair_generate(AlgorithmType::Signatures, "ECDSA_P256_SHA256", None)
+        .unwrap();
     let pk_handle = ctx.keypair_publickey(kp_handle).unwrap();
 
     let state_handle = ctx.signature_state_open(kp_handle).unwrap();

@@ -1,5 +1,6 @@
 use super::*;
 use crate::types as guest_types;
+use crate::AlgorithmType;
 
 use std::convert::TryFrom;
 
@@ -41,25 +42,32 @@ impl KeyPair {
     }
 
     pub fn generate(
+        alg_type: AlgorithmType,
         alg_str: &str,
         options: Option<SignatureOptions>,
     ) -> Result<KeyPair, CryptoError> {
-        match AsymmetricAlgorithm::try_from(alg_str)? {
-            AsymmetricAlgorithm::Signature(alg) => Ok(KeyPair::Signature(
-                SignatureKeyPair::generate(alg, options)?,
-            )),
+        match alg_type {
+            AlgorithmType::Signatures => Ok(KeyPair::Signature(SignatureKeyPair::generate(
+                SignatureAlgorithm::try_from(alg_str)?,
+                options,
+            )?)),
+            _ => bail!(CryptoError::InvalidOperation),
         }
     }
 
     pub fn import(
+        alg_type: AlgorithmType,
         alg_str: &str,
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<KeyPair, CryptoError> {
-        match AsymmetricAlgorithm::try_from(alg_str)? {
-            AsymmetricAlgorithm::Signature(alg) => Ok(KeyPair::Signature(
-                SignatureKeyPair::import(alg, encoded, encoding)?,
-            )),
+        match alg_type {
+            AlgorithmType::Signatures => Ok(KeyPair::Signature(SignatureKeyPair::import(
+                SignatureAlgorithm::try_from(alg_str)?,
+                encoded,
+                encoding,
+            )?)),
+            _ => bail!(CryptoError::InvalidOperation),
         }
     }
 
@@ -73,6 +81,7 @@ impl KeyPair {
 impl CryptoCtx {
     pub fn keypair_generate(
         &self,
+        alg_type: AlgorithmType,
         alg_str: &str,
         options_handle: Option<Handle>,
     ) -> Result<Handle, CryptoError> {
@@ -85,18 +94,19 @@ impl CryptoCtx {
                     .into_signatures()?,
             ),
         };
-        let kp = KeyPair::generate(alg_str, options)?;
+        let kp = KeyPair::generate(alg_type, alg_str, options)?;
         let handle = self.handles.keypair.register(kp)?;
         Ok(handle)
     }
 
     pub fn keypair_import(
         &self,
+        alg_type: AlgorithmType,
         alg_str: &str,
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Handle, CryptoError> {
-        let kp = KeyPair::import(alg_str, encoded, encoding)?;
+        let kp = KeyPair::import(alg_type, alg_str, encoded, encoding)?;
         let handle = self.handles.keypair.register(kp)?;
         Ok(handle)
     }
