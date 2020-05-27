@@ -126,7 +126,7 @@ This error is used to make the distinction between an empty option, and an optio
 - <a href="#crypto_errno.key_not_found" name="crypto_errno.key_not_found"></a> `key_not_found`
 A key or key pair matching the requested identifier cannot be found using the supplied information.
 
-This error is returned by a key manager via the `signature_keypair_from_id()` function.
+This error is returned by a key manager via the `keypair_from_id()` function.
 
 - <a href="#crypto_errno.parameters_missing" name="crypto_errno.parameters_missing"></a> `parameters_missing`
 The algorithm requires parameters that haven't been set.
