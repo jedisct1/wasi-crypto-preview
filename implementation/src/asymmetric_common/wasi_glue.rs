@@ -177,4 +177,54 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
     fn publickey_close(&self, pk: guest_types::Publickey) -> Result<(), guest_types::CryptoErrno> {
         Ok(self.ctx.publickey_close(pk.into())?.into())
     }
+
+    // --- secretkey
+
+    fn secretkey_import(
+        &self,
+        _alg_type: guest_types::AlgorithmType,
+        _alg_str: &wiggle::GuestPtr<'_, str>,
+        _encoded_ptr: &wiggle::GuestPtr<'_, u8>,
+        _encoded_len: guest_types::Size,
+        _encoding: guest_types::SecretkeyEncoding,
+    ) -> Result<guest_types::Secretkey, guest_types::CryptoErrno> {
+        unimplemented!()
+    }
+
+    fn secretkey_export(
+        &self,
+        _pk: guest_types::Secretkey,
+        _encoding: guest_types::SecretkeyEncoding,
+    ) -> Result<guest_types::ArrayOutput, guest_types::CryptoErrno> {
+        unimplemented!()
+    }
+
+    fn secretkey_close(
+        &self,
+        _kp_handle: guest_types::Secretkey,
+    ) -> Result<(), guest_types::CryptoErrno> {
+        unimplemented!()
+    }
+
+    fn keypair_from_pk_and_sk(
+        &self,
+        _pk_handle: guest_types::Publickey,
+        _sk_handle: guest_types::Secretkey,
+    ) -> Result<guest_types::Keypair, guest_types::CryptoErrno> {
+        unimplemented!()
+    }
+
+    fn keypair_secretkey(
+        &self,
+        _kp_handle: guest_types::Keypair,
+    ) -> Result<guest_types::Secretkey, guest_types::CryptoErrno> {
+        unimplemented!()
+    }
+
+    fn publickey_from_secretkey(
+        &self,
+        _sk_handle: guest_types::Secretkey,
+    ) -> Result<guest_types::Publickey, guest_types::CryptoErrno> {
+        unimplemented!()
+    }
 }
