@@ -173,6 +173,26 @@
   )
 )
 
+;;; Encoding to use for importing or exporting a secret key.
+(typename $secretkey_encoding
+  (enum u16
+    ;;; Raw bytes.
+    $raw
+
+    ;;; DER encoding.
+    $der
+
+    ;;; PEM encoding.
+    $pem
+
+    ;;; SEC encoding.
+    $sec
+
+    ;;; Compressed SEC encoding.
+    $compressed_sec
+  )
+)
+
 ;;; Encoding to use for importing or exporting a signature.
 (typename $signature_encoding
   (enum u16
@@ -247,8 +267,11 @@
 ;;; A signature.
 (typename $signature (handle))
 
-;;; A public key that can be used to verify a signature.
+;;; A public key, for key exchange and signature verification.
 (typename $publickey (handle))
+
+;;; A secret key, for key exchange mechanisms.
+(typename $secretkey (handle))
 
 ;;; A state to absorb signed data to be verified.
 (typename $signature_verification_state (handle))
