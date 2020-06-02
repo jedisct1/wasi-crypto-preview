@@ -76,6 +76,10 @@ impl KeyPair {
             KeyPair::Signature(key_pair) => Ok(PublicKey::Signature(key_pair.public_key()?)),
         }
     }
+
+    pub fn secret_key(&self) -> Result<SecretKey, CryptoError> {
+        bail!(CryptoError::NotImplemented)
+    }
 }
 
 impl CryptoCtx {
@@ -116,6 +120,14 @@ impl CryptoCtx {
         bail!(CryptoError::UnsupportedFeature)
     }
 
+    pub fn keypair_from_pk_and_sk(
+        &self,
+        _pk_handle: Handle,
+        _sk_handle: Handle,
+    ) -> Result<Handle, CryptoError> {
+        unimplemented!()
+    }
+
     pub fn keypair_export(
         &self,
         kp_handle: Handle,
@@ -131,6 +143,13 @@ impl CryptoCtx {
         let kp = self.handles.keypair.get(kp_handle)?;
         let pk = kp.public_key()?;
         let handle = self.handles.publickey.register(pk)?;
+        Ok(handle)
+    }
+
+    pub fn keypair_secretkey(&self, kp_handle: Handle) -> Result<Handle, CryptoError> {
+        let kp = self.handles.keypair.get(kp_handle)?;
+        let pk = kp.secret_key()?;
+        let handle = self.handles.secretkey.register(pk)?;
         Ok(handle)
     }
 
