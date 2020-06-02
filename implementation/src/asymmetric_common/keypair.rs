@@ -71,6 +71,10 @@ impl KeyPair {
         }
     }
 
+    pub fn from_pk_and_sk(_pk: PublicKey, _sk: SecretKey) -> Result<KeyPair, CryptoError> {
+        unimplemented!()
+    }
+
     pub fn public_key(&self) -> Result<PublicKey, CryptoError> {
         match self {
             KeyPair::Signature(key_pair) => Ok(PublicKey::Signature(key_pair.public_key()?)),
@@ -122,10 +126,14 @@ impl CryptoCtx {
 
     pub fn keypair_from_pk_and_sk(
         &self,
-        _pk_handle: Handle,
-        _sk_handle: Handle,
+        pk_handle: Handle,
+        sk_handle: Handle,
     ) -> Result<Handle, CryptoError> {
-        unimplemented!()
+        let pk = self.handles.publickey.get(pk_handle)?;
+        let sk = self.handles.secretkey.get(sk_handle)?;
+        let kp = KeyPair::from_pk_and_sk(pk, sk)?;
+        let handle = self.handles.keypair.register(kp)?;
+        Ok(handle)
     }
 
     pub fn keypair_export(
