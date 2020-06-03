@@ -1,3 +1,5 @@
+(use "proposal_common.witx")
+
 (module $wasi_ephemeral_crypto_asymmetric_common
   (import "memory" (memory))
 
