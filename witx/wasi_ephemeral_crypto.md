@@ -183,6 +183,29 @@ SEC encoding.
 - <a href="#publickey_encoding.compressed_sec" name="publickey_encoding.compressed_sec"></a> `compressed_sec`
 Compressed SEC encoding.
 
+## <a href="#secretkey_encoding" name="secretkey_encoding"></a> `secretkey_encoding`: Enum(`u16`)
+Encoding to use for importing or exporting a secret key.
+
+Size: 2
+
+Alignment: 2
+
+### Variants
+- <a href="#secretkey_encoding.raw" name="secretkey_encoding.raw"></a> `raw`
+Raw bytes.
+
+- <a href="#secretkey_encoding.der" name="secretkey_encoding.der"></a> `der`
+DER encoding.
+
+- <a href="#secretkey_encoding.pem" name="secretkey_encoding.pem"></a> `pem`
+PEM encoding.
+
+- <a href="#secretkey_encoding.sec" name="secretkey_encoding.sec"></a> `sec`
+SEC encoding.
+
+- <a href="#secretkey_encoding.compressed_sec" name="secretkey_encoding.compressed_sec"></a> `compressed_sec`
+Compressed SEC encoding.
+
 ## <a href="#signature_encoding" name="signature_encoding"></a> `signature_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a signature.
 
@@ -301,7 +324,15 @@ Alignment: 4
 
 ### Supertypes
 ## <a href="#publickey" name="publickey"></a> `publickey`
-A public key that can be used to verify a signature.
+A public key, for key exchange and signature verification.
+
+Size: 4
+
+Alignment: 4
+
+### Supertypes
+## <a href="#secretkey" name="secretkey"></a> `secretkey`
+A secret key, for key exchange mechanisms.
 
 Size: 4
 
@@ -815,6 +846,22 @@ This is an optional import, meaning that the function may not even exist.
 
 ---
 
+#### <a href="#keypair_from_pk_and_sk" name="keypair_from_pk_and_sk"></a> `keypair_from_pk_and_sk(publickey: publickey, secretkey: secretkey) -> (crypto_errno, keypair)`
+Create a key pair from a public key and a secret key.
+
+##### Params
+- <a href="#keypair_from_pk_and_sk.publickey" name="keypair_from_pk_and_sk.publickey"></a> `publickey`: [`publickey`](#publickey)
+
+- <a href="#keypair_from_pk_and_sk.secretkey" name="keypair_from_pk_and_sk.secretkey"></a> `secretkey`: [`secretkey`](#secretkey)
+
+##### Results
+- <a href="#keypair_from_pk_and_sk.error" name="keypair_from_pk_and_sk.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#keypair_from_pk_and_sk.handle" name="keypair_from_pk_and_sk.handle"></a> `handle`: [`keypair`](#keypair)
+
+
+---
+
 #### <a href="#keypair_export" name="keypair_export"></a> `keypair_export(kp: keypair, encoding: keypair_encoding) -> (crypto_errno, array_output)`
 Export a key pair as the given encoding format.
 
@@ -834,7 +881,7 @@ May return `prohibited_operation` if this operation is denied or `unsupported_en
 ---
 
 #### <a href="#keypair_publickey" name="keypair_publickey"></a> `keypair_publickey(kp: keypair) -> (crypto_errno, publickey)`
-Get a public key of a key pair.
+Get the public key of a key pair.
 
 ##### Params
 - <a href="#keypair_publickey.kp" name="keypair_publickey.kp"></a> `kp`: [`keypair`](#keypair)
@@ -847,8 +894,22 @@ Get a public key of a key pair.
 
 ---
 
+#### <a href="#keypair_secretkey" name="keypair_secretkey"></a> `keypair_secretkey(kp: keypair) -> (crypto_errno, secretkey)`
+Get the secret key of a key pair.
+
+##### Params
+- <a href="#keypair_secretkey.kp" name="keypair_secretkey.kp"></a> `kp`: [`keypair`](#keypair)
+
+##### Results
+- <a href="#keypair_secretkey.error" name="keypair_secretkey.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#keypair_secretkey.sk" name="keypair_secretkey.sk"></a> `sk`: [`secretkey`](#secretkey)
+
+
+---
+
 #### <a href="#keypair_close" name="keypair_close"></a> `keypair_close(kp: keypair) -> crypto_errno`
-Destroys a key pair.
+Destroy a key pair.
 
 The host will automatically wipe traces of the secret key from memory.
 
@@ -931,8 +992,22 @@ The function returns `invalid_key` if the public key didn't pass the checks.
 
 ---
 
+#### <a href="#publickey_from_secretkey" name="publickey_from_secretkey"></a> `publickey_from_secretkey(sk: secretkey) -> (crypto_errno, publickey)`
+Compute the public key for a secret key.
+
+##### Params
+- <a href="#publickey_from_secretkey.sk" name="publickey_from_secretkey.sk"></a> `sk`: [`secretkey`](#secretkey)
+
+##### Results
+- <a href="#publickey_from_secretkey.error" name="publickey_from_secretkey.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#publickey_from_secretkey.pk" name="publickey_from_secretkey.pk"></a> `pk`: [`publickey`](#publickey)
+
+
+---
+
 #### <a href="#publickey_close" name="publickey_close"></a> `publickey_close(pk: publickey) -> crypto_errno`
-Destroys a public key.
+Destroy a public key.
 
 Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
 
@@ -941,6 +1016,72 @@ Objects are reference counted. It is safe to close an object immediately after t
 
 ##### Results
 - <a href="#publickey_close.error" name="publickey_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
+#### <a href="#secretkey_import" name="secretkey_import"></a> `secretkey_import(algorithm_type: algorithm_type, algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: secretkey_encoding) -> (crypto_errno, secretkey)`
+Import a secret key.
+
+The function may return `unsupported_encoding` if importing from the given format is not implemented or incompatible with the key type.
+
+It may also return `invalid_key` if the key doesn't appear to match the supplied algorithm.
+
+Finally, the function may return `unsupported_algorithm` if the algorithm is not supported by the host.
+
+Example usage:
+
+```rust
+let pk_handle = ctx.secretkey_import(AlgorithmType::KX, encoded, SecretKeyEncoding::Raw)?;
+```
+
+##### Params
+- <a href="#secretkey_import.algorithm_type" name="secretkey_import.algorithm_type"></a> `algorithm_type`: [`algorithm_type`](#algorithm_type)
+
+- <a href="#secretkey_import.algorithm" name="secretkey_import.algorithm"></a> `algorithm`: `string`
+
+- <a href="#secretkey_import.encoded" name="secretkey_import.encoded"></a> `encoded`: `ConstPointer<u8>`
+
+- <a href="#secretkey_import.encoded_len" name="secretkey_import.encoded_len"></a> `encoded_len`: [`size`](#size)
+
+- <a href="#secretkey_import.encoding" name="secretkey_import.encoding"></a> `encoding`: [`secretkey_encoding`](#secretkey_encoding)
+
+##### Results
+- <a href="#secretkey_import.error" name="secretkey_import.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#secretkey_import.sk" name="secretkey_import.sk"></a> `sk`: [`secretkey`](#secretkey)
+
+
+---
+
+#### <a href="#secretkey_export" name="secretkey_export"></a> `secretkey_export(sk: secretkey, encoding: secretkey_encoding) -> (crypto_errno, array_output)`
+Export a secret key as the given encoding format.
+
+May return `unsupported_encoding` if the encoding is not supported.
+
+##### Params
+- <a href="#secretkey_export.sk" name="secretkey_export.sk"></a> `sk`: [`secretkey`](#secretkey)
+
+- <a href="#secretkey_export.encoding" name="secretkey_export.encoding"></a> `encoding`: [`secretkey_encoding`](#secretkey_encoding)
+
+##### Results
+- <a href="#secretkey_export.error" name="secretkey_export.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#secretkey_export.encoded" name="secretkey_export.encoded"></a> `encoded`: [`array_output`](#array_output)
+
+
+---
+
+#### <a href="#secretkey_close" name="secretkey_close"></a> `secretkey_close(sk: secretkey) -> crypto_errno`
+Destroy a secret key.
+
+Objects are reference counted. It is safe to close an object immediately after the last function needing it is called.
+
+##### Params
+- <a href="#secretkey_close.sk" name="secretkey_close.sk"></a> `sk`: [`secretkey`](#secretkey)
+
+##### Results
+- <a href="#secretkey_close.error" name="secretkey_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
 ## <a href="#wasi_ephemeral_crypto_symmetric" name="wasi_ephemeral_crypto_symmetric"></a> wasi_ephemeral_crypto_symmetric
 ### Imports

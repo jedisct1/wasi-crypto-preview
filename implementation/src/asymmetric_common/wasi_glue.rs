@@ -161,20 +161,92 @@ impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetr
 
     fn publickey_export(
         &self,
-        pk: guest_types::Publickey,
+        pk_handle: guest_types::Publickey,
         encoding: guest_types::PublickeyEncoding,
     ) -> Result<guest_types::ArrayOutput, guest_types::CryptoErrno> {
         Ok(self
             .ctx
-            .publickey_export(pk.into(), encoding.into())?
+            .publickey_export(pk_handle.into(), encoding.into())?
             .into())
     }
 
-    fn publickey_verify(&self, pk: guest_types::Publickey) -> Result<(), guest_types::CryptoErrno> {
-        Ok(self.ctx.publickey_verify(pk.into())?.into())
+    fn publickey_from_secretkey(
+        &self,
+        sk_handle: guest_types::Secretkey,
+    ) -> Result<guest_types::Publickey, guest_types::CryptoErrno> {
+        Ok(self.ctx.keypair_publickey(sk_handle.into())?.into())
     }
 
-    fn publickey_close(&self, pk: guest_types::Publickey) -> Result<(), guest_types::CryptoErrno> {
-        Ok(self.ctx.publickey_close(pk.into())?.into())
+    fn publickey_verify(
+        &self,
+        pk_handle: guest_types::Publickey,
+    ) -> Result<(), guest_types::CryptoErrno> {
+        Ok(self.ctx.publickey_verify(pk_handle.into())?.into())
+    }
+
+    fn publickey_close(
+        &self,
+        pk_handle: guest_types::Publickey,
+    ) -> Result<(), guest_types::CryptoErrno> {
+        Ok(self.ctx.publickey_close(pk_handle.into())?.into())
+    }
+
+    // --- secretkey
+
+    fn secretkey_import(
+        &self,
+        alg_type: guest_types::AlgorithmType,
+        alg_str: &wiggle::GuestPtr<'_, str>,
+        encoded_ptr: &wiggle::GuestPtr<'_, u8>,
+        encoded_len: guest_types::Size,
+        encoding: guest_types::SecretkeyEncoding,
+    ) -> Result<guest_types::Secretkey, guest_types::CryptoErrno> {
+        let mut guest_borrow = wiggle::GuestBorrows::new();
+        let alg_str: &str = unsafe { &*alg_str.as_raw(&mut guest_borrow)? };
+        let encoded: &[u8] = unsafe {
+            &*encoded_ptr
+                .as_array(encoded_len as _)
+                .as_raw(&mut guest_borrow)?
+        };
+        Ok(self
+            .ctx
+            .secretkey_import(alg_type.into(), alg_str, encoded, encoding.into())?
+            .into())
+    }
+
+    fn secretkey_export(
+        &self,
+        sk_handle: guest_types::Secretkey,
+        encoding: guest_types::SecretkeyEncoding,
+    ) -> Result<guest_types::ArrayOutput, guest_types::CryptoErrno> {
+        Ok(self
+            .ctx
+            .secretkey_export(sk_handle.into(), encoding.into())?
+            .into())
+    }
+
+    fn secretkey_close(
+        &self,
+        sk_handle: guest_types::Secretkey,
+    ) -> Result<(), guest_types::CryptoErrno> {
+        Ok(self.ctx.secretkey_close(sk_handle.into())?.into())
+    }
+
+    fn keypair_from_pk_and_sk(
+        &self,
+        pk_handle: guest_types::Publickey,
+        sk_handle: guest_types::Secretkey,
+    ) -> Result<guest_types::Keypair, guest_types::CryptoErrno> {
+        Ok(self
+            .ctx
+            .keypair_from_pk_and_sk(pk_handle.into(), sk_handle.into())?
+            .into())
+    }
+
+    fn keypair_secretkey(
+        &self,
+        kp_handle: guest_types::Keypair,
+    ) -> Result<guest_types::Secretkey, guest_types::CryptoErrno> {
+        Ok(self.ctx.keypair_secretkey(kp_handle.into())?.into())
     }
 }
