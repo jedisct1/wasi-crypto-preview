@@ -2,7 +2,7 @@
 
 A proposal for a WASI cryptography API.
 
-* [Interface definition](witx/wasi_ephemeral_crypto.md)
+* Interface definition:
   * common types and functions ([witx](witx/proposal_common.witx), [doc](witx/proposal_common.md))
   * symmetric operations ([witx](witx/proposal_siymmetric.witx), [doc](witx/proposal_symmetric.md))
   * common types and functions for asymmetric operations ([witx](witx/proposal_asymmetric_common.witx), [doc](witx/proposal_asymmetric_common.md))

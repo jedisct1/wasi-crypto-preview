@@ -3,8 +3,8 @@ all: wasi_ephemeral_crypto.md proposal_common.md proposal_asymmetric_common.md p
 wasi_ephemeral_crypto.md: proposal_common.witx proposal_asymmetric_common.witx proposal_symmetric.witx proposal_signatures.witx wasi_ephemeral_crypto.witx
 	witx-docgen -o $@ wasi_ephemeral_crypto.witx
 
-proposal_common.md: proposal_common.witx proposal_asymmetric_common.witx
-	witx-docgen -o $@ proposal_asymmetric_common.witx
+proposal_common.md: proposal_common.witx
+	witx-docgen -o $@ proposal_common.witx
 
 proposal_asymmetric_common.md: proposal_common.witx proposal_asymmetric_common.witx
 	witx-docgen -o $@ proposal_asymmetric_common.witx
