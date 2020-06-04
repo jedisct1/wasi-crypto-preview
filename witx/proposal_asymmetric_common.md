@@ -140,6 +140,11 @@ Some functions, such as functions generating key pairs and password stretching f
 
 In order to avoid a host call to be blocked for too long, these functions can return prematurely, requiring additional calls with the same parameters until they complete.
 
+- <a href="#crypto_errno.incompatible_keys" name="crypto_errno.incompatible_keys"></a> `incompatible_keys`
+Multiple keys have been provided, but they do not share the same type.
+
+This error is returned when trying to build a key pair from a public key and a secret key that were created for different and incompatible algorithms.
+
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a key pair.
 

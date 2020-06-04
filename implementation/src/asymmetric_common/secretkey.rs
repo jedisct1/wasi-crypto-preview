@@ -1,4 +1,5 @@
 use super::*;
+use crate::signatures::SignatureSecretKey;
 use crate::types as guest_types;
 use crate::{AlgorithmType, CryptoCtx, HandleManagers};
 
@@ -24,7 +25,9 @@ impl From<guest_types::SecretkeyEncoding> for SecretKeyEncoding {
 }
 
 #[derive(Clone, Debug)]
-pub enum SecretKey {}
+pub enum SecretKey {
+    Signature(SignatureSecretKey),
+}
 
 impl SecretKey {
     fn import(

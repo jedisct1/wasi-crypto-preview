@@ -72,7 +72,12 @@ impl KeyPair {
     }
 
     pub fn from_pk_and_sk(_pk: PublicKey, _sk: SecretKey) -> Result<KeyPair, CryptoError> {
-        unimplemented!()
+        match (_pk, _sk) {
+            (PublicKey::Signature(pk), SecretKey::Signature(sk)) => {
+                ensure!(pk.alg() == sk.alg(), CryptoError::IncompatibleKeys);
+            }
+        }
+        bail!(CryptoError::NotImplemented);
     }
 
     pub fn public_key(&self) -> Result<PublicKey, CryptoError> {
