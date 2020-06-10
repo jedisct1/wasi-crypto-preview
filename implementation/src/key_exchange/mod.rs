@@ -1,4 +1,4 @@
-mod secretkey;
+mod keypair;
 
 use std::any::Any;
 use std::convert::TryFrom;
