@@ -24,6 +24,7 @@ use crate::types as guest_types;
 use array_output::*;
 use asymmetric_common::*;
 use handles::*;
+use key_manager::*;
 use options::*;
 use signatures::*;
 use symmetric::*;
@@ -78,12 +79,14 @@ pub struct HandleManagers {
     pub symmetric_state: HandlesManager<SymmetricState>,
     pub symmetric_key: HandlesManager<SymmetricKey>,
     pub symmetric_tag: HandlesManager<SymmetricTag>,
+    pub key_manager: HandlesManager<KeyManager>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AlgorithmType {
     Signatures,
     Symmetric,
+    KeyExchange,
 }
 
 impl From<guest_types::AlgorithmType> for AlgorithmType {
@@ -91,6 +94,7 @@ impl From<guest_types::AlgorithmType> for AlgorithmType {
         match options_type {
             guest_types::AlgorithmType::Signatures => AlgorithmType::Signatures,
             guest_types::AlgorithmType::Symmetric => AlgorithmType::Symmetric,
+            guest_types::AlgorithmType::KeyExchange => AlgorithmType::KeyExchange,
         }
     }
 }
@@ -118,6 +122,7 @@ impl CryptoCtx {
                 symmetric_state: HandlesManager::new(0x08),
                 symmetric_key: HandlesManager::new(0x09),
                 symmetric_tag: HandlesManager::new(0x0a),
+                key_manager: HandlesManager::new(0x0b),
             },
         }
     }

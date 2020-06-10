@@ -4,6 +4,7 @@ use std::any::Any;
 use std::convert::TryFrom;
 
 use crate::error::*;
+use crate::options::*;
 use parking_lot::Mutex;
 use std::sync::Arc;
 
@@ -12,9 +13,23 @@ pub struct KxOptionsInner {
     context: Option<Vec<u8>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct KxOptions {
     inner: Arc<Mutex<KxOptionsInner>>,
+}
+
+impl OptionsLike for KxOptions {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn set(&mut self, _name: &str, _value: &[u8]) -> Result<(), CryptoError> {
+        bail!(CryptoError::UnsupportedOption)
+    }
+
+    fn set_u64(&mut self, _name: &str, _value: u64) -> Result<(), CryptoError> {
+        bail!(CryptoError::UnsupportedOption)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

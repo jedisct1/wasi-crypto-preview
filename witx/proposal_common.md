@@ -237,6 +237,8 @@ Alignment: 2
 
 - <a href="#algorithm_type.symmetric" name="algorithm_type.symmetric"></a> `symmetric`
 
+- <a href="#algorithm_type.key_exchange" name="algorithm_type.key_exchange"></a> `key_exchange`
+
 ## <a href="#version" name="version"></a> `version`: Int(`u64`)
 Version of a managed key.
 

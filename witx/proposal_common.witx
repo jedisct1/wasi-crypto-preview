@@ -214,6 +214,7 @@
   (enum u16
     $signatures
     $symmetric
+    $key_exchange
   )
 )
 

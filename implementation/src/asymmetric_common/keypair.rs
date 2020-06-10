@@ -1,4 +1,5 @@
 use super::*;
+use crate::options::Options;
 use crate::types as guest_types;
 use crate::AlgorithmType;
 
@@ -44,13 +45,19 @@ impl KeyPair {
     pub fn generate(
         alg_type: AlgorithmType,
         alg_str: &str,
-        options: Option<SignatureOptions>,
+        options: Option<Options>,
     ) -> Result<KeyPair, CryptoError> {
         match alg_type {
-            AlgorithmType::Signatures => Ok(KeyPair::Signature(SignatureKeyPair::generate(
-                SignatureAlgorithm::try_from(alg_str)?,
-                options,
-            )?)),
+            AlgorithmType::Signatures => {
+                let options = match options {
+                    None => None,
+                    Some(options) => Some(options.into_signatures()?),
+                };
+                Ok(KeyPair::Signature(SignatureKeyPair::generate(
+                    SignatureAlgorithm::try_from(alg_str)?,
+                    options,
+                )?))
+            }
             _ => bail!(CryptoError::InvalidOperation),
         }
     }
@@ -100,12 +107,7 @@ impl CryptoCtx {
     ) -> Result<Handle, CryptoError> {
         let options = match options_handle {
             None => None,
-            Some(options_handle) => Some(
-                self.handles
-                    .options
-                    .get(options_handle)?
-                    .into_signatures()?,
-            ),
+            Some(options_handle) => Some(self.handles.options.get(options_handle)?),
         };
         let kp = KeyPair::generate(alg_type, alg_str, options)?;
         let handle = self.handles.keypair.register(kp)?;
