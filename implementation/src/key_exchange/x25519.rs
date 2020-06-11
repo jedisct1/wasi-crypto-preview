@@ -1,0 +1,81 @@
+use super::*;
+use curve25519_dalek::{constants::X25519_BASEPOINT, montgomery::MontgomeryPoint, scalar::Scalar};
+use ring::constant_time::verify_slices_are_equal;
+use ring::rand::SecureRandom;
+
+#[derive(Clone, Debug)]
+pub struct X25519PublicKey {
+    alg: KxAlgorithm,
+    group_element: MontgomeryPoint,
+}
+
+#[derive(Clone, Debug)]
+pub struct X25519SecretKey {
+    alg: KxAlgorithm,
+    scalar: Scalar,
+}
+
+#[derive(Clone, Debug)]
+pub struct X25519KeyPair {
+    alg: KxAlgorithm,
+    pk: X25519PublicKey,
+    sk: X25519SecretKey,
+}
+
+pub struct X25519KeyPairBuilder {
+    alg: KxAlgorithm,
+}
+
+impl X25519KeyPairBuilder {
+    pub fn new(alg: KxAlgorithm) -> Box<dyn KxKeyPairBuilder> {
+        Box::new(Self { alg })
+    }
+}
+
+fn reject_neutral_element(pk: &MontgomeryPoint) -> Result<(), CryptoError> {
+    let zero = [0u8; 32];
+    let mut pk_ = [0u8; 32];
+    pk_.copy_from_slice(&pk.0);
+    pk_[31] &= 127;
+    verify_slices_are_equal(&zero, &pk_).map_err(|_| CryptoError::InvalidKey)?;
+    Ok(())
+}
+
+impl KxKeyPairBuilder for X25519KeyPairBuilder {
+    fn generate(&self, _options: Option<KxOptions>) -> Result<KxKeyPair, CryptoError> {
+        let rng = ring::rand::SystemRandom::new();
+        let mut sk_raw = [0u8; 32];
+        rng.fill(&mut sk_raw).map_err(|_| CryptoError::RNGError)?;
+        let mut sk_clamped = [0u8; 32];
+        sk_clamped.copy_from_slice(&sk_raw);
+        sk_clamped[0] &= 248;
+        sk_clamped[31] |= 64;
+        let scalar = Scalar::from_bits(sk_clamped);
+        let group_element = X25519_BASEPOINT * scalar;
+        reject_neutral_element(&group_element).map_err(|_| CryptoError::RNGError)?;
+        let pk = X25519PublicKey {
+            alg: self.alg,
+            group_element,
+        };
+        let sk = X25519SecretKey {
+            alg: self.alg,
+            scalar,
+        };
+        let kp = X25519KeyPair {
+            alg: self.alg,
+            pk,
+            sk,
+        };
+        Ok(KxKeyPair::new(Box::new(kp)))
+    }
+}
+
+impl KxKeyPairLike for X25519KeyPair {
+    fn alg(&self) -> KxAlgorithm {
+        self.alg
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}

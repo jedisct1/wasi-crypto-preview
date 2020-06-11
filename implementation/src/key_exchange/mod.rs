@@ -1,10 +1,12 @@
 mod keypair;
 mod publickey;
 mod secretkey;
+mod x25519;
 
 use std::any::Any;
 use std::convert::TryFrom;
 
+use self::x25519::*;
 use crate::error::*;
 use crate::options::*;
 use parking_lot::Mutex;

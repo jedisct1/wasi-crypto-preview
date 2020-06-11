@@ -38,7 +38,7 @@ impl KxKeyPair {
     pub fn builder(alg_str: &str) -> Result<Box<dyn KxKeyPairBuilder>, CryptoError> {
         let alg = KxAlgorithm::try_from(alg_str)?;
         let builder = match alg {
-            KxAlgorithm::X25519 => unimplemented!(),
+            KxAlgorithm::X25519 => X25519KeyPairBuilder::new(alg),
             _ => bail!(CryptoError::InvalidOperation),
         };
         Ok(builder)
@@ -61,5 +61,4 @@ impl KxKeyPair {
 pub trait KxKeyPairLike: Sync + Send {
     fn as_any(&self) -> &dyn Any;
     fn alg(&self) -> KxAlgorithm;
-    fn as_raw(&self) -> Result<&[u8], CryptoError>;
 }
