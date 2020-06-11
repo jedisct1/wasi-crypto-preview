@@ -24,6 +24,7 @@ use crate::types as guest_types;
 use array_output::*;
 use asymmetric_common::*;
 use handles::*;
+use key_exchange::*;
 use key_manager::*;
 use options::*;
 use signatures::*;

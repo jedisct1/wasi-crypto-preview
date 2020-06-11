@@ -1,4 +1,6 @@
 mod keypair;
+mod publickey;
+mod secretkey;
 
 use std::any::Any;
 use std::convert::TryFrom;
@@ -7,6 +9,10 @@ use crate::error::*;
 use crate::options::*;
 use parking_lot::Mutex;
 use std::sync::Arc;
+
+pub use keypair::*;
+pub use publickey::*;
+pub use secretkey::*;
 
 #[derive(Debug, Default)]
 pub struct KxOptionsInner {

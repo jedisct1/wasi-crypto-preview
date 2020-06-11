@@ -24,21 +24,31 @@ impl From<guest_types::KeypairEncoding> for KeyPairEncoding {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum KeyPair {
     Signature(SignatureKeyPair),
+    KeyExchange(KxKeyPair),
 }
 
 impl KeyPair {
     pub(crate) fn into_signature_keypair(self) -> Result<SignatureKeyPair, CryptoError> {
         match self {
             KeyPair::Signature(kp) => Ok(kp),
+            _ => bail!(CryptoError::InvalidHandle),
+        }
+    }
+
+    pub(crate) fn into_kx_keypair(self) -> Result<KxKeyPair, CryptoError> {
+        match self {
+            KeyPair::KeyExchange(kp) => Ok(kp),
+            _ => bail!(CryptoError::InvalidHandle),
         }
     }
 
     pub fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
         match self {
             KeyPair::Signature(key_pair) => key_pair.export(encoding),
+            KeyPair::KeyExchange(key_pair) => key_pair.export(encoding),
         }
     }
 
@@ -83,6 +93,10 @@ impl KeyPair {
             (PublicKey::Signature(pk), SecretKey::Signature(sk)) => {
                 ensure!(pk.alg() == sk.alg(), CryptoError::IncompatibleKeys);
             }
+            (PublicKey::KeyExchange(pk), SecretKey::KeyExchange(sk)) => {
+                ensure!(pk.alg() == sk.alg(), CryptoError::IncompatibleKeys);
+            }
+            _ => bail!(CryptoError::IncompatibleKeys),
         }
         bail!(CryptoError::NotImplemented);
     }
@@ -90,6 +104,7 @@ impl KeyPair {
     pub fn public_key(&self) -> Result<PublicKey, CryptoError> {
         match self {
             KeyPair::Signature(key_pair) => Ok(PublicKey::Signature(key_pair.public_key()?)),
+            KeyPair::KeyExchange(key_pair) => Ok(PublicKey::KeyExchange(key_pair.public_key()?)),
         }
     }
 

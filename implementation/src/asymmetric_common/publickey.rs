@@ -23,15 +23,24 @@ impl From<guest_types::PublickeyEncoding> for PublicKeyEncoding {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum PublicKey {
     Signature(SignaturePublicKey),
+    KeyExchange(KxPublicKey),
 }
 
 impl PublicKey {
     pub(crate) fn into_signature_public_key(self) -> Result<SignaturePublicKey, CryptoError> {
         match self {
             PublicKey::Signature(pk) => Ok(pk),
+            _ => bail!(CryptoError::InvalidHandle),
+        }
+    }
+
+    pub(crate) fn into_kx_public_key(self) -> Result<KxPublicKey, CryptoError> {
+        match self {
+            PublicKey::KeyExchange(pk) => Ok(pk),
+            _ => bail!(CryptoError::InvalidHandle),
         }
     }
 
@@ -51,9 +60,10 @@ impl PublicKey {
         }
     }
 
-    fn export(pk: PublicKey, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
-        match pk {
-            PublicKey::Signature(pk) => SignaturePublicKey::export(pk, encoding),
+    fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
+        match self {
+            PublicKey::Signature(pk) => pk.export(encoding),
+            PublicKey::KeyExchange(pk) => pk.export(encoding),
         }
     }
 
@@ -62,12 +72,16 @@ impl PublicKey {
             SecretKey::Signature(sk) => Ok(PublicKey::Signature(
                 SignaturePublicKey::from_secretkey(sk)?,
             )),
+            SecretKey::KeyExchange(sk) => {
+                Ok(PublicKey::KeyExchange(KxPublicKey::from_secretkey(sk)?))
+            }
         }
     }
 
     fn verify(handles: &HandleManagers, pk_handle: Handle) -> Result<(), CryptoError> {
         match handles.publickey.get(pk_handle)? {
             PublicKey::Signature(pk) => SignaturePublicKey::verify(pk),
+            PublicKey::KeyExchange(pk) => pk.verify(),
         }
     }
 }
@@ -91,7 +105,7 @@ impl CryptoCtx {
         encoding: PublicKeyEncoding,
     ) -> Result<Handle, CryptoError> {
         let pk = self.handles.publickey.get(pk_handle)?;
-        let encoded = PublicKey::export(pk, encoding)?;
+        let encoded = pk.export(encoding)?;
         let array_output_handle = ArrayOutput::register(&self.handles, encoded)?;
         Ok(array_output_handle)
     }

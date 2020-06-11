@@ -24,9 +24,10 @@ impl From<guest_types::SecretkeyEncoding> for SecretKeyEncoding {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum SecretKey {
     Signature(SignatureSecretKey),
+    KeyExchange(KxSecretKey),
 }
 
 impl SecretKey {

@@ -46,15 +46,12 @@ impl SignaturePublicKey {
         Ok(pk)
     }
 
-    pub(crate) fn export(
-        pk: SignaturePublicKey,
-        encoding: PublicKeyEncoding,
-    ) -> Result<Vec<u8>, CryptoError> {
+    pub(crate) fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
         match encoding {
             PublicKeyEncoding::Raw => {}
             _ => bail!(CryptoError::UnsupportedEncoding),
         }
-        let raw_pk = match pk {
+        let raw_pk = match self {
             SignaturePublicKey::Ecdsa(pk) => pk.as_raw()?.to_vec(),
             SignaturePublicKey::Eddsa(pk) => pk.as_raw()?.to_vec(),
             SignaturePublicKey::Rsa(pk) => pk.as_raw()?.to_vec(),
