@@ -10,9 +10,9 @@ pub struct KxPublicKey {
 }
 
 impl KxPublicKey {
-    pub fn new(kx_PublicKey_like: Box<dyn KxPublicKeyLike>) -> Self {
+    pub fn new(kx_publickey_like: Box<dyn KxPublicKeyLike>) -> Self {
         KxPublicKey {
-            inner: Arc::new(Mutex::new(kx_PublicKey_like)),
+            inner: Arc::new(Mutex::new(kx_publickey_like)),
         }
     }
 
