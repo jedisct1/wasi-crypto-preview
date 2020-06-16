@@ -39,7 +39,6 @@ impl KxKeyPair {
         let alg = KxAlgorithm::try_from(alg_str)?;
         let builder = match alg {
             KxAlgorithm::X25519 => X25519KeyPairBuilder::new(alg),
-            _ => bail!(CryptoError::InvalidOperation),
         };
         Ok(builder)
     }
