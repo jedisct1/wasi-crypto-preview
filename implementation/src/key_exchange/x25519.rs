@@ -1,5 +1,9 @@
 use super::*;
-use curve25519_dalek::{constants::X25519_BASEPOINT, montgomery::MontgomeryPoint, scalar::Scalar};
+use curve25519_dalek::{
+    constants::{BASEPOINT_ORDER, X25519_BASEPOINT},
+    montgomery::MontgomeryPoint,
+    scalar::Scalar,
+};
 use ring::constant_time::verify_slices_are_equal;
 use ring::rand::SecureRandom;
 
@@ -57,6 +61,32 @@ fn reject_neutral_element(pk: &MontgomeryPoint) -> Result<(), CryptoError> {
     Ok(())
 }
 
+static L: [u8; 32] = [
+    0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x14, 0xde, 0xf9, 0xde, 0xa2, 0xf7, 0x9c, 0xd6, 0x58, 0x12, 0x63, 0x1a, 0x5c, 0xf5, 0xd3, 0xed,
+];
+
+fn reject_noncanonical_fe(s: &[u8]) -> Result<(), CryptoError> {
+    let mut c: u8 = 0;
+    let mut n: u8 = 1;
+
+    let mut i = 31;
+    loop {
+        c |= ((((s[i] as i32) - (L[i] as i32)) >> 8) as u8) & n;
+        n &= ((((s[i] ^ L[i]) as i32) - 1) >> 8) as u8;
+        if i == 0 {
+            break;
+        } else {
+            i -= 1;
+        }
+    }
+    if c == 0 {
+        Ok(())
+    } else {
+        bail!(CryptoError::InvalidKey)
+    }
+}
+
 impl KxKeyPairBuilder for X25519KeyPairBuilder {
     fn generate(&self, _options: Option<KxOptions>) -> Result<KxKeyPair, CryptoError> {
         let rng = ring::rand::SystemRandom::new();
@@ -79,6 +109,7 @@ pub struct X25519SecretKeyBuilder {
 
 impl KxSecretKeyBuilder for X25519SecretKeyBuilder {
     fn from_raw(&self, raw: &[u8]) -> Result<KxSecretKey, CryptoError> {
+        ensure!(raw.len() == 32, CryptoError::InvalidKey);
         let sk = X25519SecretKey::new(self.alg, raw.to_vec());
         Ok(KxSecretKey::new(Box::new(sk)))
     }
@@ -111,6 +142,17 @@ impl KxPublicKeyLike for X25519PublicKey {
 
     fn as_raw(&self) -> Result<&[u8], CryptoError> {
         Ok(self.group_element.as_bytes())
+    }
+
+    fn verify(&self) -> Result<(), CryptoError> {
+        reject_neutral_element(&self.group_element)?;
+        reject_noncanonical_fe(&self.group_element.0)?;
+        let order_check = BASEPOINT_ORDER * self.group_element;
+        ensure!(
+            reject_neutral_element(&order_check).is_err(),
+            CryptoError::InvalidKey
+        );
+        Ok(())
     }
 }
 

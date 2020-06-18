@@ -39,11 +39,7 @@ impl KxPublicKey {
     }
 
     pub(crate) fn verify(&self) -> Result<(), CryptoError> {
-        unimplemented!()
-    }
-
-    pub(crate) fn from_secretkey(sk: KxSecretKey) -> Result<KxPublicKey, CryptoError> {
-        unimplemented!()
+        self.inner().verify()
     }
 }
 
@@ -51,4 +47,5 @@ pub trait KxPublicKeyLike: Sync + Send {
     fn as_any(&self) -> &dyn Any;
     fn alg(&self) -> KxAlgorithm;
     fn as_raw(&self) -> Result<&[u8], CryptoError>;
+    fn verify(&self) -> Result<(), CryptoError>;
 }
