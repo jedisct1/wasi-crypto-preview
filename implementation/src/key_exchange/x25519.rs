@@ -7,10 +7,31 @@ use curve25519_dalek::{
 use ring::constant_time::verify_slices_are_equal;
 use ring::rand::SecureRandom;
 
+const PK_LEN: usize = 32;
+const SK_LEN: usize = 32;
+
 #[derive(Clone, Debug)]
 pub struct X25519PublicKey {
     alg: KxAlgorithm,
     group_element: MontgomeryPoint,
+}
+
+impl X25519PublicKey {
+    fn from_group_element(
+        alg: KxAlgorithm,
+        group_element: MontgomeryPoint,
+    ) -> Result<Self, CryptoError> {
+        reject_neutral_element(&group_element)?;
+        Ok(X25519PublicKey { alg, group_element })
+    }
+
+    fn new(alg: KxAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(raw.len() == PK_LEN, CryptoError::InvalidKey);
+        let mut raw_ = [0u8; PK_LEN];
+        raw_.copy_from_slice(&raw);
+        let group_element = MontgomeryPoint(raw_);
+        X25519PublicKey::from_group_element(alg, group_element)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -21,17 +42,18 @@ pub struct X25519SecretKey {
 }
 
 impl X25519SecretKey {
-    fn new(alg: KxAlgorithm, raw: Vec<u8>) -> Self {
-        let mut sk_clamped = [0u8; 32];
+    fn new(alg: KxAlgorithm, raw: Vec<u8>) -> Result<Self, CryptoError> {
+        let mut sk_clamped = [0u8; SK_LEN];
         sk_clamped.copy_from_slice(&raw);
         sk_clamped[0] &= 248;
-        sk_clamped[31] |= 64;
+        sk_clamped[SK_LEN - 1] |= 64;
         let clamped_scalar = Scalar::from_bits(sk_clamped);
-        X25519SecretKey {
+        let sk = X25519SecretKey {
             alg,
             raw,
             clamped_scalar,
-        }
+        };
+        Ok(sk)
     }
 }
 
@@ -53,15 +75,15 @@ impl X25519KeyPairBuilder {
 }
 
 fn reject_neutral_element(pk: &MontgomeryPoint) -> Result<(), CryptoError> {
-    let zero = [0u8; 32];
-    let mut pk_ = [0u8; 32];
+    let zero = [0u8; PK_LEN];
+    let mut pk_ = [0u8; PK_LEN];
     pk_.copy_from_slice(&pk.0);
-    pk_[31] &= 127;
+    pk_[PK_LEN - 1] &= 127;
     verify_slices_are_equal(&zero, &pk_).map_err(|_| CryptoError::InvalidKey)?;
     Ok(())
 }
 
-static L: [u8; 32] = [
+static L: [u8; PK_LEN] = [
     0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x14, 0xde, 0xf9, 0xde, 0xa2, 0xf7, 0x9c, 0xd6, 0x58, 0x12, 0x63, 0x1a, 0x5c, 0xf5, 0xd3, 0xed,
 ];
@@ -90,9 +112,9 @@ fn reject_noncanonical_fe(s: &[u8]) -> Result<(), CryptoError> {
 impl KxKeyPairBuilder for X25519KeyPairBuilder {
     fn generate(&self, _options: Option<KxOptions>) -> Result<KxKeyPair, CryptoError> {
         let rng = ring::rand::SystemRandom::new();
-        let mut sk_raw = vec![0u8; 32];
+        let mut sk_raw = vec![0u8; SK_LEN];
         rng.fill(&mut sk_raw).map_err(|_| CryptoError::RNGError)?;
-        let sk = X25519SecretKey::new(self.alg, sk_raw);
+        let sk = X25519SecretKey::new(self.alg, sk_raw)?;
         let pk = sk.into_x25519_publickey()?;
         let kp = X25519KeyPair {
             alg: self.alg,
@@ -109,14 +131,32 @@ pub struct X25519SecretKeyBuilder {
 
 impl KxSecretKeyBuilder for X25519SecretKeyBuilder {
     fn from_raw(&self, raw: &[u8]) -> Result<KxSecretKey, CryptoError> {
-        ensure!(raw.len() == 32, CryptoError::InvalidKey);
-        let sk = X25519SecretKey::new(self.alg, raw.to_vec());
+        ensure!(raw.len() == SK_LEN, CryptoError::InvalidKey);
+        let sk = X25519SecretKey::new(self.alg, raw.to_vec())?;
         Ok(KxSecretKey::new(Box::new(sk)))
     }
 }
 
 impl X25519SecretKeyBuilder {
     pub fn new(alg: KxAlgorithm) -> Box<dyn KxSecretKeyBuilder> {
+        Box::new(Self { alg })
+    }
+}
+
+pub struct X25519PublicKeyBuilder {
+    alg: KxAlgorithm,
+}
+
+impl KxPublicKeyBuilder for X25519PublicKeyBuilder {
+    fn from_raw(&self, raw: &[u8]) -> Result<KxPublicKey, CryptoError> {
+        ensure!(raw.len() == SK_LEN, CryptoError::InvalidKey);
+        let sk = X25519PublicKey::new(self.alg, raw)?;
+        Ok(KxPublicKey::new(Box::new(sk)))
+    }
+}
+
+impl X25519PublicKeyBuilder {
+    pub fn new(alg: KxAlgorithm) -> Box<dyn KxPublicKeyBuilder> {
         Box::new(Self { alg })
     }
 }
@@ -146,6 +186,10 @@ impl KxPublicKeyLike for X25519PublicKey {
 
     fn alg(&self) -> KxAlgorithm {
         self.alg
+    }
+
+    fn len(&self) -> Result<usize, CryptoError> {
+        Ok(PK_LEN)
     }
 
     fn as_raw(&self) -> Result<&[u8], CryptoError> {
@@ -183,6 +227,10 @@ impl KxSecretKeyLike for X25519SecretKey {
 
     fn alg(&self) -> KxAlgorithm {
         self.alg
+    }
+
+    fn len(&self) -> Result<usize, CryptoError> {
+        Ok(SK_LEN)
     }
 
     fn as_raw(&self) -> Result<&[u8], CryptoError> {

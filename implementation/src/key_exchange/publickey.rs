@@ -4,6 +4,10 @@ use crate::asymmetric_common::*;
 use parking_lot::{Mutex, MutexGuard};
 use std::sync::Arc;
 
+pub trait KxPublicKeyBuilder {
+    fn from_raw(&self, raw: &[u8]) -> Result<KxPublicKey, CryptoError>;
+}
+
 #[derive(Clone)]
 pub struct KxPublicKey {
     inner: Arc<Mutex<Box<dyn KxPublicKeyLike>>>,
@@ -50,6 +54,7 @@ impl KxPublicKey {
 pub trait KxPublicKeyLike: Sync + Send {
     fn as_any(&self) -> &dyn Any;
     fn alg(&self) -> KxAlgorithm;
+    fn len(&self) -> Result<usize, CryptoError>;
     fn as_raw(&self) -> Result<&[u8], CryptoError>;
     fn verify(&self) -> Result<(), CryptoError>;
 }

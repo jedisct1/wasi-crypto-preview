@@ -54,6 +54,7 @@ impl KxSecretKey {
 pub trait KxSecretKeyLike: Sync + Send {
     fn as_any(&self) -> &dyn Any;
     fn alg(&self) -> KxAlgorithm;
+    fn len(&self) -> Result<usize, CryptoError>;
     fn as_raw(&self) -> Result<&[u8], CryptoError>;
     fn into_publickey(&self) -> Result<KxPublicKey, CryptoError>;
 }
