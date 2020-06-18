@@ -63,7 +63,7 @@ impl KxKeyPairBuilder for X25519KeyPairBuilder {
         let mut sk_raw = vec![0u8; 32];
         rng.fill(&mut sk_raw).map_err(|_| CryptoError::RNGError)?;
         let sk = X25519SecretKey::new(self.alg, sk_raw);
-        let pk = sk.into_x25519_public_key()?;
+        let pk = sk.into_x25519_publickey()?;
         let kp = X25519KeyPair {
             alg: self.alg,
             pk,
@@ -115,7 +115,7 @@ impl KxPublicKeyLike for X25519PublicKey {
 }
 
 impl X25519SecretKey {
-    fn into_x25519_public_key(&self) -> Result<X25519PublicKey, CryptoError> {
+    fn into_x25519_publickey(&self) -> Result<X25519PublicKey, CryptoError> {
         let group_element = X25519_BASEPOINT * self.clamped_scalar;
         reject_neutral_element(&group_element).map_err(|_| CryptoError::RNGError)?;
         let pk = X25519PublicKey {
@@ -139,7 +139,7 @@ impl KxSecretKeyLike for X25519SecretKey {
         Ok(&self.raw)
     }
 
-    fn into_public_key(&self) -> Result<KxPublicKey, CryptoError> {
-        Ok(KxPublicKey::new(Box::new(self.into_x25519_public_key()?)))
+    fn into_publickey(&self) -> Result<KxPublicKey, CryptoError> {
+        Ok(KxPublicKey::new(Box::new(self.into_x25519_publickey()?)))
     }
 }

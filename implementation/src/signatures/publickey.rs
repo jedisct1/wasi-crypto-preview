@@ -59,12 +59,6 @@ impl SignaturePublicKey {
         Ok(raw_pk)
     }
 
-    pub(crate) fn from_secretkey(
-        _sk: SignatureSecretKey,
-    ) -> Result<SignaturePublicKey, CryptoError> {
-        bail!(CryptoError::NotImplemented)
-    }
-
     pub(crate) fn verify(_pk: SignaturePublicKey) -> Result<(), CryptoError> {
         bail!(CryptoError::NotImplemented)
     }

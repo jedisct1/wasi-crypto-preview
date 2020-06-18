@@ -18,4 +18,8 @@ impl SignatureSecretKey {
             SignatureSecretKey::Rsa(x) => x.alg,
         }
     }
+
+    pub(crate) fn publickey(&self) -> Result<SignaturePublicKey, CryptoError> {
+        bail!(CryptoError::NotImplemented)
+    }
 }
