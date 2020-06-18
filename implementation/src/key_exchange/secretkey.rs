@@ -4,6 +4,10 @@ use crate::asymmetric_common::*;
 use parking_lot::{Mutex, MutexGuard};
 use std::sync::Arc;
 
+pub trait KxSecretKeyBuilder {
+    fn from_raw(&self, raw: &[u8]) -> Result<KxSecretKey, CryptoError>;
+}
+
 #[derive(Clone)]
 pub struct KxSecretKey {
     inner: Arc<Mutex<Box<dyn KxSecretKeyLike>>>,
@@ -31,12 +35,15 @@ impl KxSecretKey {
         self.inner().alg()
     }
 
-    pub(crate) fn export(&self, _encoding: SecretKeyEncoding) -> Result<Vec<u8>, CryptoError> {
-        unimplemented!()
+    pub(crate) fn export(&self, encoding: SecretKeyEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            SecretKeyEncoding::Raw => Ok(self.inner().as_raw()?.to_vec()),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
 
-    pub(crate) fn public_key(&self) -> Result<KxSecretKey, CryptoError> {
-        unimplemented!()
+    pub(crate) fn public_key(&self) -> Result<KxPublicKey, CryptoError> {
+        Ok(self.inner().into_public_key()?)
     }
 }
 
@@ -44,4 +51,5 @@ pub trait KxSecretKeyLike: Sync + Send {
     fn as_any(&self) -> &dyn Any;
     fn alg(&self) -> KxAlgorithm;
     fn as_raw(&self) -> Result<&[u8], CryptoError>;
+    fn into_public_key(&self) -> Result<KxPublicKey, CryptoError>;
 }

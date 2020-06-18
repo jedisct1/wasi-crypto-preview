@@ -31,8 +31,11 @@ impl KxPublicKey {
         self.inner().alg()
     }
 
-    pub(crate) fn export(&self, _encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
-        unimplemented!()
+    pub(crate) fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            PublicKeyEncoding::Raw => Ok(self.inner().as_raw()?.to_vec()),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
 
     pub(crate) fn verify(&self) -> Result<(), CryptoError> {
