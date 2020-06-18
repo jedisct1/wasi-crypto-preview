@@ -40,12 +40,11 @@ impl SecretKey {
         bail!(CryptoError::NotImplemented)
     }
 
-    fn export(
-        _handles: &HandleManagers,
-        _sk: Handle,
-        _encoding: SecretKeyEncoding,
-    ) -> Result<Vec<u8>, CryptoError> {
-        bail!(CryptoError::NotImplemented)
+    fn export(&self, encoding: SecretKeyEncoding) -> Result<Vec<u8>, CryptoError> {
+        match self {
+            SecretKey::Signature(sk) => Ok(sk.export(encoding)?),
+            SecretKey::KeyExchange(sk) => Ok(sk.export(encoding)?),
+        }
     }
 
     pub fn publickey(&self) -> Result<PublicKey, CryptoError> {
@@ -74,7 +73,8 @@ impl CryptoCtx {
         sk_handle: Handle,
         encoding: SecretKeyEncoding,
     ) -> Result<Handle, CryptoError> {
-        let encoded = SecretKey::export(&self.handles, sk_handle, encoding)?;
+        let sk = self.handles.secretkey.get(sk_handle)?;
+        let encoded = sk.export(encoding)?;
         let array_output_handle = ArrayOutput::register(&self.handles, encoded)?;
         Ok(array_output_handle)
     }

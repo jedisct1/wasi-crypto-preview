@@ -43,21 +43,33 @@ impl KxKeyPair {
         Ok(builder)
     }
 
-    fn generate(alg_str: &str, options: Option<KxOptions>) -> Result<KxKeyPair, CryptoError> {
+    pub fn generate(alg_str: &str, options: Option<KxOptions>) -> Result<KxKeyPair, CryptoError> {
         let builder = Self::builder(alg_str)?;
         builder.generate(options)
     }
 
-    pub(crate) fn export(&self, _encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
-        unimplemented!()
+    pub(crate) fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            KeyPairEncoding::Raw => self.inner().as_raw(),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
 
     pub(crate) fn public_key(&self) -> Result<KxPublicKey, CryptoError> {
-        unimplemented!()
+        self.inner().publickey()
     }
 }
 
 pub trait KxKeyPairLike: Sync + Send {
     fn as_any(&self) -> &dyn Any;
     fn alg(&self) -> KxAlgorithm;
+    fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+        let pk_raw = self.publickey()?.as_raw()?;
+        let sk_raw = self.secretkey()?.as_raw()?;
+        let mut combined_raw = pk_raw;
+        combined_raw.extend_from_slice(&sk_raw);
+        Ok(combined_raw)
+    }
+    fn publickey(&self) -> Result<KxPublicKey, CryptoError>;
+    fn secretkey(&self) -> Result<KxSecretKey, CryptoError>;
 }

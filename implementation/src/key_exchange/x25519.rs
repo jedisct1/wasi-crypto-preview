@@ -129,6 +129,14 @@ impl KxKeyPairLike for X25519KeyPair {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn publickey(&self) -> Result<KxPublicKey, CryptoError> {
+        Ok(KxPublicKey::new(Box::new(self.pk.clone())))
+    }
+
+    fn secretkey(&self) -> Result<KxSecretKey, CryptoError> {
+        Ok(KxSecretKey::new(Box::new(self.sk.clone())))
+    }
 }
 
 impl KxPublicKeyLike for X25519PublicKey {

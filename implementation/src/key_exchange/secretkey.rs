@@ -35,6 +35,10 @@ impl KxSecretKey {
         self.inner().alg()
     }
 
+    pub(crate) fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+        Ok(self.inner().as_raw()?.to_vec())
+    }
+
     pub(crate) fn export(&self, encoding: SecretKeyEncoding) -> Result<Vec<u8>, CryptoError> {
         match encoding {
             SecretKeyEncoding::Raw => Ok(self.inner().as_raw()?.to_vec()),
