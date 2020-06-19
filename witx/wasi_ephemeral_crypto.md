@@ -145,6 +145,9 @@ Multiple keys have been provided, but they do not share the same type.
 
 This error is returned when trying to build a key pair from a public key and a secret key that were created for different and incompatible algorithms.
 
+- <a href="#crypto_errno.expired_key" name="crypto_errno.expired_key"></a> `expired_key`
+A managed key expired and cannot be used any more.
+
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a key pair.
 
@@ -801,6 +804,44 @@ This is also an optional import, meaning that the function may not even exist.
 
 ---
 
+#### <a href="#keypair_replace_managed" name="keypair_replace_managed"></a> `keypair_replace_managed(key_manager: key_manager, kp_old: keypair, kp_new: keypair) -> (crypto_errno, version)`
+__(optional)__
+Replace a managed key pair.
+
+This function crates a new version of a managed key pair, by replacing `$kp_old` with `$kp_new`.
+
+It does several things:
+
+- The key identifier for `$kp_new` is set to the one of `$kp_old`.
+- A new, unique version identifier is assigned to `$kp_new`. This version will be equivalent to using `$version_latest` until the key is replaced.
+- The `$kp_old` handle is closed.
+
+Both keys must share the same algorithm and have compatible parameters. If this is not the case, `incompatible_keys` is returned.
+
+The function may also return the `unsupported_feature` error code if key management facilities are not supported by the host,
+or if keys cannot be rotated.
+
+Finally, `prohibited_operation` can be returned if `$kp_new` wasn't created by the key manager, and the key manager prohibits imported keys.
+
+If the operation succeeded, the new version is returned.
+
+This is an optional import, meaning that the function may not even exist.
+
+##### Params
+- <a href="#keypair_replace_managed.key_manager" name="keypair_replace_managed.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+- <a href="#keypair_replace_managed.kp_old" name="keypair_replace_managed.kp_old"></a> `kp_old`: [`keypair`](#keypair)
+
+- <a href="#keypair_replace_managed.kp_new" name="keypair_replace_managed.kp_new"></a> `kp_new`: [`keypair`](#keypair)
+
+##### Results
+- <a href="#keypair_replace_managed.error" name="keypair_replace_managed.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#keypair_replace_managed.version" name="keypair_replace_managed.version"></a> `version`: [`version`](#version)
+
+
+---
+
 #### <a href="#keypair_id" name="keypair_id"></a> `keypair_id(kp: keypair, kp_id: Pointer<u8>, kp_id_max_len: size) -> (crypto_errno, size, version)`
 __(optional)__
 Return the key pair identifier and version of a managed key pair.
@@ -1430,9 +1471,47 @@ This is also an optional import, meaning that the function may not even exist.
 
 ---
 
+#### <a href="#symmetric_key_replace_managed" name="symmetric_key_replace_managed"></a> `symmetric_key_replace_managed(key_manager: key_manager, symmetric_key_old: symmetric_key, symmetric_key_new: symmetric_key) -> (crypto_errno, version)`
+__(optional)__
+Replace a managed symmetric key.
+
+This function crates a new version of a managed symmetric key, by replacing `$kp_old` with `$kp_new`.
+
+It does several things:
+
+- The key identifier for `$kp_new` is set to the one of `$kp_old`.
+- A new, unique version identifier is assigned to `$kp_new`. This version will be equivalent to using `$version_latest` until the key is replaced.
+- The `$kp_old` handle is closed.
+
+Both keys must share the same algorithm and have compatible parameters. If this is not the case, `incompatible_keys` is returned.
+
+The function may also return the `unsupported_feature` error code if key management facilities are not supported by the host,
+or if keys cannot be rotated.
+
+Finally, `prohibited_operation` can be returned if `$kp_new` wasn't created by the key manager, and the key manager prohibits imported keys.
+
+If the operation succeeded, the new version is returned.
+
+This is an optional import, meaning that the function may not even exist.
+
+##### Params
+- <a href="#symmetric_key_replace_managed.key_manager" name="symmetric_key_replace_managed.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+- <a href="#symmetric_key_replace_managed.symmetric_key_old" name="symmetric_key_replace_managed.symmetric_key_old"></a> `symmetric_key_old`: [`symmetric_key`](#symmetric_key)
+
+- <a href="#symmetric_key_replace_managed.symmetric_key_new" name="symmetric_key_replace_managed.symmetric_key_new"></a> `symmetric_key_new`: [`symmetric_key`](#symmetric_key)
+
+##### Results
+- <a href="#symmetric_key_replace_managed.error" name="symmetric_key_replace_managed.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#symmetric_key_replace_managed.version" name="symmetric_key_replace_managed.version"></a> `version`: [`version`](#version)
+
+
+---
+
 #### <a href="#symmetric_key_id" name="symmetric_key_id"></a> `symmetric_key_id(symmetric_key: symmetric_key, symmetric_key_id: Pointer<u8>, symmetric_key_id_max_len: size) -> (crypto_errno, size, version)`
 __(optional)__
-Return the key identifier and version of a managed symmetric key pair.
+Return the key identifier and version of a managed symmetric key.
 
 If the key is not managed, `unsupported_feature` is returned instead.
 
@@ -1459,7 +1538,7 @@ This is an optional import, meaning that the function may not even exist.
 __(optional)__
 Return a managed symmetric key from a key identifier.
 
-`kp_version` can be set to `version_latest` to retrieve the most recent version of a key pair.
+`kp_version` can be set to `version_latest` to retrieve the most recent version of a symmetric key.
 
 If no key matching the provided information is found, `key_not_found` is returned instead.
 

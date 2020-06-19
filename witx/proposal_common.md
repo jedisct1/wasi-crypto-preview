@@ -145,6 +145,9 @@ Multiple keys have been provided, but they do not share the same type.
 
 This error is returned when trying to build a key pair from a public key and a secret key that were created for different and incompatible algorithms.
 
+- <a href="#crypto_errno.expired_key" name="crypto_errno.expired_key"></a> `expired_key`
+A managed key expired and cannot be used any more.
+
 ## <a href="#keypair_encoding" name="keypair_encoding"></a> `keypair_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a key pair.
 
