@@ -68,6 +68,16 @@ impl KeyPair {
                     options,
                 )?))
             }
+            AlgorithmType::KeyExchange => {
+                let options = match options {
+                    None => None,
+                    Some(options) => Some(options.into_key_exchange()?),
+                };
+                Ok(KeyPair::KeyExchange(KxKeyPair::generate(
+                    KxAlgorithm::try_from(alg_str)?,
+                    options,
+                )?))
+            }
             _ => bail!(CryptoError::InvalidOperation),
         }
     }

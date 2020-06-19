@@ -55,3 +55,18 @@ impl TryFrom<&str> for KxAlgorithm {
         }
     }
 }
+
+#[test]
+fn test_key_exchange() {
+    use crate::{AlgorithmType, CryptoCtx, KeyPairEncoding};
+
+    let ctx = CryptoCtx::new();
+
+    let kx_handle = ctx
+        .keypair_generate(AlgorithmType::KeyExchange, "X25519", None)
+        .unwrap();
+    let raw_handle = ctx.keypair_export(kx_handle, KeyPairEncoding::Raw).unwrap();
+    let mut raw = vec![0u8; ctx.array_output_len(raw_handle).unwrap()];
+    ctx.array_output_pull(raw_handle, &mut raw).unwrap();
+    ctx.keypair_close(kx_handle).unwrap();
+}

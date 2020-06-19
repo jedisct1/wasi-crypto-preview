@@ -57,7 +57,7 @@ impl Options {
         }
     }
 
-    pub fn into_kx(self) -> Result<KxOptions, CryptoError> {
+    pub fn into_key_exchange(self) -> Result<KxOptions, CryptoError> {
         match self {
             Options::KeyExchange(options) => Ok(options),
             _ => bail!(CryptoError::InvalidHandle),

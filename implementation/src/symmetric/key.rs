@@ -123,16 +123,6 @@ impl CryptoCtx {
         bail!(CryptoError::UnsupportedFeature)
     }
 
-    pub fn symmetric_key_replace(
-        &self,
-        kp_old_handle: Handle,
-        kp_new_handle: Handle,
-    ) -> Result<Version, CryptoError> {
-        let _kp_old = self.handles.symmetric_key.get(kp_old_handle)?;
-        let _kp_new = self.handles.symmetric_key.get(kp_new_handle)?;
-        bail!(CryptoError::UnsupportedFeature)
-    }
-
     pub fn symmetric_key_close(&self, symmetric_key_handle: Handle) -> Result<(), CryptoError> {
         self.handles.symmetric_key.close(symmetric_key_handle)
     }

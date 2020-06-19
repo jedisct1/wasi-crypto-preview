@@ -79,7 +79,9 @@ fn reject_neutral_element(pk: &MontgomeryPoint) -> Result<(), CryptoError> {
     let mut pk_ = [0u8; PK_LEN];
     pk_.copy_from_slice(&pk.0);
     pk_[PK_LEN - 1] &= 127;
-    verify_slices_are_equal(&zero, &pk_).map_err(|_| CryptoError::InvalidKey)?;
+    if verify_slices_are_equal(&zero, &pk_).is_ok() {
+        bail!(CryptoError::InvalidKey);
+    }
     Ok(())
 }
 

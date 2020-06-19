@@ -35,16 +35,18 @@ impl KxKeyPair {
         self.inner().alg()
     }
 
-    pub fn builder(alg_str: &str) -> Result<Box<dyn KxKeyPairBuilder>, CryptoError> {
-        let alg = KxAlgorithm::try_from(alg_str)?;
+    pub fn builder(alg: KxAlgorithm) -> Result<Box<dyn KxKeyPairBuilder>, CryptoError> {
         let builder = match alg {
             KxAlgorithm::X25519 => X25519KeyPairBuilder::new(alg),
         };
         Ok(builder)
     }
 
-    pub fn generate(alg_str: &str, options: Option<KxOptions>) -> Result<KxKeyPair, CryptoError> {
-        let builder = Self::builder(alg_str)?;
+    pub fn generate(
+        alg: KxAlgorithm,
+        options: Option<KxOptions>,
+    ) -> Result<KxKeyPair, CryptoError> {
+        let builder = Self::builder(alg)?;
         builder.generate(options)
     }
 
