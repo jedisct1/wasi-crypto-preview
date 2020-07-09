@@ -20,6 +20,8 @@ mod symmetric;
 mod version;
 mod wasi_glue;
 
+use std::rc::Rc;
+
 use crate::types as guest_types;
 use array_output::*;
 use asymmetric_common::*;
@@ -104,8 +106,9 @@ pub struct CryptoCtx {
     pub(crate) handles: HandleManagers,
 }
 
+#[derive(Clone)]
 pub struct WasiCryptoCtx {
-    ctx: CryptoCtx,
+    ctx: Rc<CryptoCtx>,
 }
 
 impl CryptoCtx {
@@ -132,7 +135,7 @@ impl CryptoCtx {
 impl WasiCryptoCtx {
     pub fn new() -> Self {
         WasiCryptoCtx {
-            ctx: CryptoCtx::new(),
+            ctx: Rc::new(CryptoCtx::new()),
         }
     }
 }
