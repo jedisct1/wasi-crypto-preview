@@ -457,7 +457,7 @@
   ;;; Encrypt data, with a detached tag.
   ;;;
   ;;; - **Stream cipher:** returns `invalid_operation` since stream ciphers do not include authentication tags.
-  ;;; - **AEAD:** encrypts `data` into `out` and returns the tag separately. Additional data must have been previously absorbed using `symmetric_state_absorb()`. The output and input buffers can be of the same length.
+  ;;; - **AEAD:** encrypts `data` into `out` and returns the tag separately. Additional data must have been previously absorbed using `symmetric_state_absorb()`. The output and input buffers must be of the same length.
   ;;; - **SHOE, Xoodyak, Strobe:** encrypts data and squeezes a tag.
   ;;;
   ;;; If `out` and `data` are the same address, encryption may happen in-place.
@@ -502,7 +502,8 @@
   ;;;
   ;;; `raw_tag` is the expected tag, as raw bytes.
   ;;;
-  ;;; If `out` and `data` are the same address, decryption may happen in-place.
+  ;;; `out` and `data` be must have the same length.
+  ;;; If they also share the same address, decryption may happen in-place.
   ;;;
   ;;; The function returns the actual size of the decrypted message.
   ;;;
