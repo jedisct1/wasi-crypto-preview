@@ -10,6 +10,7 @@ A proposal for a WASI cryptography API.
 * [Toy implementation](https://github.com/jedisct1/wasi-crypto-preview/tree/master/implementation)
 * [Wasmtime integration](https://github.com/jedisct1/wasmtime-crypto)
 * [Example AssemblyScript bindings](https://github.com/jedisct1/as-crypto)
+* [Example Rust bindings](https://github.com/jedisct1/rust-wasi-crypto-guest-api)
 
 ## Testing the API
 
