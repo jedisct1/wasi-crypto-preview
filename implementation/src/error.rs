@@ -1,3 +1,5 @@
+FIXME: encoding is not at the same position everywhere (publickey_import() vs signature_import())
+
 use super::types as guest_types;
 use super::WasiCryptoCtx;
 
