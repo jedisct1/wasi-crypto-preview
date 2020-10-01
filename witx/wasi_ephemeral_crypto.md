@@ -1158,7 +1158,7 @@ May return `unsupported_encoding` if the signature cannot be encoded into the gi
 
 ---
 
-#### <a href="#signature_import" name="signature_import"></a> `signature_import(algorithm: string, encoding: signature_encoding, encoded: ConstPointer<u8>, encoded_len: size) -> (crypto_errno, signature)`
+#### <a href="#signature_import" name="signature_import"></a> `signature_import(algorithm: string, encoded: ConstPointer<u8>, encoded_len: size, encoding: signature_encoding) -> (crypto_errno, signature)`
 Create a signature object.
 
 This object can be used along with a public key to verify an existing signature.
@@ -1176,11 +1176,11 @@ let signature_handle = ctx.signature_import("ECDSA_P256_SHA256", SignatureEncodi
 ##### Params
 - <a href="#signature_import.algorithm" name="signature_import.algorithm"></a> `algorithm`: `string`
 
-- <a href="#signature_import.encoding" name="signature_import.encoding"></a> `encoding`: [`signature_encoding`](#signature_encoding)
-
 - <a href="#signature_import.encoded" name="signature_import.encoded"></a> `encoded`: `ConstPointer<u8>`
 
 - <a href="#signature_import.encoded_len" name="signature_import.encoded_len"></a> `encoded_len`: [`size`](#size)
+
+- <a href="#signature_import.encoding" name="signature_import.encoding"></a> `encoding`: [`signature_encoding`](#signature_encoding)
 
 ##### Results
 - <a href="#signature_import.error" name="signature_import.error"></a> `error`: [`crypto_errno`](#crypto_errno)

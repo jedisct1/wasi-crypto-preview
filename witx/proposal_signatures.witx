@@ -40,9 +40,9 @@
   ;;; ```
   (@interface func (export "signature_import")
     (param $algorithm string)
-    (param $encoding $signature_encoding)
     (param $encoded (@witx const_pointer u8))
     (param $encoded_len $size)
+    (param $encoding $signature_encoding)
     (result $error $crypto_errno)
     (result $signature $signature)
   )
