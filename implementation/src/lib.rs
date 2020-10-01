@@ -5,6 +5,7 @@
     clippy::new_ret_no_self,
     clippy::too_many_arguments
 )]
+#![allow(unused_imports, dead_code)]
 #[macro_use]
 extern crate derivative;
 
@@ -59,7 +60,7 @@ static REBUILD_IF_WITX_FILE_IS_UPDATED: [&str; 4] = [
 ];
 
 wiggle::from_witx!({
-    witx: ["../witx/wasi_ephemeral_crypto.witx"],
+    witx: ["$CARGO_MANIFEST_DIR/../witx/wasi_ephemeral_crypto.witx"],
     ctx: WasiCryptoCtx
 });
 
