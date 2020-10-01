@@ -797,16 +797,16 @@ This function crates a new version of a managed symmetric key, by replacing `$kp
 
 It does several things:
 
-- The key identifier for `$kp_new` is set to the one of `$kp_old`.
+- The key identifier for `$symmetric_key_new` is set to the one of `$symmetric_key_old`.
 - A new, unique version identifier is assigned to `$kp_new`. This version will be equivalent to using `$version_latest` until the key is replaced.
-- The `$kp_old` handle is closed.
+- The `$symmetric_key_old` handle is closed.
 
 Both keys must share the same algorithm and have compatible parameters. If this is not the case, `incompatible_keys` is returned.
 
 The function may also return the `unsupported_feature` error code if key management facilities are not supported by the host,
 or if keys cannot be rotated.
 
-Finally, `prohibited_operation` can be returned if `$kp_new` wasn't created by the key manager, and the key manager prohibits imported keys.
+Finally, `prohibited_operation` can be returned if `$symmetric_key_new` wasn't created by the key manager, and the key manager prohibits imported keys.
 
 If the operation succeeded, the new version is returned.
 
