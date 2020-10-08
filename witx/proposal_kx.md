@@ -460,6 +460,33 @@ Alignment: 4
 
 - <a href="#opt_symmetric_key.none" name="opt_symmetric_key.none"></a> `none`
 
+## <a href="#kx_keypair" name="kx_keypair"></a> `kx_keypair`: [`keypair`](#keypair)
+`$kx_keypair` is just an alias for `$keypair`
+
+However, bindings may want to define a specialized type [`kx_keypair`](#kx_keypair) as a super class of [`keypair`](#keypair).
+
+Size: 4
+
+Alignment: 4
+
+## <a href="#kx_publickey" name="kx_publickey"></a> `kx_publickey`: [`publickey`](#publickey)
+`$kx_publickey` is just an alias for `$publickey`
+
+However, bindings may want to define a specialized type [`kx_publickey`](#kx_publickey) as a super class of [`publickey`](#publickey), with additional methods such as `dh`.
+
+Size: 4
+
+Alignment: 4
+
+## <a href="#kx_secretkey" name="kx_secretkey"></a> `kx_secretkey`: [`secretkey`](#secretkey)
+`$kx_secretkey` is just an alias for `$secretkey`
+
+However, bindings may want to define a specialized type [`kx_secretkey`](#kx_secretkey) as a super class of `secretkeykey`, with additional methods such as `dh`.
+
+Size: 4
+
+Alignment: 4
+
 # Modules
 ## <a href="#wasi_ephemeral_crypto_common" name="wasi_ephemeral_crypto_common"></a> wasi_ephemeral_crypto_common
 ### Imports

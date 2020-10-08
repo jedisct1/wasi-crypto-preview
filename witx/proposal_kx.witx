@@ -1,5 +1,20 @@
 (use "proposal_common.witx")
 
+;;; `$kx_keypair` is just an alias for `$keypair`
+;;;
+;;; However, bindings may want to define a specialized type `kx_keypair` as a super class of `keypair`.
+(typename $kx_keypair $keypair)
+
+;;; `$kx_publickey` is just an alias for `$publickey`
+;;;
+;;; However, bindings may want to define a specialized type `kx_publickey` as a super class of `publickey`, with additional methods such as `dh`.
+(typename $kx_publickey $publickey)
+
+;;; `$kx_secretkey` is just an alias for `$secretkey`
+;;;
+;;; However, bindings may want to define a specialized type `kx_secretkey` as a super class of `secretkeykey`, with additional methods such as `dh`.
+(typename $kx_secretkey $secretkey)
+
 ;;; Key exchange operations.
 
 (module $wasi_ephemeral_crypto_kx

@@ -478,6 +478,15 @@ Size: 4
 
 Alignment: 4
 
+## <a href="#signature_secretkey" name="signature_secretkey"></a> `signature_secretkey`: [`secretkey`](#secretkey)
+`$signature_secretkey` is just an alias for `$secretkey`
+
+However, bindings may want to define a specialized type [`signature_secretkey`](#signature_secretkey) as a super class of [`secretkey`](#secretkey).
+
+Size: 4
+
+Alignment: 4
+
 # Modules
 ## <a href="#wasi_ephemeral_crypto_common" name="wasi_ephemeral_crypto_common"></a> wasi_ephemeral_crypto_common
 ### Imports

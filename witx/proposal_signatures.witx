@@ -10,6 +10,11 @@
 ;;; However, bindings may want to define a specialized type `signature_publickey` as a super class of `publickey`, with additional methods such as `verify`.
 (typename $signature_publickey $publickey)
 
+;;; `$signature_secretkey` is just an alias for `$secretkey`
+;;;
+;;; However, bindings may want to define a specialized type `signature_secretkey` as a super class of `secretkey`.
+(typename $signature_secretkey $secretkey)
+
 ;;; Digital signatures.
 
 (module $wasi_ephemeral_crypto_signatures

@@ -49,3 +49,4 @@ Currently supported algorithms as a proof of concept:
 * `AES-256-GCM`
 * `XOODYAK-128`
 * `XOODYAK-256`
+* `X25519`
