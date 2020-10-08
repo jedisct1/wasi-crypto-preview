@@ -1,6 +1,7 @@
 mod keypair;
 mod publickey;
 mod secretkey;
+mod wasi_glue;
 mod x25519;
 
 use std::any::Any;

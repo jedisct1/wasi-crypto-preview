@@ -40,7 +40,7 @@ pub use signatures::SignatureEncoding;
 pub use version::Version;
 
 #[allow(unused)]
-static REBUILD_IF_WITX_FILE_IS_UPDATED: [&str; 4] = [
+static REBUILD_IF_WITX_FILE_IS_UPDATED: [&str; 5] = [
     include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../witx/proposal_common.witx"
@@ -56,6 +56,10 @@ static REBUILD_IF_WITX_FILE_IS_UPDATED: [&str; 4] = [
     include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../witx/proposal_symmetric.witx"
+    )),
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../witx/proposal_kx.witx"
     )),
 ];
 

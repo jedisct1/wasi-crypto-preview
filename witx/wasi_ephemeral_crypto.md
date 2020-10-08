@@ -2176,3 +2176,28 @@ Objects are reference counted. It is safe to close an object immediately after t
 ##### Results
 - <a href="#symmetric_tag_close.error" name="symmetric_tag_close.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
+## <a href="#wasi_ephemeral_crypto_kx" name="wasi_ephemeral_crypto_kx"></a> wasi_ephemeral_crypto_kx
+### Imports
+#### Memory
+### Functions
+
+---
+
+#### <a href="#kx_dh" name="kx_dh"></a> `kx_dh(pk: publickey, sk: secretkey) -> (crypto_errno, array_output)`
+Perform a simple Diffie-Hellman key exchange.
+
+Both keys must be of the same type, or else the `$crypto_errno.incompatible_keys` error is returned.
+The algorithm also has to support this kind of key exchange. If this is not the case, the `$crypto_errno.invalid_operation` error is returned.
+
+Otherwide, a raw shared key is returned, and can be imported as a symmetric key.
+``
+##### Params
+- <a href="#kx_dh.pk" name="kx_dh.pk"></a> `pk`: [`publickey`](#publickey)
+
+- <a href="#kx_dh.sk" name="kx_dh.sk"></a> `sk`: [`secretkey`](#secretkey)
+
+##### Results
+- <a href="#kx_dh.error" name="kx_dh.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#kx_dh.shared_secret" name="kx_dh.shared_secret"></a> `shared_secret`: [`array_output`](#array_output)
+

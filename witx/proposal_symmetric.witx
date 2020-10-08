@@ -1,5 +1,7 @@
 (use "proposal_common.witx")
 
+;;; Symmetric operations.
+
 (module $wasi_ephemeral_crypto_symmetric
   (import "memory" (memory))
 

@@ -1,0 +1,21 @@
+(use "proposal_common.witx")
+
+;;; Key exchange operations.
+
+(module $wasi_ephemeral_crypto_kx
+  (import "memory" (memory))
+
+  ;;; Perform a simple Diffie-Hellman key exchange.
+  ;;;
+  ;;; Both keys must be of the same type, or else the `$crypto_errno.incompatible_keys` error is returned.
+  ;;; The algorithm also has to support this kind of key exchange. If this is not the case, the `$crypto_errno.invalid_operation` error is returned.
+  ;;; 
+  ;;; Otherwide, a raw shared key is returned, and can be imported as a symmetric key.
+  ;;; ```
+  (@interface func (export "kx_dh")
+    (param $pk $publickey)
+    (param $sk $secretkey)
+    (result $error $crypto_errno)
+    (result $shared_secret $array_output)
+  )
+)
