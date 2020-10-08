@@ -1,4 +1,5 @@
 use super::*;
+use crate::CryptoCtx;
 
 use crate::asymmetric_common::*;
 use parking_lot::{Mutex, MutexGuard};
@@ -49,6 +50,11 @@ impl KxSecretKey {
     pub(crate) fn publickey(&self) -> Result<KxPublicKey, CryptoError> {
         Ok(self.inner().into_publickey()?)
     }
+
+    pub fn dh(&self, pk: &KxPublicKey) -> Result<Vec<u8>, CryptoError> {
+        ensure!(pk.alg() == self.alg(), CryptoError::IncompatibleKeys);
+        Ok(self.inner().dh(pk)?)
+    }
 }
 
 pub trait KxSecretKeyLike: Sync + Send {
@@ -57,4 +63,22 @@ pub trait KxSecretKeyLike: Sync + Send {
     fn len(&self) -> Result<usize, CryptoError>;
     fn as_raw(&self) -> Result<&[u8], CryptoError>;
     fn into_publickey(&self) -> Result<KxPublicKey, CryptoError>;
+    fn dh(&self, pk: &KxPublicKey) -> Result<Vec<u8>, CryptoError>;
+}
+
+impl CryptoCtx {
+    pub fn kx_dh(&self, pk_handle: Handle, sk_handle: Handle) -> Result<Handle, CryptoError> {
+        let pk = self
+            .handles
+            .publickey
+            .get(pk_handle)?
+            .into_kx_public_key()?;
+        let sk = self
+            .handles
+            .secretkey
+            .get(sk_handle)?
+            .into_kx_secret_key()?;
+        let shared_secret = sk.dh(&pk)?;
+        ArrayOutput::register(&self.handles, shared_secret)
+    }
 }

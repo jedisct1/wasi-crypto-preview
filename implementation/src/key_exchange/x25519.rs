@@ -242,4 +242,16 @@ impl KxSecretKeyLike for X25519SecretKey {
     fn into_publickey(&self) -> Result<KxPublicKey, CryptoError> {
         Ok(KxPublicKey::new(Box::new(self.into_x25519_publickey()?)))
     }
+
+    fn dh(&self, pk: &KxPublicKey) -> Result<Vec<u8>, CryptoError> {
+        let pk = pk.inner();
+        let pk = pk
+            .as_any()
+            .downcast_ref::<X25519PublicKey>()
+            .ok_or(CryptoError::InvalidKey)?;
+        let pk_ge: &MontgomeryPoint = &pk.group_element;
+        let shared_secret: MontgomeryPoint = pk_ge * self.clamped_scalar;
+        reject_neutral_element(&shared_secret)?;
+        Ok(shared_secret.as_bytes().to_vec())
+    }
 }

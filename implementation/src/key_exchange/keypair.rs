@@ -60,6 +60,10 @@ impl KxKeyPair {
     pub(crate) fn public_key(&self) -> Result<KxPublicKey, CryptoError> {
         self.inner().publickey()
     }
+
+    pub(crate) fn secret_key(&self) -> Result<KxSecretKey, CryptoError> {
+        self.inner().secretkey()
+    }
 }
 
 pub trait KxKeyPairLike: Sync + Send {

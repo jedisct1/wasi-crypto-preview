@@ -31,6 +31,20 @@ pub enum SecretKey {
 }
 
 impl SecretKey {
+    pub(crate) fn into_signature_secret_key(self) -> Result<SignatureSecretKey, CryptoError> {
+        match self {
+            SecretKey::Signature(sk) => Ok(sk),
+            _ => bail!(CryptoError::InvalidHandle),
+        }
+    }
+
+    pub(crate) fn into_kx_secret_key(self) -> Result<KxSecretKey, CryptoError> {
+        match self {
+            SecretKey::KeyExchange(sk) => Ok(sk),
+            _ => bail!(CryptoError::InvalidHandle),
+        }
+    }
+
     fn import(
         _alg_type: AlgorithmType,
         _alg_str: &str,

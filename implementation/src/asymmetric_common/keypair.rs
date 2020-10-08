@@ -119,7 +119,10 @@ impl KeyPair {
     }
 
     pub fn secret_key(&self) -> Result<SecretKey, CryptoError> {
-        bail!(CryptoError::NotImplemented)
+        match self {
+            KeyPair::Signature(key_pair) => Ok(SecretKey::Signature(key_pair.secret_key()?)),
+            KeyPair::KeyExchange(key_pair) => Ok(SecretKey::KeyExchange(key_pair.secret_key()?)),
+        }
     }
 }
 

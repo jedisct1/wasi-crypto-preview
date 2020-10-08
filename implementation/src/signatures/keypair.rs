@@ -86,4 +86,8 @@ impl SignatureKeyPair {
         };
         Ok(pk)
     }
+
+    pub(crate) fn secret_key(&self) -> Result<SignatureSecretKey, CryptoError> {
+        bail!(CryptoError::NotImplemented)
+    }
 }
