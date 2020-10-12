@@ -1,13 +1,13 @@
+mod dh;
 mod keypair;
 mod publickey;
 mod secretkey;
 mod wasi_glue;
-mod x25519;
 
 use std::any::Any;
 use std::convert::TryFrom;
 
-use self::x25519::*;
+use self::dh::*;
 use crate::array_output::*;
 use crate::error::*;
 use crate::handles::*;
