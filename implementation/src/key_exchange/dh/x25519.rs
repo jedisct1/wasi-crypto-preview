@@ -151,9 +151,9 @@ pub struct X25519PublicKeyBuilder {
 
 impl KxPublicKeyBuilder for X25519PublicKeyBuilder {
     fn from_raw(&self, raw: &[u8]) -> Result<KxPublicKey, CryptoError> {
-        ensure!(raw.len() == SK_LEN, CryptoError::InvalidKey);
-        let sk = X25519PublicKey::new(self.alg, raw)?;
-        Ok(KxPublicKey::new(Box::new(sk)))
+        ensure!(raw.len() == PK_LEN, CryptoError::InvalidKey);
+        let pk = X25519PublicKey::new(self.alg, raw)?;
+        Ok(KxPublicKey::new(Box::new(pk)))
     }
 }
 

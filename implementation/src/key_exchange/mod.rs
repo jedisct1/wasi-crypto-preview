@@ -1,4 +1,5 @@
 mod dh;
+mod kem;
 mod keypair;
 mod publickey;
 mod secretkey;
@@ -8,6 +9,7 @@ use std::any::Any;
 use std::convert::TryFrom;
 
 use self::dh::*;
+use self::kem::*;
 use crate::array_output::*;
 use crate::error::*;
 use crate::handles::*;
@@ -46,6 +48,7 @@ impl OptionsLike for KxOptions {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KxAlgorithm {
     X25519,
+    Kyber768,
 }
 
 impl TryFrom<&str> for KxAlgorithm {
@@ -54,6 +57,7 @@ impl TryFrom<&str> for KxAlgorithm {
     fn try_from(alg_str: &str) -> Result<Self, CryptoError> {
         match alg_str.to_uppercase().as_str() {
             "X25519" => Ok(KxAlgorithm::X25519),
+            "Kyber768" => Ok(KxAlgorithm::Kyber768),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }

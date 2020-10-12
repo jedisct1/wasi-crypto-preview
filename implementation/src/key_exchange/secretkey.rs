@@ -1,7 +1,6 @@
 use super::*;
-use crate::CryptoCtx;
-
 use crate::asymmetric_common::*;
+use crate::CryptoCtx;
 use parking_lot::{Mutex, MutexGuard};
 use std::sync::Arc;
 
@@ -55,6 +54,10 @@ impl KxSecretKey {
         ensure!(pk.alg() == self.alg(), CryptoError::IncompatibleKeys);
         Ok(self.inner().dh(pk)?)
     }
+
+    fn decapsulate(&self, encapsulated_secret: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        Ok(self.inner().decapsulate(encapsulated_secret)?)
+    }
 }
 
 pub trait KxSecretKeyLike: Sync + Send {
@@ -63,7 +66,14 @@ pub trait KxSecretKeyLike: Sync + Send {
     fn len(&self) -> Result<usize, CryptoError>;
     fn as_raw(&self) -> Result<&[u8], CryptoError>;
     fn publickey(&self) -> Result<KxPublicKey, CryptoError>;
-    fn dh(&self, pk: &KxPublicKey) -> Result<Vec<u8>, CryptoError>;
+
+    fn dh(&self, _pk: &KxPublicKey) -> Result<Vec<u8>, CryptoError> {
+        bail!(CryptoError::InvalidOperation);
+    }
+
+    fn decapsulate(&self, _encapsulated_secret: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        bail!(CryptoError::InvalidOperation);
+    }
 }
 
 impl CryptoCtx {
@@ -79,6 +89,20 @@ impl CryptoCtx {
             .get(sk_handle)?
             .into_kx_secret_key()?;
         let shared_secret = sk.dh(&pk)?;
+        ArrayOutput::register(&self.handles, shared_secret)
+    }
+
+    pub fn kx_decapsulate(
+        &self,
+        sk_handle: Handle,
+        encapsulated_secret: &[u8],
+    ) -> Result<Handle, CryptoError> {
+        let sk = self
+            .handles
+            .secretkey
+            .get(sk_handle)?
+            .into_kx_secret_key()?;
+        let shared_secret = sk.decapsulate(encapsulated_secret)?;
         ArrayOutput::register(&self.handles, shared_secret)
     }
 }
