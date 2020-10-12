@@ -48,7 +48,7 @@ impl KxSecretKey {
     }
 
     pub(crate) fn publickey(&self) -> Result<KxPublicKey, CryptoError> {
-        Ok(self.inner().into_publickey()?)
+        Ok(self.inner().publickey()?)
     }
 
     pub fn dh(&self, pk: &KxPublicKey) -> Result<Vec<u8>, CryptoError> {
@@ -62,7 +62,7 @@ pub trait KxSecretKeyLike: Sync + Send {
     fn alg(&self) -> KxAlgorithm;
     fn len(&self) -> Result<usize, CryptoError>;
     fn as_raw(&self) -> Result<&[u8], CryptoError>;
-    fn into_publickey(&self) -> Result<KxPublicKey, CryptoError>;
+    fn publickey(&self) -> Result<KxPublicKey, CryptoError>;
     fn dh(&self, pk: &KxPublicKey) -> Result<Vec<u8>, CryptoError>;
 }
 
