@@ -25,7 +25,7 @@ Other languages can use the [`wasmtime` fork](https://github.com/jedisct1/wasmti
 
 In that configuration, the API can be accessed via the exported `wasi_ephemeral_crypto` module.
 
-See the AssemblyScript bindings as an example.
+See the AssemblyScript and Rust bindings as an example.
 
 Currently supported algorithms as a proof of concept:
 
@@ -50,3 +50,4 @@ Currently supported algorithms as a proof of concept:
 * `XOODYAK-128`
 * `XOODYAK-256`
 * `X25519`
+* `KYBER768`
