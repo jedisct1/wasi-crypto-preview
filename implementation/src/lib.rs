@@ -21,6 +21,7 @@ mod symmetric;
 mod version;
 mod wasi_glue;
 
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::types as guest_types;
@@ -39,32 +40,55 @@ pub use handles::Handle;
 pub use signatures::SignatureEncoding;
 pub use version::Version;
 
-#[allow(unused)]
-static REBUILD_IF_WITX_FILE_IS_UPDATED: [&str; 5] = [
-    include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../witx/proposal_common.witx"
-    )),
-    include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../witx/proposal_asymmetric_common.witx"
-    )),
-    include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../witx/proposal_signatures.witx"
-    )),
-    include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../witx/proposal_symmetric.witx"
-    )),
-    include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../witx/proposal_kx.witx"
-    )),
-];
+pub fn witx_interfaces() -> HashMap<&'static str, &'static str> {
+    let mut map = HashMap::new();
+    map.insert(
+        "proposal_common.witx",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/witx/proposal_common.witx"
+        )),
+    );
+    map.insert(
+        "proposal_asymmetric_common.witx",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/witx/proposal_asymmetric_common.witx"
+        )),
+    );
+    map.insert(
+        "proposal_signatures.witx",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/witx/proposal_signatures.witx"
+        )),
+    );
+    map.insert(
+        "proposal_symmetric.witx",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/witx/proposal_symmetric.witx"
+        )),
+    );
+    map.insert(
+        "proposal_kx.witx",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/witx/proposal_kx.witx"
+        )),
+    );
+    map.insert(
+        "wasi_ephemeral_crypto.witx",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/witx/wasi_ephemeral_crypto.witx"
+        )),
+    );
+    map
+}
 
 wiggle::from_witx!({
-    witx: ["$CARGO_MANIFEST_DIR/../witx/wasi_ephemeral_crypto.witx"],
+    witx: ["$CARGO_MANIFEST_DIR/witx/wasi_ephemeral_crypto.witx"],
     ctx: WasiCryptoCtx
 });
 

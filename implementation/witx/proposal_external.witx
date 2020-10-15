@@ -1,0 +1,36 @@
+(use "proposal_external.witx")
+
+(module $wasi_ephemeral_crypto_external
+  (import "memory" (memory))
+
+
+  ;;; __(optional)__
+  ;;; Replace an external key.
+  ;;;
+  ;;; This function crates a new version of a managed symmetric key, by replacing `$external_key_old` with `$external_key_new`.
+  ;;;
+  ;;; It does several things:
+  ;;;
+  ;;; - The key identifier for `$external_key_new` is set to the one of `$external_key_old`.
+  ;;; - A new, unique version identifier is assigned to `$external_key_new`. This version will be equivalent to using `$version_latest` until the key is replaced.
+  ;;; - The `$external_key_old` handle is closed.
+  ;;;
+  ;;; Both keys must share the same algorithm and have compatible parameters. If this is not the case, `incompatible_keys` is returned.
+  ;;;
+  ;;; The function may also return the `unsupported_feature` error code if key management facilities are not supported by the host,
+  ;;; or if keys cannot be rotated.
+  ;;;
+  ;;; Finally, `prohibited_operation` can be returned if `$external_key_new` wasn't created by the key manager, and the key manager prohibits imported keys.
+  ;;;
+  ;;; If the operation succeeded, the new version is returned.
+  ;;;
+  ;;; This is an optional import, meaning that the function may not even exist.
+
+  (@interface func (export "external_key_replace")
+    (param $key_manager $key_manager)
+    (param $symmetric_key_old $symmetric_key)
+    (param $symmetric_key_new $symmetric_key)
+    (result $error $crypto_errno)
+    (result $version $version)
+  )
+)

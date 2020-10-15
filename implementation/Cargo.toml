@@ -1,8 +1,12 @@
 [package]
-name = "wasi-crypto"
+name = "wasi-crypto-preview"
 version = "0.1.0"
 authors = ["Frank Denis <github@pureftpd.org>"]
 edition = "2018"
+description = "WASI crypto module proposal"
+license = "Apache-2.0 WITH LLVM-exception"
+homepage = "https://github.com/jedisct1/wasi-crypto-preview"
+repository = "https://github.com/jedisct1/wasi-crypto-preview"
 
 [dependencies]
 anyhow = "1.0"
