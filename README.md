@@ -50,6 +50,6 @@ Currently supported algorithms as a proof of concept:
 * `AES-128-GCM`
 * `AES-256-GCM`
 * `XOODYAK-128`
-* `XOODYAK-256`
+* `XOODYAK-160`
 * `X25519`
 * `KYBER768`
