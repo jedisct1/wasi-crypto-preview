@@ -71,7 +71,8 @@ wiggle::from_witx!({
 pub mod wasi_modules {
     pub use crate::{
         wasi_ephemeral_crypto_asymmetric_common, wasi_ephemeral_crypto_common,
-        wasi_ephemeral_crypto_signatures, wasi_ephemeral_crypto_symmetric,
+        wasi_ephemeral_crypto_kx, wasi_ephemeral_crypto_signatures,
+        wasi_ephemeral_crypto_symmetric,
     };
 }
 
