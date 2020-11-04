@@ -75,6 +75,21 @@
   )
 
   ;;; __(optional)__
+  ;;; Store a key pair into the key manager.
+  ;;;
+  ;;; On success, the function stores the key pair identifier into `$kp_id`,
+  ;;; into which up to `$kp_id_max_len` can be written.
+  ;;;
+  ;;; The function returns `overflow` if the supplied buffer is too small.
+  (@interface func (export "keypair_store_managed")
+    (param $key_manager $key_manager)
+    (param $kp $keypair)
+    (param $kp_id (@witx pointer u8))
+    (param $kp_id_max_len $size)
+    (result $error $crypto_errno)
+  )
+
+  ;;; __(optional)__
   ;;; Replace a managed key pair.
   ;;;
   ;;; This function crates a new version of a managed key pair, by replacing `$kp_old` with `$kp_new`.

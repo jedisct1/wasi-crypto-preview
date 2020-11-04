@@ -220,6 +220,13 @@ function keypair_generate_managed(): crypto_errno
     - Output:
         - handle: mut_ptr<keypair>
 
+function keypair_store_managed(): crypto_errno
+    - Input:
+        - key_manager: key_manager
+        - kp: keypair
+        - kp_id: mut_ptr<u8>
+        - kp_id_max_len: size
+
 function keypair_replace_managed(): crypto_errno
     - Input:
         - key_manager: key_manager
@@ -435,6 +442,13 @@ function symmetric_key_generate_managed(): crypto_errno
         - options: opt_options
     - Output:
         - handle: mut_ptr<symmetric_key>
+
+function symmetric_key_store_managed(): crypto_errno
+    - Input:
+        - key_manager: key_manager
+        - symmetric_key: symmetric_key
+        - symmetric_key_id: mut_ptr<u8>
+        - symmetric_key_id_max_len: size
 
 function symmetric_key_replace_managed(): crypto_errno
     - Input:

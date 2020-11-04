@@ -789,6 +789,30 @@ This is also an optional import, meaning that the function may not even exist.
 
 ---
 
+#### <a href="#symmetric_key_store_managed" name="symmetric_key_store_managed"></a> `symmetric_key_store_managed(key_manager: key_manager, symmetric_key: symmetric_key, symmetric_key_id: Pointer<u8>, symmetric_key_id_max_len: size) -> crypto_errno`
+__(optional)__
+Store a symmetric key into the key manager.
+
+On success, the function stores the key identifier into `$symmetric_key_id`,
+into which up to `$symmetric_key_id_max_len` can be written.
+
+The function returns `overflow` if the supplied buffer is too small.
+
+##### Params
+- <a href="#symmetric_key_store_managed.key_manager" name="symmetric_key_store_managed.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+- <a href="#symmetric_key_store_managed.symmetric_key" name="symmetric_key_store_managed.symmetric_key"></a> `symmetric_key`: [`symmetric_key`](#symmetric_key)
+
+- <a href="#symmetric_key_store_managed.symmetric_key_id" name="symmetric_key_store_managed.symmetric_key_id"></a> `symmetric_key_id`: `Pointer<u8>`
+
+- <a href="#symmetric_key_store_managed.symmetric_key_id_max_len" name="symmetric_key_store_managed.symmetric_key_id_max_len"></a> `symmetric_key_id_max_len`: [`size`](#size)
+
+##### Results
+- <a href="#symmetric_key_store_managed.error" name="symmetric_key_store_managed.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
 #### <a href="#symmetric_key_replace_managed" name="symmetric_key_replace_managed"></a> `symmetric_key_replace_managed(key_manager: key_manager, symmetric_key_old: symmetric_key, symmetric_key_new: symmetric_key) -> (crypto_errno, version)`
 __(optional)__
 Replace a managed symmetric key.

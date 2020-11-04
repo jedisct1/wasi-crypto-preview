@@ -813,6 +813,30 @@ This is also an optional import, meaning that the function may not even exist.
 
 ---
 
+#### <a href="#keypair_store_managed" name="keypair_store_managed"></a> `keypair_store_managed(key_manager: key_manager, kp: keypair, kp_id: Pointer<u8>, kp_id_max_len: size) -> crypto_errno`
+__(optional)__
+Store a key pair into the key manager.
+
+On success, the function stores the key pair identifier into `$kp_id`,
+into which up to `$kp_id_max_len` can be written.
+
+The function returns `overflow` if the supplied buffer is too small.
+
+##### Params
+- <a href="#keypair_store_managed.key_manager" name="keypair_store_managed.key_manager"></a> `key_manager`: [`key_manager`](#key_manager)
+
+- <a href="#keypair_store_managed.kp" name="keypair_store_managed.kp"></a> `kp`: [`keypair`](#keypair)
+
+- <a href="#keypair_store_managed.kp_id" name="keypair_store_managed.kp_id"></a> `kp_id`: `Pointer<u8>`
+
+- <a href="#keypair_store_managed.kp_id_max_len" name="keypair_store_managed.kp_id_max_len"></a> `kp_id_max_len`: [`size`](#size)
+
+##### Results
+- <a href="#keypair_store_managed.error" name="keypair_store_managed.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
 #### <a href="#keypair_replace_managed" name="keypair_replace_managed"></a> `keypair_replace_managed(key_manager: key_manager, kp_old: keypair, kp_new: keypair) -> (crypto_errno, version)`
 __(optional)__
 Replace a managed key pair.

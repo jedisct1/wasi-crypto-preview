@@ -71,6 +71,21 @@
   )
 
   ;;; __(optional)__
+  ;;; Store a symmetric key into the key manager.
+  ;;;
+  ;;; On success, the function stores the key identifier into `$symmetric_key_id`,
+  ;;; into which up to `$symmetric_key_id_max_len` can be written.
+  ;;;
+  ;;; The function returns `overflow` if the supplied buffer is too small.
+  (@interface func (export "symmetric_key_store_managed")
+    (param $key_manager $key_manager)
+    (param $symmetric_key $symmetric_key)
+    (param $symmetric_key_id (@witx pointer u8))
+    (param $symmetric_key_id_max_len $size)
+    (result $error $crypto_errno)
+  )
+
+  ;;; __(optional)__
   ;;; Replace a managed symmetric key.
   ;;;
   ;;; This function crates a new version of a managed symmetric key, by replacing `$kp_old` with `$kp_new`.
