@@ -25,4 +25,4 @@ proposal_kx.md: proposal_common.witx proposal_asymmetric_common.witx proposal_kx
 	witx-docgen -o $@ proposal_kx.witx
 
 clean:
-	-rm -f *.md
+	-rm -f *.md *.txt
