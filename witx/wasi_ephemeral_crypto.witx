@@ -3,4 +3,3 @@
 (use "proposal_signatures.witx")
 (use "proposal_symmetric.witx")
 (use "proposal_kx.witx")
-(use "proposal_external_secrets.witx")
