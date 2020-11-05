@@ -467,33 +467,6 @@ Alignment: 4
 
 - <a href="#opt_symmetric_key.none" name="opt_symmetric_key.none"></a> `none`
 
-## <a href="#kx_keypair" name="kx_keypair"></a> `kx_keypair`: [`keypair`](#keypair)
-`$kx_keypair` is just an alias for `$keypair`
-
-However, bindings may want to define a specialized type [`kx_keypair`](#kx_keypair) as a super class of [`keypair`](#keypair).
-
-Size: 4
-
-Alignment: 4
-
-## <a href="#kx_publickey" name="kx_publickey"></a> `kx_publickey`: [`publickey`](#publickey)
-`$kx_publickey` is just an alias for `$publickey`
-
-However, bindings may want to define a specialized type [`kx_publickey`](#kx_publickey) as a super class of [`publickey`](#publickey), with additional methods such as `dh`.
-
-Size: 4
-
-Alignment: 4
-
-## <a href="#kx_secretkey" name="kx_secretkey"></a> `kx_secretkey`: [`secretkey`](#secretkey)
-`$kx_secretkey` is just an alias for `$secretkey`
-
-However, bindings may want to define a specialized type [`kx_secretkey`](#kx_secretkey) as a super class of `secretkeykey`, with additional methods such as `dh`.
-
-Size: 4
-
-Alignment: 4
-
 # Modules
 ## <a href="#wasi_ephemeral_crypto_common" name="wasi_ephemeral_crypto_common"></a> wasi_ephemeral_crypto_common
 ### Imports
@@ -712,69 +685,166 @@ This is an optional import, meaning that the function may not even exist.
 ##### Results
 - <a href="#secrets_manager_invalidate.error" name="secrets_manager_invalidate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
-## <a href="#wasi_ephemeral_crypto_kx" name="wasi_ephemeral_crypto_kx"></a> wasi_ephemeral_crypto_kx
+## <a href="#wasi_ephemeral_crypto_exernal_secrets" name="wasi_ephemeral_crypto_exernal_secrets"></a> wasi_ephemeral_crypto_exernal_secrets
 ### Imports
 #### Memory
 ### Functions
 
 ---
 
-#### <a href="#kx_dh" name="kx_dh"></a> `kx_dh(pk: publickey, sk: secretkey) -> (crypto_errno, array_output)`
-Perform a simple Diffie-Hellman key exchange.
+#### <a href="#external_secret_store" name="external_secret_store"></a> `external_secret_store(secrets_manager: secrets_manager, secret: ConstPointer<u8>, secret_len: size, expiration: timestamp, secret_id: Pointer<u8>, secret_id_max_len: size) -> crypto_errno`
+Store an external secret into the secrets manager.
 
-Both keys must be of the same type, or else the `$crypto_errno.incompatible_keys` error is returned.
-The algorithm also has to support this kind of key exchange. If this is not the case, the `$crypto_errno.invalid_operation` error is returned.
+`$expiration` is the expiration date of the secret as a UNIX timestamp, in seconds.
+An expiration date is mandatory.
 
-Otherwide, a raw shared key is returned, and can be imported as a symmetric key.
-``
+On success, the secret identifier is put into `$secret_id` if it fits into `$secret_id_max_len` bytes.
+If the supplied ouptut buffer is too small, `$overflow` is returned.
+
+If this function is not supported by the host the `$unsupported_feature` error is returned.
+
 ##### Params
-- <a href="#kx_dh.pk" name="kx_dh.pk"></a> `pk`: [`publickey`](#publickey)
+- <a href="#external_secret_store.secrets_manager" name="external_secret_store.secrets_manager"></a> `secrets_manager`: [`secrets_manager`](#secrets_manager)
 
-- <a href="#kx_dh.sk" name="kx_dh.sk"></a> `sk`: [`secretkey`](#secretkey)
+- <a href="#external_secret_store.secret" name="external_secret_store.secret"></a> `secret`: `ConstPointer<u8>`
+
+- <a href="#external_secret_store.secret_len" name="external_secret_store.secret_len"></a> `secret_len`: [`size`](#size)
+
+- <a href="#external_secret_store.expiration" name="external_secret_store.expiration"></a> `expiration`: [`timestamp`](#timestamp)
+
+- <a href="#external_secret_store.secret_id" name="external_secret_store.secret_id"></a> `secret_id`: `Pointer<u8>`
+
+- <a href="#external_secret_store.secret_id_max_len" name="external_secret_store.secret_id_max_len"></a> `secret_id_max_len`: [`size`](#size)
 
 ##### Results
-- <a href="#kx_dh.error" name="kx_dh.error"></a> `error`: [`crypto_errno`](#crypto_errno)
-
-- <a href="#kx_dh.shared_secret" name="kx_dh.shared_secret"></a> `shared_secret`: [`array_output`](#array_output)
+- <a href="#external_secret_store.error" name="external_secret_store.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
 
 ---
 
-#### <a href="#kx_encapsulate" name="kx_encapsulate"></a> `kx_encapsulate(pk: publickey) -> (crypto_errno, array_output, array_output)`
-Create a shared secret and encrypt it for the given public key.
+#### <a href="#external_secret_replace" name="external_secret_replace"></a> `external_secret_replace(secrets_manager: secrets_manager, secret: ConstPointer<u8>, secret_len: size, expiration: timestamp, secret_id: ConstPointer<u8>, secret_id_len: size) -> (crypto_errno, version)`
+Replace a managed external with a new version.
 
-This operation is only compatible with specific algorithms.
-If a selected algorithm doesn't support it, `$crypto_errno.invalid_operation` is returned.
+`$expiration` is the expiration date of the secret as a UNIX timestamp, in seconds.
+An expiration date is mandatory.
 
-On success, both the shared secret and its encrypted version are returned.
+On success, a new version is created and returned.
+
+If this function is not supported by the host the `$unsupported_feature` error is returned.
 
 ##### Params
-- <a href="#kx_encapsulate.pk" name="kx_encapsulate.pk"></a> `pk`: [`publickey`](#publickey)
+- <a href="#external_secret_replace.secrets_manager" name="external_secret_replace.secrets_manager"></a> `secrets_manager`: [`secrets_manager`](#secrets_manager)
+
+- <a href="#external_secret_replace.secret" name="external_secret_replace.secret"></a> `secret`: `ConstPointer<u8>`
+
+- <a href="#external_secret_replace.secret_len" name="external_secret_replace.secret_len"></a> `secret_len`: [`size`](#size)
+
+- <a href="#external_secret_replace.expiration" name="external_secret_replace.expiration"></a> `expiration`: [`timestamp`](#timestamp)
+
+- <a href="#external_secret_replace.secret_id" name="external_secret_replace.secret_id"></a> `secret_id`: `ConstPointer<u8>`
+
+- <a href="#external_secret_replace.secret_id_len" name="external_secret_replace.secret_id_len"></a> `secret_id_len`: [`size`](#size)
 
 ##### Results
-- <a href="#kx_encapsulate.error" name="kx_encapsulate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+- <a href="#external_secret_replace.error" name="external_secret_replace.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
-- <a href="#kx_encapsulate.secret" name="kx_encapsulate.secret"></a> `secret`: [`array_output`](#array_output)
-
-- <a href="#kx_encapsulate.encapsulated_secret" name="kx_encapsulate.encapsulated_secret"></a> `encapsulated_secret`: [`array_output`](#array_output)
+- <a href="#external_secret_replace.secret_version" name="external_secret_replace.secret_version"></a> `secret_version`: [`version`](#version)
 
 
 ---
 
-#### <a href="#kx_decapsulate" name="kx_decapsulate"></a> `kx_decapsulate(sk: secretkey, encapsulated_secret: ConstPointer<u8>, encapsulated_secret_len: size) -> (crypto_errno, array_output)`
-Decapsulate an encapsulated secret crated with [`kx_encapsulate`](#kx_encapsulate)
+#### <a href="#external_secret_from_id" name="external_secret_from_id"></a> `external_secret_from_id(secrets_manager: secrets_manager, secret_id: ConstPointer<u8>, secret_id_len: size, secret_version: version) -> (crypto_errno, array_output)`
+Get a copy of an external secret given an identifier and version.
 
-Return the secret, or `$crypto_errno.verification_failed` on error.
+`secret_version` can be set to a version number, or to [`version.latest`](#version.latest) to retrieve the most recent version of a secret.
+
+On success, a copy of the secret is returned.
+
+The function returns `$unsupported_feature` if this operation is not supported by the host, and `not_found` if the identifier and version don't match any existing secret.
 
 ##### Params
-- <a href="#kx_decapsulate.sk" name="kx_decapsulate.sk"></a> `sk`: [`secretkey`](#secretkey)
+- <a href="#external_secret_from_id.secrets_manager" name="external_secret_from_id.secrets_manager"></a> `secrets_manager`: [`secrets_manager`](#secrets_manager)
 
-- <a href="#kx_decapsulate.encapsulated_secret" name="kx_decapsulate.encapsulated_secret"></a> `encapsulated_secret`: `ConstPointer<u8>`
+- <a href="#external_secret_from_id.secret_id" name="external_secret_from_id.secret_id"></a> `secret_id`: `ConstPointer<u8>`
 
-- <a href="#kx_decapsulate.encapsulated_secret_len" name="kx_decapsulate.encapsulated_secret_len"></a> `encapsulated_secret_len`: [`size`](#size)
+- <a href="#external_secret_from_id.secret_id_len" name="external_secret_from_id.secret_id_len"></a> `secret_id_len`: [`size`](#size)
+
+- <a href="#external_secret_from_id.secret_version" name="external_secret_from_id.secret_version"></a> `secret_version`: [`version`](#version)
 
 ##### Results
-- <a href="#kx_decapsulate.error" name="kx_decapsulate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+- <a href="#external_secret_from_id.error" name="external_secret_from_id.error"></a> `error`: [`crypto_errno`](#crypto_errno)
 
-- <a href="#kx_decapsulate.secret" name="kx_decapsulate.secret"></a> `secret`: [`array_output`](#array_output)
+- <a href="#external_secret_from_id.secret" name="external_secret_from_id.secret"></a> `secret`: [`array_output`](#array_output)
+
+
+---
+
+#### <a href="#external_secret_invalidate" name="external_secret_invalidate"></a> `external_secret_invalidate(secrets_manager: secrets_manager, secret_id: ConstPointer<u8>, secret_id_len: size, secret_version: version) -> crypto_errno`
+Invalidate an external secret given an identifier and a version.
+
+This asks the secrets manager to delete or revoke a stored secret, a specific version of a secret.
+
+`secret_version` can be set to a version number, or to [`version.latest`](#version.latest) to invalidate the current version, or to [`version.all`](#version.all) to invalidate all versions of a secret.
+
+The function returns `$unsupported_feature` if this operation is not supported by the host, and `not_found` if the identifier and version don't match any existing secret.
+
+##### Params
+- <a href="#external_secret_invalidate.secrets_manager" name="external_secret_invalidate.secrets_manager"></a> `secrets_manager`: [`secrets_manager`](#secrets_manager)
+
+- <a href="#external_secret_invalidate.secret_id" name="external_secret_invalidate.secret_id"></a> `secret_id`: `ConstPointer<u8>`
+
+- <a href="#external_secret_invalidate.secret_id_len" name="external_secret_invalidate.secret_id_len"></a> `secret_id_len`: [`size`](#size)
+
+- <a href="#external_secret_invalidate.secret_version" name="external_secret_invalidate.secret_version"></a> `secret_version`: [`version`](#version)
+
+##### Results
+- <a href="#external_secret_invalidate.error" name="external_secret_invalidate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+
+---
+
+#### <a href="#external_secret_encapsulate" name="external_secret_encapsulate"></a> `external_secret_encapsulate(secrets_manager: secrets_manager, secret: ConstPointer<u8>, secret_len: size, expiration: timestamp) -> (crypto_errno, array_output)`
+Encrypt an external secret.
+
+Applications don't have access to the encryption key, and the secrets manager is free to choose any suitable algorithm.
+
+However, the returned ciphertext must include and authenticate both the secret and the expiration date.
+
+On success, the ciphertext is returned.
+
+##### Params
+- <a href="#external_secret_encapsulate.secrets_manager" name="external_secret_encapsulate.secrets_manager"></a> `secrets_manager`: [`secrets_manager`](#secrets_manager)
+
+- <a href="#external_secret_encapsulate.secret" name="external_secret_encapsulate.secret"></a> `secret`: `ConstPointer<u8>`
+
+- <a href="#external_secret_encapsulate.secret_len" name="external_secret_encapsulate.secret_len"></a> `secret_len`: [`size`](#size)
+
+- <a href="#external_secret_encapsulate.expiration" name="external_secret_encapsulate.expiration"></a> `expiration`: [`timestamp`](#timestamp)
+
+##### Results
+- <a href="#external_secret_encapsulate.error" name="external_secret_encapsulate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#external_secret_encapsulate.encrypted_secret" name="external_secret_encapsulate.encrypted_secret"></a> `encrypted_secret`: [`array_output`](#array_output)
+
+
+---
+
+#### <a href="#external_secret_decapsulate" name="external_secret_decapsulate"></a> `external_secret_decapsulate(secrets_manager: secrets_manager, encrypted_secret: ConstPointer<u8>, encrypted_secret_len: size) -> (crypto_errno, array_output)`
+Decrypt an external secret previously encrypted by the secrets manager.
+
+Returns the original secret if the ciphertext is valid.
+Returns `$expired` if the current date is past the stored expiration date.
+Returns `$verification_failed` if the ciphertext format is invalid or if its authentication tag couldn't be verified.
+
+##### Params
+- <a href="#external_secret_decapsulate.secrets_manager" name="external_secret_decapsulate.secrets_manager"></a> `secrets_manager`: [`secrets_manager`](#secrets_manager)
+
+- <a href="#external_secret_decapsulate.encrypted_secret" name="external_secret_decapsulate.encrypted_secret"></a> `encrypted_secret`: `ConstPointer<u8>`
+
+- <a href="#external_secret_decapsulate.encrypted_secret_len" name="external_secret_decapsulate.encrypted_secret_len"></a> `encrypted_secret_len`: [`size`](#size)
+
+##### Results
+- <a href="#external_secret_decapsulate.error" name="external_secret_decapsulate.error"></a> `error`: [`crypto_errno`](#crypto_errno)
+
+- <a href="#external_secret_decapsulate.secret" name="external_secret_decapsulate.secret"></a> `secret`: [`array_output`](#array_output)
 

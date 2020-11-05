@@ -26,11 +26,11 @@ crypto_errno: enum(u16)
     - invalid_operation = 22
     - nonce_required = 23
     - option_not_set = 24
-    - key_not_found = 25
+    - not_found = 25
     - parameters_missing = 26
     - in_progress = 27
     - incompatible_keys = 28
-    - expired_key = 29
+    - expired = 29
 
 keypair_encoding: enum(u16)
     - raw = 0
@@ -68,11 +68,13 @@ version: int(u64)
 
 alias size = usize
 
+alias timestamp = u64
+
 array_output: handle
 
 options: handle
 
-key_manager: handle
+secrets_manager: handle
 
 keypair: handle
 
@@ -170,19 +172,19 @@ function array_output_pull(): crypto_errno
     - Output:
         - len: mut_ptr<size>
 
-function key_manager_open(): crypto_errno
+function secrets_manager_open(): crypto_errno
     - Input:
         - options: opt_options
     - Output:
-        - handle: mut_ptr<key_manager>
+        - handle: mut_ptr<secrets_manager>
 
-function key_manager_close(): crypto_errno
+function secrets_manager_close(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
 
-function key_manager_invalidate(): crypto_errno
+function secrets_manager_invalidate(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - key_id: ptr<u8>
         - key_id_len: size
         - key_version: version
@@ -212,7 +214,7 @@ function keypair_import(): crypto_errno
 
 function keypair_generate_managed(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - algorithm_type: algorithm_type
         - algorithm_ptr: wasi_string_ptr
         - algorithm_len: usize
@@ -222,14 +224,14 @@ function keypair_generate_managed(): crypto_errno
 
 function keypair_store_managed(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - kp: keypair
         - kp_id: mut_ptr<u8>
         - kp_id_max_len: size
 
 function keypair_replace_managed(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - kp_old: keypair
         - kp_new: keypair
     - Output:
@@ -246,7 +248,7 @@ function keypair_id(): crypto_errno
 
 function keypair_from_id(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - kp_id: ptr<u8>
         - kp_id_len: size
         - kp_version: version
@@ -436,7 +438,7 @@ function symmetric_key_close(): crypto_errno
 
 function symmetric_key_generate_managed(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - algorithm_ptr: wasi_string_ptr
         - algorithm_len: usize
         - options: opt_options
@@ -445,14 +447,14 @@ function symmetric_key_generate_managed(): crypto_errno
 
 function symmetric_key_store_managed(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - symmetric_key: symmetric_key
         - symmetric_key_id: mut_ptr<u8>
         - symmetric_key_id_max_len: size
 
 function symmetric_key_replace_managed(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - symmetric_key_old: symmetric_key
         - symmetric_key_new: symmetric_key
     - Output:
@@ -469,7 +471,7 @@ function symmetric_key_id(): crypto_errno
 
 function symmetric_key_from_id(): crypto_errno
     - Input:
-        - key_manager: key_manager
+        - secrets_manager: secrets_manager
         - symmetric_key_id: ptr<u8>
         - symmetric_key_id_len: size
         - symmetric_key_version: version
@@ -631,6 +633,62 @@ function kx_decapsulate(): crypto_errno
         - sk: secretkey
         - encapsulated_secret: ptr<u8>
         - encapsulated_secret_len: size
+    - Output:
+        - secret: mut_ptr<array_output>
+
+
+----------------------[Module: wasi_ephemeral_crypto_exernal_secrets]----------------------
+
+function external_secret_store(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret: ptr<u8>
+        - secret_len: size
+        - expiration: timestamp
+        - secret_id: mut_ptr<u8>
+        - secret_id_max_len: size
+
+function external_secret_replace(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret: ptr<u8>
+        - secret_len: size
+        - expiration: timestamp
+        - secret_id: ptr<u8>
+        - secret_id_len: size
+    - Output:
+        - secret_version: mut_ptr<version>
+
+function external_secret_from_id(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret_id: ptr<u8>
+        - secret_id_len: size
+        - secret_version: version
+    - Output:
+        - secret: mut_ptr<array_output>
+
+function external_secret_invalidate(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret_id: ptr<u8>
+        - secret_id_len: size
+        - secret_version: version
+
+function external_secret_encapsulate(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret: ptr<u8>
+        - secret_len: size
+        - expiration: timestamp
+    - Output:
+        - encrypted_secret: mut_ptr<array_output>
+
+function external_secret_decapsulate(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - encrypted_secret: ptr<u8>
+        - encrypted_secret_len: size
     - Output:
         - secret: mut_ptr<array_output>
 
