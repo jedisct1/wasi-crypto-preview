@@ -104,6 +104,7 @@ fn test_key_exchange() {
     ctx.keypair_close(kx_kp_handle2).unwrap();
 }
 
+#[cfg(feature = "pqcrypto")]
 #[test]
 fn test_key_encapsulation() {
     use crate::{AlgorithmType, CryptoCtx, KeyPairEncoding};

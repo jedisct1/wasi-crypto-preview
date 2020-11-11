@@ -10,9 +10,12 @@ byteorder = "1.3"
 curve25519-dalek = "3"
 derivative = "2.1"
 parking_lot = "0.11"
-pqcrypto = { version = "0.11", default-features = false, features = ["pqcrypto-kyber"] }
+pqcrypto = { version = "0.11", default-features = false, features = ["pqcrypto-kyber"], optional = true }
 ring = "0.17.0-alpha"
 thiserror = "1.0"
 wiggle = "0.21"
 xoodyak = "0.5"
 zeroize = "1.1"
+
+[features]
+default = ["pqcrypto"]

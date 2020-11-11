@@ -38,7 +38,10 @@ impl KxKeyPair {
     pub fn builder(alg: KxAlgorithm) -> Result<Box<dyn KxKeyPairBuilder>, CryptoError> {
         let builder = match alg {
             KxAlgorithm::X25519 => X25519KeyPairBuilder::new(alg),
+            #[cfg(feature = "pqcrypto")]
             KxAlgorithm::Kyber768 => Kyber768KeyPairBuilder::new(alg),
+            #[cfg(not(feature = "pqcrypto"))]
+            KxAlgorithm::Kyber768 => bail!(CryptoError::NotImplemented),
         };
         Ok(builder)
     }

@@ -1,6 +1,8 @@
+#[cfg(feature = "pqcrypto")]
 mod kyber;
 
 use super::*;
+#[cfg(feature = "pqcrypto")]
 pub use kyber::*;
 
 #[derive(Clone, Debug)]
