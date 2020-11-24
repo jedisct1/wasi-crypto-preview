@@ -6,6 +6,7 @@ use super::signature::*;
 use super::*;
 use crate::asymmetric_common::*;
 use crate::error::*;
+use crate::rand::SecureRandom;
 
 #[derive(Debug, Clone)]
 pub struct EcdsaSignatureSecretKey {
@@ -62,8 +63,8 @@ impl EcdsaSignatureKeyPair {
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
         let ring_alg = Self::ring_alg_from_alg(alg)?;
-        let rng = ring::rand::SystemRandom::new();
-        let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, &rng)
+        let rng = SecureRandom::new();
+        let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, rng.ring_rng())
             .map_err(|_| CryptoError::RNGError)?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }
@@ -127,11 +128,11 @@ impl SignatureStateLike for EcdsaSignatureState {
     }
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
-        let rng = ring::rand::SystemRandom::new();
+        let rng = SecureRandom::new();
         let encoded_signature = self
             .kp
             .ring_kp
-            .sign(&rng, &self.input)
+            .sign(rng.ring_rng(), &self.input)
             .map_err(|_| CryptoError::AlgorithmFailure)?
             .as_ref()
             .to_vec();

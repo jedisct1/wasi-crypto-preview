@@ -1,7 +1,7 @@
 use super::state::*;
 use super::*;
+use crate::rand::SecureRandom;
 
-use ring::rand::SecureRandom;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
@@ -72,9 +72,9 @@ impl HkdfSymmetricKeyBuilder {
 
 impl SymmetricKeyBuilder for HkdfSymmetricKeyBuilder {
     fn generate(&self, _options: Option<SymmetricOptions>) -> Result<SymmetricKey, CryptoError> {
-        let rng = ring::rand::SystemRandom::new();
+        let mut rng = SecureRandom::new();
         let mut raw = vec![0u8; self.key_len()?];
-        rng.fill(&mut raw).map_err(|_| CryptoError::RNGError)?;
+        rng.fill(&mut raw)?;
         self.import(&raw)
     }
 

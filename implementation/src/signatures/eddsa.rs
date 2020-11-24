@@ -5,6 +5,7 @@ use zeroize::Zeroize;
 use super::*;
 use crate::asymmetric_common::*;
 use crate::error::*;
+use crate::rand::SecureRandom;
 
 #[derive(Debug, Clone)]
 pub struct EddsaSignatureSecretKey {
@@ -38,8 +39,8 @@ impl EddsaSignatureKeyPair {
         alg: SignatureAlgorithm,
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
-        let rng = ring::rand::SystemRandom::new();
-        let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)
+        let rng = SecureRandom::new();
+        let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(rng.ring_rng())
             .map_err(|_| CryptoError::RNGError)?;
         Self::from_pkcs8(alg, pkcs8.as_ref())
     }

@@ -5,6 +5,7 @@ use zeroize::Zeroize;
 use super::*;
 use crate::asymmetric_common::*;
 use crate::error::*;
+use crate::rand::SecureRandom;
 
 #[derive(Debug, Clone)]
 pub struct RsaSignatureSecretKey {
@@ -104,7 +105,7 @@ impl SignatureStateLike for RsaSignatureState {
     }
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
-        let rng = ring::rand::SystemRandom::new();
+        let rng = SecureRandom::new();
         let mut signature_u8 = vec![];
         let padding_alg = match self.kp.alg {
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => &ring::signature::RSA_PKCS1_SHA256,
@@ -115,7 +116,7 @@ impl SignatureStateLike for RsaSignatureState {
         };
         self.kp
             .ring_kp
-            .sign(padding_alg, &rng, &self.input, &mut signature_u8)
+            .sign(padding_alg, rng.ring_rng(), &self.input, &mut signature_u8)
             .map_err(|_| CryptoError::AlgorithmFailure)?;
         let signature = RsaSignature(signature_u8);
         Ok(Signature::new(Box::new(signature)))

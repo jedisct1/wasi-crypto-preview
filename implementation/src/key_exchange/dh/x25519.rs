@@ -1,10 +1,11 @@
+use crate::rand::SecureRandom;
+
 use super::*;
 use curve25519_dalek::{
     constants::{BASEPOINT_ORDER, X25519_BASEPOINT},
     montgomery::MontgomeryPoint,
     scalar::Scalar,
 };
-use ring::rand::SecureRandom;
 use subtle::ConstantTimeEq;
 
 const PK_LEN: usize = 32;
@@ -113,9 +114,9 @@ fn reject_noncanonical_fe(s: &[u8]) -> Result<(), CryptoError> {
 
 impl KxKeyPairBuilder for X25519KeyPairBuilder {
     fn generate(&self, _options: Option<KxOptions>) -> Result<KxKeyPair, CryptoError> {
-        let rng = ring::rand::SystemRandom::new();
+        let mut rng = SecureRandom::new();
         let mut sk_raw = vec![0u8; SK_LEN];
-        rng.fill(&mut sk_raw).map_err(|_| CryptoError::RNGError)?;
+        rng.fill(&mut sk_raw)?;
         let sk = X25519SecretKey::new(self.alg, sk_raw)?;
         let pk = sk.x25519_publickey()?;
         let kp = X25519KeyPair {
