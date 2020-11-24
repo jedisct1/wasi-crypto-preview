@@ -2,10 +2,20 @@ use super::*;
 use state::*;
 
 use crate::rand::SecureRandom;
+use ::aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, NewAead};
+use ::aes_gcm::{Aes128Gcm, Aes256Gcm, AesGcm};
 use byteorder::{ByteOrder, LittleEndian};
-use ring::aead::BoundKey;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
+
+pub const NONCE_LEN: usize = 12;
+pub const TAG_LEN: usize = 16;
+
+#[allow(clippy::large_enum_variant)]
+enum AesGcmVariant {
+    Aes128(Aes128Gcm),
+    Aes256(Aes256Gcm),
+}
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -13,10 +23,10 @@ pub struct AesGcmSymmetricState {
     pub alg: SymmetricAlgorithm,
     options: SymmetricOptions,
     #[derivative(Debug = "ignore")]
-    ring_sealing_key: ring::aead::SealingKey<AesGcmNonceSequence>,
-    #[derivative(Debug = "ignore")]
-    ring_opening_key: ring::aead::OpeningKey<AesGcmNonceSequence>,
+    aes_gcm_impl: AesGcmVariant,
     ad: Vec<u8>,
+    nonce: [u8; NONCE_LEN],
+    nonce_is_safe_to_use: bool,
 }
 
 #[derive(Clone, Debug, Eq)]
@@ -85,35 +95,10 @@ impl SymmetricKeyBuilder for AesGcmSymmetricKeyBuilder {
 
     fn key_len(&self) -> Result<usize, CryptoError> {
         match self.alg {
-            SymmetricAlgorithm::Aes128Gcm => Ok(ring::aead::AES_128_GCM.key_len()),
-            SymmetricAlgorithm::Aes256Gcm => Ok(ring::aead::AES_256_GCM.key_len()),
+            SymmetricAlgorithm::Aes128Gcm => Ok(16),
+            SymmetricAlgorithm::Aes256Gcm => Ok(32),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct AesGcmNonceSequence {
-    nonce: [u8; ring::aead::NONCE_LEN],
-}
-
-impl AesGcmNonceSequence {
-    fn new(nonce: [u8; ring::aead::NONCE_LEN]) -> Self {
-        AesGcmNonceSequence { nonce }
-    }
-}
-
-impl ring::aead::NonceSequence for AesGcmNonceSequence {
-    fn advance(&mut self) -> Result<ring::aead::Nonce, ring::error::Unspecified> {
-        debug_assert_eq!(self.nonce.len(), 12);
-        let b0 = LittleEndian::read_u64(&self.nonce[..8]);
-        let b1 = LittleEndian::read_u32(&self.nonce[8..]);
-        let (b0, of) = b0.overflowing_add(1);
-        let b1 = b1.wrapping_add(of as _);
-        LittleEndian::write_u64(&mut self.nonce[..8], b0);
-        LittleEndian::write_u32(&mut self.nonce[8..], b1);
-        let ring_nonce = ring::aead::Nonce::assume_unique_for_key(self.nonce);
-        Ok(ring_nonce)
     }
 }
 
@@ -129,30 +114,27 @@ impl AesGcmSymmetricState {
             .as_any()
             .downcast_ref::<AesGcmSymmetricKey>()
             .ok_or(CryptoError::InvalidKey)?;
-        let ring_alg = match alg {
-            SymmetricAlgorithm::Aes128Gcm => &ring::aead::AES_128_GCM,
-            SymmetricAlgorithm::Aes256Gcm => &ring::aead::AES_256_GCM,
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
-        };
         let options = options.as_ref().ok_or(CryptoError::NonceRequired)?;
         let inner = options.inner.lock();
         let nonce_vec = inner.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
-        let mut nonce = [0u8; ring::aead::NONCE_LEN];
+        let mut nonce = [0u8; NONCE_LEN];
         nonce.copy_from_slice(&nonce_vec);
-        let nonce_sequence = AesGcmNonceSequence::new(nonce);
-        let ring_unbound_key = ring::aead::UnboundKey::new(ring_alg, key.as_raw()?)
-            .map_err(|_| CryptoError::InvalidKey)?;
-        let ring_sealing_key = ring::aead::SealingKey::new(ring_unbound_key, nonce_sequence);
-        let nonce_sequence = AesGcmNonceSequence::new(nonce);
-        let ring_unbound_key = ring::aead::UnboundKey::new(ring_alg, key.as_raw()?)
-            .map_err(|_| CryptoError::InvalidKey)?;
-        let ring_opening_key = ring::aead::OpeningKey::new(ring_unbound_key, nonce_sequence);
+        let aes_gcm_impl = match alg {
+            SymmetricAlgorithm::Aes128Gcm => {
+                AesGcmVariant::Aes128(Aes128Gcm::new(GenericArray::from_slice(key.as_raw()?)))
+            }
+            SymmetricAlgorithm::Aes256Gcm => {
+                AesGcmVariant::Aes256(Aes256Gcm::new(GenericArray::from_slice(key.as_raw()?)))
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
         let state = AesGcmSymmetricState {
             alg,
             options: options.clone(),
-            ring_sealing_key,
-            ring_opening_key,
+            aes_gcm_impl,
             ad: vec![],
+            nonce,
+            nonce_is_safe_to_use: true,
         };
         Ok(state)
     }
@@ -177,15 +159,21 @@ impl SymmetricStateLike for AesGcmSymmetricState {
     }
 
     fn max_tag_len(&mut self) -> Result<usize, CryptoError> {
-        Ok(ring::aead::MAX_TAG_LEN)
+        Ok(TAG_LEN)
     }
 
     fn encrypt_unchecked(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
         let data_len = data.len();
+        let out_len = data_len
+            .checked_add(self.max_tag_len()?)
+            .ok_or(CryptoError::InvalidLength)?;
+        if out.len() != out_len {
+            bail!(CryptoError::InvalidLength)
+        }
         let tag = self.encrypt_detached_unchecked(&mut out[..data_len], data)?;
-        let out_len = data_len + tag.as_ref().len();
-        out[data_len..out_len].copy_from_slice(tag.as_ref());
-        Ok(out_len)
+        let actual_out_len = data_len + tag.as_ref().len();
+        out[data_len..actual_out_len].copy_from_slice(tag.as_ref());
+        Ok(actual_out_len)
     }
 
     fn encrypt_detached_unchecked(
@@ -193,26 +181,38 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         out: &mut [u8],
         data: &[u8],
     ) -> Result<SymmetricTag, CryptoError> {
-        out[..data.len()].copy_from_slice(data);
-        let ring_ad = ring::aead::Aad::from(self.ad.clone());
-        let ring_tag = self
-            .ring_sealing_key
-            .seal_in_place_separate_tag(ring_ad, out)
-            .map_err(|_| CryptoError::AlgorithmFailure)?;
-        let symmetric_tag = SymmetricTag::new(self.alg, ring_tag.as_ref().to_vec());
-        Ok(symmetric_tag)
+        ensure!(self.nonce_is_safe_to_use, CryptoError::NonceRequired);
+        let data_len = data.len();
+        if out.len() != data_len {
+            bail!(CryptoError::InvalidLength)
+        }
+        if out.as_ptr() != data.as_ptr() {
+            out.copy_from_slice(data);
+        }
+        let raw_tag = match &self.aes_gcm_impl {
+            AesGcmVariant::Aes128(x) => {
+                x.encrypt_in_place_detached(GenericArray::from_slice(&self.nonce), &self.ad, out)
+            }
+            AesGcmVariant::Aes256(x) => {
+                x.encrypt_in_place_detached(GenericArray::from_slice(&self.nonce), &self.ad, out)
+            }
+        }
+        .map_err(|_| CryptoError::InternalError)?
+        .to_vec();
+        self.nonce_is_safe_to_use = true;
+        Ok(SymmetricTag::new(self.alg, raw_tag))
     }
 
     fn decrypt_unchecked(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
-        let mut in_out = data.to_vec();
-        let ring_ad = ring::aead::Aad::from(self.ad.clone());
-        let out_len = self
-            .ring_opening_key
-            .open_in_place(ring_ad, &mut in_out)
-            .map_err(|_| CryptoError::InvalidTag)?
-            .len();
-        out[..out_len].copy_from_slice(&in_out[..out_len]);
-        Ok(out_len)
+        let data_len = data.len();
+        let out_len = data_len
+            .checked_sub(self.max_tag_len()?)
+            .ok_or(CryptoError::InvalidTag)?;
+        if out.len() != out_len {
+            bail!(CryptoError::InvalidLength)
+        }
+        let raw_tag = &data[out_len..].to_vec();
+        self.decrypt_detached_unchecked(out, &data[..out_len], &raw_tag)
     }
 
     fn decrypt_detached_unchecked(
@@ -221,15 +221,28 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         data: &[u8],
         raw_tag: &[u8],
     ) -> Result<usize, CryptoError> {
-        let mut in_out = data.to_vec();
-        in_out.extend_from_slice(raw_tag);
-        let ring_ad = ring::aead::Aad::from(self.ad.clone());
-        let out_len = self
-            .ring_opening_key
-            .open_in_place(ring_ad, &mut in_out)
-            .map_err(|_| CryptoError::InvalidTag)?
-            .len();
-        out[..out_len].copy_from_slice(&in_out[..out_len]);
-        Ok(out_len)
+        let data_len = data.len();
+        if out.len() != data_len {
+            bail!(CryptoError::InvalidLength)
+        }
+        if out.as_ptr() != data.as_ptr() {
+            out[..data_len].copy_from_slice(data);
+        }
+        match &self.aes_gcm_impl {
+            AesGcmVariant::Aes128(x) => x.decrypt_in_place_detached(
+                GenericArray::from_slice(&self.nonce),
+                &self.ad,
+                out,
+                GenericArray::from_slice(raw_tag),
+            ),
+            AesGcmVariant::Aes256(x) => x.decrypt_in_place_detached(
+                GenericArray::from_slice(&self.nonce),
+                &self.ad,
+                out,
+                GenericArray::from_slice(raw_tag),
+            ),
+        }
+        .map_err(|_| CryptoError::InvalidTag)?;
+        Ok(data_len)
     }
 }
