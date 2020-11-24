@@ -4,8 +4,8 @@ use curve25519_dalek::{
     montgomery::MontgomeryPoint,
     scalar::Scalar,
 };
-use ring::constant_time::verify_slices_are_equal;
 use ring::rand::SecureRandom;
+use subtle::ConstantTimeEq;
 
 const PK_LEN: usize = 32;
 const SK_LEN: usize = 32;
@@ -79,7 +79,7 @@ fn reject_neutral_element(pk: &MontgomeryPoint) -> Result<(), CryptoError> {
     let mut pk_ = [0u8; PK_LEN];
     pk_.copy_from_slice(&pk.0);
     pk_[PK_LEN - 1] &= 127;
-    if verify_slices_are_equal(&zero, &pk_).is_ok() {
+    if zero.ct_eq(pk.as_bytes()).unwrap_u8() == 1 {
         bail!(CryptoError::InvalidKey);
     }
     Ok(())

@@ -4,6 +4,7 @@ use state::*;
 use byteorder::{ByteOrder, LittleEndian};
 use ring::aead::BoundKey;
 use ring::rand::SecureRandom;
+use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 #[derive(Derivative)]
@@ -26,8 +27,7 @@ pub struct AesGcmSymmetricKey {
 
 impl PartialEq for AesGcmSymmetricKey {
     fn eq(&self, other: &Self) -> bool {
-        self.alg == other.alg
-            && ring::constant_time::verify_slices_are_equal(&self.raw, &other.raw).is_ok()
+        self.alg == other.alg && self.raw.ct_eq(&other.raw).unwrap_u8() == 1
     }
 }
 

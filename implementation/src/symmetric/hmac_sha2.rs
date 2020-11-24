@@ -4,6 +4,7 @@ use super::*;
 use parking_lot::Mutex;
 use ring::rand::SecureRandom;
 use std::sync::Arc;
+use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 #[derive(Clone, Derivative)]
@@ -23,8 +24,7 @@ pub struct HmacSha2SymmetricKey {
 
 impl PartialEq for HmacSha2SymmetricKey {
     fn eq(&self, other: &Self) -> bool {
-        self.alg == other.alg
-            && ring::constant_time::verify_slices_are_equal(&self.raw, &other.raw).is_ok()
+        self.alg == other.alg && self.raw.ct_eq(&other.raw).unwrap_u8() == 1
     }
 }
 

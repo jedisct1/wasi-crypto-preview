@@ -3,6 +3,7 @@ use super::*;
 
 use ::xoodyak::*;
 use ring::rand::SecureRandom;
+use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 #[derive(Clone, Debug)]
@@ -20,8 +21,7 @@ pub struct XoodyakSymmetricKey {
 
 impl PartialEq for XoodyakSymmetricKey {
     fn eq(&self, other: &Self) -> bool {
-        self.alg == other.alg
-            && ring::constant_time::verify_slices_are_equal(&self.raw, &other.raw).is_ok()
+        self.alg == other.alg && self.raw.ct_eq(&other.raw).unwrap_u8() == 1
     }
 }
 

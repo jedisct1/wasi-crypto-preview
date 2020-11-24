@@ -12,6 +12,7 @@ derivative = "2.1"
 parking_lot = "0.11"
 pqcrypto = { version = "0.11", default-features = false, features = ["pqcrypto-kyber"], optional = true }
 ring = "0.17.0-alpha"
+subtle = "2.3"
 thiserror = "1.0"
 wiggle = "0.21"
 xoodyak = "0.5"

@@ -1,6 +1,7 @@
 use super::*;
 use crate::CryptoCtx;
 
+use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 #[derive(Debug, Clone, Eq)]
@@ -11,8 +12,7 @@ pub struct SymmetricTag {
 
 impl PartialEq for SymmetricTag {
     fn eq(&self, other: &Self) -> bool {
-        self.alg == other.alg
-            && ring::constant_time::verify_slices_are_equal(&self.raw, &other.raw).is_ok()
+        self.alg == other.alg && self.raw.ct_eq(&other.raw).unwrap_u8() == 1
     }
 }
 
@@ -28,8 +28,11 @@ impl SymmetricTag {
     }
 
     pub fn verify(&self, expected_raw: &[u8]) -> Result<(), CryptoError> {
-        ring::constant_time::verify_slices_are_equal(&self.raw, expected_raw)
-            .map_err(|_| CryptoError::InvalidTag)
+        ensure!(
+            self.raw.ct_eq(expected_raw).unwrap_u8() == 1,
+            CryptoError::InvalidTag
+        );
+        Ok(())
     }
 }
 

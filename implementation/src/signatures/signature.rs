@@ -1,6 +1,7 @@
 use parking_lot::{Mutex, MutexGuard};
 use std::convert::TryFrom;
 use std::sync::Arc;
+use subtle::ConstantTimeEq;
 
 use super::ecdsa::*;
 use super::eddsa::*;
@@ -25,7 +26,7 @@ impl PartialEq for Signature {
         let v1 = v1.as_ref();
         let v2 = other.inner();
         let v2 = v2.as_ref();
-        ring::constant_time::verify_slices_are_equal(v1.as_ref(), v2.as_ref()).is_ok()
+        v1.as_ref().ct_eq(v2.as_ref()).unwrap_u8() == 1
     }
 }
 
