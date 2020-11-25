@@ -23,7 +23,7 @@ pub struct AesGcmSymmetricState {
     pub alg: SymmetricAlgorithm,
     options: SymmetricOptions,
     #[derivative(Debug = "ignore")]
-    aes_gcm_impl: AesGcmVariant,
+    ctx: AesGcmVariant,
     ad: Vec<u8>,
     nonce: [u8; NONCE_LEN],
     nonce_is_safe_to_use: bool,
@@ -131,7 +131,7 @@ impl AesGcmSymmetricState {
         let state = AesGcmSymmetricState {
             alg,
             options: options.clone(),
-            aes_gcm_impl,
+            ctx: aes_gcm_impl,
             ad: vec![],
             nonce,
             nonce_is_safe_to_use: true,
@@ -189,7 +189,7 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         if out.as_ptr() != data.as_ptr() {
             out.copy_from_slice(data);
         }
-        let raw_tag = match &self.aes_gcm_impl {
+        let raw_tag = match &self.ctx {
             AesGcmVariant::Aes128(x) => {
                 x.encrypt_in_place_detached(GenericArray::from_slice(&self.nonce), &self.ad, out)
             }
@@ -228,7 +228,7 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         if out.as_ptr() != data.as_ptr() {
             out[..data_len].copy_from_slice(data);
         }
-        match &self.aes_gcm_impl {
+        match &self.ctx {
             AesGcmVariant::Aes128(x) => x.decrypt_in_place_detached(
                 GenericArray::from_slice(&self.nonce),
                 &self.ad,
