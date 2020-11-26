@@ -2,18 +2,26 @@ use super::state::*;
 use super::*;
 use crate::rand::SecureRandom;
 
+use ::sha2::{Sha256, Sha512};
+use hmac::{Hmac, Mac, NewMac};
 use parking_lot::Mutex;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
-#[derive(Clone, Derivative)]
+#[allow(clippy::large_enum_variant)]
+enum HmacVariant {
+    Sha256(Arc<Mutex<Hmac<Sha256>>>),
+    Sha512(Arc<Mutex<Hmac<Sha512>>>),
+}
+
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub struct HmacSha2SymmetricState {
     pub alg: SymmetricAlgorithm,
     options: Option<SymmetricOptions>,
     #[derivative(Debug = "ignore")]
-    pub ring_ctx: Arc<Mutex<ring::hmac::Context>>,
+    ctx: HmacVariant,
 }
 
 #[derive(Clone, Debug, Eq)]
@@ -82,8 +90,8 @@ impl SymmetricKeyBuilder for HmacSha2SymmetricKeyBuilder {
 
     fn key_len(&self) -> Result<usize, CryptoError> {
         match self.alg {
-            SymmetricAlgorithm::HmacSha256 => Ok(ring::digest::SHA256_OUTPUT_LEN),
-            SymmetricAlgorithm::HmacSha512 => Ok(ring::digest::SHA512_OUTPUT_LEN),
+            SymmetricAlgorithm::HmacSha256 => Ok(32),
+            SymmetricAlgorithm::HmacSha512 => Ok(64),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }
@@ -101,18 +109,16 @@ impl HmacSha2SymmetricState {
             .as_any()
             .downcast_ref::<HmacSha2SymmetricKey>()
             .ok_or(CryptoError::InvalidKey)?;
-        let ring_alg = match alg {
-            SymmetricAlgorithm::HmacSha256 => ring::hmac::HMAC_SHA256,
-            SymmetricAlgorithm::HmacSha512 => ring::hmac::HMAC_SHA512,
+        let ctx = match alg {
+            SymmetricAlgorithm::HmacSha256 => HmacVariant::Sha256(Arc::new(Mutex::new(
+                Hmac::<Sha256>::new_varkey(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
+            ))),
+            SymmetricAlgorithm::HmacSha512 => HmacVariant::Sha512(Arc::new(Mutex::new(
+                Hmac::<Sha512>::new_varkey(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
+            ))),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
-        let ring_key = ring::hmac::Key::new(ring_alg, key.as_raw()?);
-        let ring_ctx = ring::hmac::Context::with_key(&ring_key);
-        Ok(HmacSha2SymmetricState {
-            alg,
-            options,
-            ring_ctx: Arc::new(Mutex::new(ring_ctx)),
-        })
+        Ok(HmacSha2SymmetricState { alg, options, ctx })
     }
 }
 
@@ -136,12 +142,18 @@ impl SymmetricStateLike for HmacSha2SymmetricState {
     }
 
     fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
-        self.ring_ctx.lock().update(data);
+        match &self.ctx {
+            HmacVariant::Sha256(x) => x.lock().update(data),
+            HmacVariant::Sha512(x) => x.lock().update(data),
+        };
         Ok(())
     }
 
     fn squeeze_tag(&mut self) -> Result<SymmetricTag, CryptoError> {
-        let raw = self.ring_ctx.lock().clone().sign().as_ref().to_vec();
+        let raw = match &self.ctx {
+            HmacVariant::Sha256(x) => x.lock().clone().finalize().into_bytes().to_vec(),
+            HmacVariant::Sha512(x) => x.lock().clone().finalize().into_bytes().to_vec(),
+        };
         Ok(SymmetricTag::new(self.alg, raw))
     }
 }
