@@ -5,14 +5,13 @@ use crate::rand::SecureRandom;
 use ::sha2::{Sha256, Sha512};
 use hmac::{Hmac, Mac, NewMac};
 use parking_lot::Mutex;
-use std::sync::Arc;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 #[allow(clippy::large_enum_variant)]
 enum HmacVariant {
-    Sha256(Arc<Mutex<Hmac<Sha256>>>),
-    Sha512(Arc<Mutex<Hmac<Sha512>>>),
+    Sha256(Mutex<Hmac<Sha256>>),
+    Sha512(Mutex<Hmac<Sha512>>),
 }
 
 #[derive(Derivative)]
@@ -110,12 +109,12 @@ impl HmacSha2SymmetricState {
             .downcast_ref::<HmacSha2SymmetricKey>()
             .ok_or(CryptoError::InvalidKey)?;
         let ctx = match alg {
-            SymmetricAlgorithm::HmacSha256 => HmacVariant::Sha256(Arc::new(Mutex::new(
+            SymmetricAlgorithm::HmacSha256 => HmacVariant::Sha256(Mutex::new(
                 Hmac::<Sha256>::new_varkey(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
-            ))),
-            SymmetricAlgorithm::HmacSha512 => HmacVariant::Sha512(Arc::new(Mutex::new(
+            )),
+            SymmetricAlgorithm::HmacSha512 => HmacVariant::Sha512(Mutex::new(
                 Hmac::<Sha512>::new_varkey(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
-            ))),
+            )),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         Ok(HmacSha2SymmetricState { alg, options, ctx })
