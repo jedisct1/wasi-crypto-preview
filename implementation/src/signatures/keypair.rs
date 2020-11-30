@@ -6,7 +6,7 @@ use super::*;
 use crate::asymmetric_common::*;
 use crate::error::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum SignatureKeyPair {
     Ecdsa(EcdsaSignatureKeyPair),
     Eddsa(EddsaSignatureKeyPair),

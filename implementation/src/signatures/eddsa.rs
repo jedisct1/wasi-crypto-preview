@@ -1,6 +1,5 @@
-use ring::signature::KeyPair as _;
+use ed25519_dalek::Signer as _;
 use std::sync::Arc;
-use zeroize::Zeroize;
 
 use super::*;
 use crate::asymmetric_common::*;
@@ -12,37 +11,42 @@ pub struct EddsaSignatureSecretKey {
     pub alg: SignatureAlgorithm,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct EddsaSignatureKeyPair {
     pub alg: SignatureAlgorithm,
-    pub pkcs8: Vec<u8>,
-    pub ring_kp: Arc<ring::signature::Ed25519KeyPair>,
+    pub dalek_kp: ed25519_dalek::Keypair,
+}
+
+impl Clone for EddsaSignatureKeyPair {
+    fn clone(&self) -> Self {
+        let dalek_kp = ed25519_dalek::Keypair::from_bytes(&self.dalek_kp.to_bytes()).unwrap();
+        EddsaSignatureKeyPair {
+            alg: self.alg,
+            dalek_kp,
+        }
+    }
 }
 
 impl EddsaSignatureKeyPair {
-    pub fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
-        let ring_kp = ring::signature::Ed25519KeyPair::from_pkcs8(pkcs8)
-            .map_err(|_| CryptoError::InvalidKey)?;
-        let kp = EddsaSignatureKeyPair {
-            alg,
-            pkcs8: pkcs8.to_vec(),
-            ring_kp: Arc::new(ring_kp),
-        };
-        Ok(kp)
+    pub fn from_pkcs8(alg: SignatureAlgorithm, _pkcs8: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(
+            alg == SignatureAlgorithm::Ed25519,
+            CryptoError::UnsupportedAlgorithm
+        );
+        bail!(CryptoError::NotImplemented)
     }
 
     pub fn as_pkcs8(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.pkcs8)
+        bail!(CryptoError::NotImplemented)
     }
 
     pub fn generate(
         alg: SignatureAlgorithm,
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
-        let rng = SecureRandom::new();
-        let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(rng.ring_rng())
-            .map_err(|_| CryptoError::RNGError)?;
-        Self::from_pkcs8(alg, pkcs8.as_ref())
+        let mut rng = SecureRandom::new();
+        let dalek_kp = ed25519_dalek::Keypair::generate(&mut rng);
+        Ok(EddsaSignatureKeyPair { alg, dalek_kp })
     }
 
     pub fn import(
@@ -59,13 +63,7 @@ impl EddsaSignatureKeyPair {
     }
 
     pub fn raw_public_key(&self) -> &[u8] {
-        self.ring_kp.public_key().as_ref()
-    }
-}
-
-impl Drop for EddsaSignatureKeyPair {
-    fn drop(&mut self) {
-        self.pkcs8.zeroize();
+        self.dalek_kp.public.as_bytes()
     }
 }
 
@@ -107,7 +105,7 @@ impl SignatureStateLike for EddsaSignatureState {
     }
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
-        let signature_u8 = self.kp.ring_kp.sign(&self.input).as_ref().to_vec();
+        let signature_u8 = Vec::from(self.kp.dalek_kp.sign(&self.input).to_bytes());
         let signature = EddsaSignature(signature_u8);
         Ok(Signature::new(Box::new(signature)))
     }
@@ -137,13 +135,17 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
             .as_any()
             .downcast_ref::<EddsaSignature>()
             .ok_or(CryptoError::InvalidSignature)?;
-        let ring_alg = match self.pk.alg {
-            SignatureAlgorithm::Ed25519 => &ring::signature::ED25519,
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
-        };
-        let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
-        ring_pk
-            .verify(self.input.as_ref(), signature.as_ref())
+        let mut signature_u8 = [0u8; 64];
+        ensure!(
+            signature.as_ref().len() == signature_u8.len(),
+            CryptoError::InvalidSignature
+        );
+        signature_u8.copy_from_slice(signature.as_ref());
+        let dalek_signature = ed25519_dalek::Signature::new(signature_u8);
+        let dalek_pk = ed25519_dalek::PublicKey::from_bytes(self.pk.as_raw()?)
+            .map_err(|_| CryptoError::InvalidKey)?;
+        dalek_pk
+            .verify_strict(self.input.as_ref(), &dalek_signature)
             .map_err(|_| CryptoError::VerificationFailed)?;
         Ok(())
     }
