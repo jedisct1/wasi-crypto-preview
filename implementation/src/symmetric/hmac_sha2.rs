@@ -8,6 +8,7 @@ use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
 #[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
 enum HmacVariant {
     Sha256(Hmac<Sha256>),
     Sha512(Hmac<Sha512>),
@@ -18,7 +19,6 @@ enum HmacVariant {
 pub struct HmacSha2SymmetricState {
     pub alg: SymmetricAlgorithm,
     options: Option<SymmetricOptions>,
-    #[derivative(Debug = "ignore")]
     ctx: HmacVariant,
 }
 

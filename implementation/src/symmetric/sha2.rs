@@ -1,13 +1,22 @@
 use super::state::*;
 use super::*;
 
-#[derive(Clone, Derivative)]
+use ::sha2::{Digest, Sha256, Sha512, Sha512Trunc256};
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
+enum HashVariant {
+    Sha256(Sha256),
+    Sha512(Sha512),
+    Sha512_256(Sha512Trunc256),
+}
+
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Sha2SymmetricState {
     pub alg: SymmetricAlgorithm,
     options: Option<SymmetricOptions>,
-    #[derivative(Debug = "ignore")]
-    pub ring_ctx: ring::digest::Context,
+    ctx: HashVariant,
 }
 
 impl Sha2SymmetricState {
@@ -19,18 +28,13 @@ impl Sha2SymmetricState {
         if key.is_some() {
             return Err(CryptoError::KeyNotSupported);
         }
-        let ring_alg = match alg {
-            SymmetricAlgorithm::Sha256 => &ring::digest::SHA256,
-            SymmetricAlgorithm::Sha512 => &ring::digest::SHA512,
-            SymmetricAlgorithm::Sha512_256 => &ring::digest::SHA512_256,
+        let ctx = match alg {
+            SymmetricAlgorithm::Sha256 => HashVariant::Sha256(Sha256::new()),
+            SymmetricAlgorithm::Sha512 => HashVariant::Sha512(Sha512::new()),
+            SymmetricAlgorithm::Sha512_256 => HashVariant::Sha512_256(Sha512Trunc256::new()),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
-        let ring_ctx = ring::digest::Context::new(ring_alg);
-        Ok(Sha2SymmetricState {
-            alg,
-            options,
-            ring_ctx,
-        })
+        Ok(Sha2SymmetricState { alg, options, ctx })
     }
 }
 
@@ -54,17 +58,22 @@ impl SymmetricStateLike for Sha2SymmetricState {
     }
 
     fn absorb(&mut self, data: &[u8]) -> Result<(), CryptoError> {
-        self.ring_ctx.update(data);
+        match &mut self.ctx {
+            HashVariant::Sha256(x) => x.update(data),
+            HashVariant::Sha512(x) => x.update(data),
+            HashVariant::Sha512_256(x) => x.update(data),
+        };
         Ok(())
     }
 
     fn squeeze(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {
-        let digest = self.ring_ctx.clone().finish();
-        ensure!(
-            digest.as_ref().len() >= out.len(),
-            CryptoError::InvalidLength
-        );
-        out.copy_from_slice(&digest.as_ref()[..out.len()]);
+        let raw = match &self.ctx {
+            HashVariant::Sha256(x) => x.clone().finalize().to_vec(),
+            HashVariant::Sha512(x) => x.clone().finalize().to_vec(),
+            HashVariant::Sha512_256(x) => x.clone().finalize().to_vec(),
+        };
+        ensure!(raw.len() >= out.len(), CryptoError::InvalidLength);
+        out.copy_from_slice(&raw[..out.len()]);
         Ok(())
     }
 }
