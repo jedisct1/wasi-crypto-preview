@@ -41,6 +41,10 @@ impl RsaSignatureKeyPair {
         Ok(&self.pkcs8)
     }
 
+    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
+        bail!(CryptoError::UnsupportedEncoding)
+    }
+
     #[allow(dead_code)]
     pub fn generate(
         _alg: SignatureAlgorithm,

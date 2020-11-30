@@ -1,10 +1,13 @@
 use ed25519_dalek::Signer as _;
-use std::sync::Arc;
+use zeroize::Zeroize;
 
 use super::*;
 use crate::asymmetric_common::*;
 use crate::error::*;
 use crate::rand::SecureRandom;
+
+const KP_LEN: usize = ed25519_dalek::KEYPAIR_LENGTH;
+const PK_LEN: usize = ed25519_dalek::PUBLIC_KEY_LENGTH;
 
 #[derive(Debug, Clone)]
 pub struct EddsaSignatureSecretKey {
@@ -15,6 +18,7 @@ pub struct EddsaSignatureSecretKey {
 pub struct EddsaSignatureKeyPair {
     pub alg: SignatureAlgorithm,
     pub dalek_kp: ed25519_dalek::Keypair,
+    pub raw_u8: [u8; KP_LEN],
 }
 
 impl Clone for EddsaSignatureKeyPair {
@@ -23,21 +27,41 @@ impl Clone for EddsaSignatureKeyPair {
         EddsaSignatureKeyPair {
             alg: self.alg,
             dalek_kp,
+            raw_u8: self.raw_u8,
         }
     }
 }
 
+impl Drop for EddsaSignatureKeyPair {
+    fn drop(&mut self) {
+        self.raw_u8.zeroize();
+    }
+}
+
 impl EddsaSignatureKeyPair {
-    pub fn from_pkcs8(alg: SignatureAlgorithm, _pkcs8: &[u8]) -> Result<Self, CryptoError> {
-        ensure!(
-            alg == SignatureAlgorithm::Ed25519,
-            CryptoError::UnsupportedAlgorithm
-        );
+    pub fn from_pkcs8(_alg: SignatureAlgorithm, _pkcs8: &[u8]) -> Result<Self, CryptoError> {
         bail!(CryptoError::NotImplemented)
     }
 
     pub fn as_pkcs8(&self) -> Result<&[u8], CryptoError> {
         bail!(CryptoError::NotImplemented)
+    }
+
+    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        let mut raw_u8 = [0u8; KP_LEN];
+        ensure!(raw.len() == raw_u8.len(), CryptoError::InvalidKey);
+        raw_u8.copy_from_slice(raw);
+        let dalek_kp =
+            ed25519_dalek::Keypair::from_bytes(&raw_u8).map_err(|_| CryptoError::InvalidKey)?;
+        Ok(EddsaSignatureKeyPair {
+            alg,
+            dalek_kp,
+            raw_u8,
+        })
+    }
+
+    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
+        Ok(&self.raw_u8)
     }
 
     pub fn generate(
@@ -46,7 +70,12 @@ impl EddsaSignatureKeyPair {
     ) -> Result<Self, CryptoError> {
         let mut rng = SecureRandom::new();
         let dalek_kp = ed25519_dalek::Keypair::generate(&mut rng);
-        Ok(EddsaSignatureKeyPair { alg, dalek_kp })
+        let raw_u8 = dalek_kp.to_bytes();
+        Ok(EddsaSignatureKeyPair {
+            alg,
+            dalek_kp,
+            raw_u8,
+        })
     }
 
     pub fn import(
@@ -54,11 +83,15 @@ impl EddsaSignatureKeyPair {
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Self, CryptoError> {
-        match encoding {
-            KeyPairEncoding::Pkcs8 => {}
+        ensure!(
+            alg == SignatureAlgorithm::Ed25519,
+            CryptoError::UnsupportedAlgorithm
+        );
+        let kp = match encoding {
+            KeyPairEncoding::Pkcs8 => EddsaSignatureKeyPair::from_pkcs8(alg, encoded)?,
+            KeyPairEncoding::Raw => EddsaSignatureKeyPair::from_raw(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
-        let kp = EddsaSignatureKeyPair::from_pkcs8(alg, encoded)?;
         Ok(kp)
     }
 
@@ -135,7 +168,7 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
             .as_any()
             .downcast_ref::<EddsaSignature>()
             .ok_or(CryptoError::InvalidSignature)?;
-        let mut signature_u8 = [0u8; 64];
+        let mut signature_u8 = [0u8; KP_LEN];
         ensure!(
             signature.as_ref().len() == signature_u8.len(),
             CryptoError::InvalidSignature
@@ -153,19 +186,19 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
 #[derive(Clone, Debug)]
 pub struct EddsaSignaturePublicKey {
     pub alg: SignatureAlgorithm,
-    pub raw: Vec<u8>,
+    pub raw_u8: [u8; PK_LEN],
 }
 
 impl EddsaSignaturePublicKey {
     pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
-        let pk = EddsaSignaturePublicKey {
-            alg,
-            raw: raw.to_vec(),
-        };
+        let mut raw_u8 = [0u8; PK_LEN];
+        ensure!(raw.len() == raw_u8.len(), CryptoError::InvalidKey);
+        raw_u8.copy_from_slice(raw);
+        let pk = EddsaSignaturePublicKey { alg, raw_u8 };
         Ok(pk)
     }
 
     pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.raw)
+        Ok(&self.raw_u8)
     }
 }

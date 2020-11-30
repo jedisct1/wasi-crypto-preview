@@ -21,6 +21,11 @@ impl SignatureKeyPair {
                 SignatureKeyPair::Eddsa(kp) => kp.as_pkcs8()?.to_vec(),
                 SignatureKeyPair::Rsa(kp) => kp.as_pkcs8()?.to_vec(),
             },
+            KeyPairEncoding::Raw => match self {
+                SignatureKeyPair::Ecdsa(kp) => kp.as_raw()?.to_vec(),
+                SignatureKeyPair::Eddsa(kp) => kp.as_raw()?.to_vec(),
+                SignatureKeyPair::Rsa(kp) => kp.as_raw()?.to_vec(),
+            },
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
         Ok(encoded)

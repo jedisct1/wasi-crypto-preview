@@ -58,6 +58,10 @@ impl EcdsaSignatureKeyPair {
         Ok(&self.pkcs8)
     }
 
+    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
+        bail!(CryptoError::UnsupportedEncoding)
+    }
+
     pub fn generate(
         alg: SignatureAlgorithm,
         _options: Option<SignatureOptions>,
