@@ -2,6 +2,8 @@ use super::state::*;
 use super::*;
 use crate::rand::SecureRandom;
 
+use ::hkdf::Hkdf;
+use ::sha2::{Sha256, Sha512};
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
@@ -85,12 +87,8 @@ impl SymmetricKeyBuilder for HkdfSymmetricKeyBuilder {
 
     fn key_len(&self) -> Result<usize, CryptoError> {
         match self.alg {
-            SymmetricAlgorithm::HkdfSha256Expand | SymmetricAlgorithm::HkdfSha256Extract => {
-                Ok(ring::digest::SHA256_OUTPUT_LEN)
-            }
-            SymmetricAlgorithm::HkdfSha512Expand | SymmetricAlgorithm::HkdfSha512Extract => {
-                Ok(ring::digest::SHA512_OUTPUT_LEN)
-            }
+            SymmetricAlgorithm::HkdfSha256Expand | SymmetricAlgorithm::HkdfSha256Extract => Ok(32),
+            SymmetricAlgorithm::HkdfSha512Expand | SymmetricAlgorithm::HkdfSha512Extract => Ok(64),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }
@@ -143,45 +141,33 @@ impl SymmetricStateLike for HkdfSymmetricState {
     }
 
     fn squeeze_key(&mut self, alg_str: &str) -> Result<SymmetricKey, CryptoError> {
-        let ring_alg = match self.alg {
-            SymmetricAlgorithm::HkdfSha256Extract => ring::hmac::HMAC_SHA256,
-            SymmetricAlgorithm::HkdfSha512Extract => ring::hmac::HMAC_SHA512,
+        let raw_prk = match self.alg {
+            SymmetricAlgorithm::HkdfSha256Extract => {
+                Hkdf::<Sha256>::extract(Some(&self.data), &self.key)
+                    .0
+                    .to_vec()
+            }
+            SymmetricAlgorithm::HkdfSha512Extract => {
+                Hkdf::<Sha512>::extract(Some(&self.data), &self.key)
+                    .0
+                    .to_vec()
+            }
             _ => bail!(CryptoError::InvalidOperation),
         };
-        let ring_salt = ring::hmac::Key::new(ring_alg, &self.data);
-        let ring_prk = ring::hmac::sign(&ring_salt, &self.key);
         let builder = SymmetricKey::builder(alg_str)?;
-        let raw = ring_prk.as_ref();
-        builder.import(&raw)
+        builder.import(&raw_prk)
     }
 
     fn squeeze(&mut self, out: &mut [u8]) -> Result<(), CryptoError> {
-        let ring_alg = match self.alg {
-            SymmetricAlgorithm::HkdfSha256Expand => ring::hkdf::HKDF_SHA256,
-            SymmetricAlgorithm::HkdfSha512Expand => ring::hkdf::HKDF_SHA512,
+        match self.alg {
+            SymmetricAlgorithm::HkdfSha256Expand => Hkdf::<Sha256>::from_prk(&self.key)
+                .map_err(|_| CryptoError::InvalidKey)?
+                .expand(&self.data, out),
+            SymmetricAlgorithm::HkdfSha512Expand => Hkdf::<Sha512>::from_prk(&self.key)
+                .map_err(|_| CryptoError::InvalidKey)?
+                .expand(&self.data, out),
             _ => bail!(CryptoError::InvalidOperation),
-        };
-        let ring_prk = ring::hkdf::Prk::new_less_safe(ring_alg, &self.key);
-        let ring_data = [self.data.as_ref()];
-        let ring_ohm = ring_prk
-            .expand(&ring_data, HkdfOutLen::new(out.len()))
-            .map_err(|_| CryptoError::Overflow)?;
-        ring_ohm.fill(out).map_err(|_| CryptoError::Overflow)?;
-        Ok(())
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-struct HkdfOutLen(usize);
-
-impl HkdfOutLen {
-    fn new(len: usize) -> Self {
-        HkdfOutLen(len)
-    }
-}
-
-impl ring::hkdf::KeyType for HkdfOutLen {
-    fn len(&self) -> usize {
-        self.0
+        }
+        .map_err(|_| CryptoError::Overflow)
     }
 }
