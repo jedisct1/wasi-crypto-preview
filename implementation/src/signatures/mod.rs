@@ -7,8 +7,8 @@ mod secretkey;
 mod signature;
 mod wasi_glue;
 
-use crate::error::*;
 use crate::options::*;
+use crate::{asymmetric_common, error::*};
 
 pub use keypair::*;
 pub use publickey::*;
@@ -22,7 +22,7 @@ use std::convert::TryFrom;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SignatureAlgorithm {
     ECDSA_P256_SHA256,
-    ECDSA_P384_SHA384,
+    ECDSA_K256_SHA256,
     Ed25519,
     RSA_PKCS1_2048_8192_SHA256,
     RSA_PKCS1_2048_8192_SHA384,
@@ -36,7 +36,7 @@ impl TryFrom<&str> for SignatureAlgorithm {
     fn try_from(alg_str: &str) -> Result<Self, CryptoError> {
         match alg_str.to_uppercase().as_str() {
             "ECDSA_P256_SHA256" => Ok(SignatureAlgorithm::ECDSA_P256_SHA256),
-            "ECDSA_P384_SHA384" => Ok(SignatureAlgorithm::ECDSA_P384_SHA384),
+            "ECDSA_K256_SHA256" => Ok(SignatureAlgorithm::ECDSA_K256_SHA256),
             "ED25519" => Ok(SignatureAlgorithm::Ed25519),
             "RSA_PKCS1_2048_8192_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256),
             "RSA_PKCS1_2048_8192_SHA384" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384),
@@ -74,6 +74,35 @@ fn test_signatures_ecdsa() {
         .keypair_generate(AlgorithmType::Signatures, "ECDSA_P256_SHA256", None)
         .unwrap();
     let pk_handle = ctx.keypair_publickey(kp_handle).unwrap();
+
+    let pk_serialized = ctx
+        .publickey_export(pk_handle, asymmetric_common::PublicKeyEncoding::Raw)
+        .unwrap();
+    let mut raw = vec![0u8; ctx.array_output_len(pk_serialized).unwrap()];
+    ctx.array_output_pull(pk_serialized, &mut raw).unwrap();
+    let pk_handle = ctx
+        .publickey_import(
+            AlgorithmType::Signatures,
+            "ECDSA_P256_SHA256",
+            &raw,
+            asymmetric_common::PublicKeyEncoding::Raw,
+        )
+        .unwrap();
+
+    let kp_serialized = ctx
+        .keypair_export(kp_handle, asymmetric_common::KeyPairEncoding::Raw)
+        .unwrap();
+    let mut raw = vec![0u8; ctx.array_output_len(kp_serialized).unwrap()];
+    ctx.array_output_pull(kp_serialized, &mut raw).unwrap();
+    let kp2_handle = ctx
+        .keypair_import(
+            AlgorithmType::Signatures,
+            "ECDSA_P256_SHA256",
+            &raw,
+            asymmetric_common::KeyPairEncoding::Raw,
+        )
+        .unwrap();
+    let kp_handle = kp2_handle;
 
     let state_handle = ctx.signature_state_open(kp_handle).unwrap();
     ctx.signature_state_update(state_handle, b"test").unwrap();

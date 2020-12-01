@@ -1,5 +1,5 @@
 use ed25519_dalek::Signer as _;
-use zeroize::Zeroize;
+use std::sync::Arc;
 
 use super::*;
 use crate::asymmetric_common::*;
@@ -14,54 +14,24 @@ pub struct EddsaSignatureSecretKey {
     pub alg: SignatureAlgorithm,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EddsaSignatureKeyPair {
     pub alg: SignatureAlgorithm,
-    pub dalek_kp: ed25519_dalek::Keypair,
-    pub raw_u8: [u8; KP_LEN],
-}
-
-impl Clone for EddsaSignatureKeyPair {
-    fn clone(&self) -> Self {
-        let dalek_kp = ed25519_dalek::Keypair::from_bytes(&self.dalek_kp.to_bytes()).unwrap();
-        EddsaSignatureKeyPair {
-            alg: self.alg,
-            dalek_kp,
-            raw_u8: self.raw_u8,
-        }
-    }
-}
-
-impl Drop for EddsaSignatureKeyPair {
-    fn drop(&mut self) {
-        self.raw_u8.zeroize();
-    }
+    pub ctx: Arc<ed25519_dalek::Keypair>,
 }
 
 impl EddsaSignatureKeyPair {
-    pub fn from_pkcs8(_alg: SignatureAlgorithm, _pkcs8: &[u8]) -> Result<Self, CryptoError> {
-        bail!(CryptoError::NotImplemented)
-    }
-
-    pub fn as_pkcs8(&self) -> Result<&[u8], CryptoError> {
-        bail!(CryptoError::NotImplemented)
-    }
-
     pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
-        let mut raw_u8 = [0u8; KP_LEN];
-        ensure!(raw.len() == raw_u8.len(), CryptoError::InvalidKey);
-        raw_u8.copy_from_slice(raw);
-        let dalek_kp =
-            ed25519_dalek::Keypair::from_bytes(&raw_u8).map_err(|_| CryptoError::InvalidKey)?;
+        ensure!(raw.len() == KP_LEN, CryptoError::InvalidKey);
+        let ctx = ed25519_dalek::Keypair::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
         Ok(EddsaSignatureKeyPair {
             alg,
-            dalek_kp,
-            raw_u8,
+            ctx: Arc::new(ctx),
         })
     }
 
-    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.raw_u8)
+    pub fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+        Ok(Vec::from(self.ctx.to_bytes()))
     }
 
     pub fn generate(
@@ -69,12 +39,10 @@ impl EddsaSignatureKeyPair {
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
         let mut rng = SecureRandom::new();
-        let dalek_kp = ed25519_dalek::Keypair::generate(&mut rng);
-        let raw_u8 = dalek_kp.to_bytes();
+        let ctx = ed25519_dalek::Keypair::generate(&mut rng);
         Ok(EddsaSignatureKeyPair {
             alg,
-            dalek_kp,
-            raw_u8,
+            ctx: Arc::new(ctx),
         })
     }
 
@@ -88,15 +56,22 @@ impl EddsaSignatureKeyPair {
             CryptoError::UnsupportedAlgorithm
         );
         let kp = match encoding {
-            KeyPairEncoding::Pkcs8 => EddsaSignatureKeyPair::from_pkcs8(alg, encoded)?,
             KeyPairEncoding::Raw => EddsaSignatureKeyPair::from_raw(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
         Ok(kp)
     }
 
-    pub fn raw_public_key(&self) -> &[u8] {
-        self.dalek_kp.public.as_bytes()
+    pub fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            KeyPairEncoding::Raw => self.as_raw(),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
+    }
+
+    pub fn public_key(&self) -> Result<EddsaSignaturePublicKey, CryptoError> {
+        let ctx = self.ctx.public;
+        Ok(EddsaSignaturePublicKey { alg: self.alg, ctx })
     }
 }
 
@@ -138,7 +113,7 @@ impl SignatureStateLike for EddsaSignatureState {
     }
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
-        let signature_u8 = Vec::from(self.kp.dalek_kp.sign(&self.input).to_bytes());
+        let signature_u8 = Vec::from(self.kp.ctx.sign(&self.input).to_bytes());
         let signature = EddsaSignature(signature_u8);
         Ok(Signature::new(Box::new(signature)))
     }
@@ -175,9 +150,8 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
         );
         signature_u8.copy_from_slice(signature.as_ref());
         let dalek_signature = ed25519_dalek::Signature::new(signature_u8);
-        let dalek_pk = ed25519_dalek::PublicKey::from_bytes(self.pk.as_raw()?)
-            .map_err(|_| CryptoError::InvalidKey)?;
-        dalek_pk
+        self.pk
+            .ctx
             .verify_strict(self.input.as_ref(), &dalek_signature)
             .map_err(|_| CryptoError::VerificationFailed)?;
         Ok(())
@@ -186,19 +160,35 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
 #[derive(Clone, Debug)]
 pub struct EddsaSignaturePublicKey {
     pub alg: SignatureAlgorithm,
-    pub raw_u8: [u8; PK_LEN],
+    pub ctx: ed25519_dalek::PublicKey,
 }
 
 impl EddsaSignaturePublicKey {
-    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
-        let mut raw_u8 = [0u8; PK_LEN];
-        ensure!(raw.len() == raw_u8.len(), CryptoError::InvalidKey);
-        raw_u8.copy_from_slice(raw);
-        let pk = EddsaSignaturePublicKey { alg, raw_u8 };
+    fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = ed25519_dalek::PublicKey::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
+        let pk = EddsaSignaturePublicKey { alg, ctx };
         Ok(pk)
     }
 
-    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.raw_u8)
+    fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+        Ok(Vec::from(self.ctx.to_bytes()))
+    }
+
+    pub fn import(
+        alg: SignatureAlgorithm,
+        encoded: &[u8],
+        encoding: PublicKeyEncoding,
+    ) -> Result<Self, CryptoError> {
+        match encoding {
+            PublicKeyEncoding::Raw => Self::from_raw(alg, encoded),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
+    }
+
+    pub fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            PublicKeyEncoding::Raw => self.as_raw(),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
 }

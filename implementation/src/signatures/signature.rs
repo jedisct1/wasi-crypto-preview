@@ -48,7 +48,7 @@ impl Signature {
                     encoded.to_vec(),
                 )))
             }
-            SignatureAlgorithm::ECDSA_P384_SHA384 => {
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
                 ensure!(encoded.len() == 96, CryptoError::InvalidSignature);
                 Signature::new(Box::new(EcdsaSignature::new(
                     SignatureEncoding::Raw,

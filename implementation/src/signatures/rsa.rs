@@ -1,3 +1,4 @@
+use ::rsa::{BigUint, PublicKey as _};
 use ring::signature::KeyPair as _;
 use std::sync::Arc;
 use zeroize::Zeroize;
@@ -37,15 +38,10 @@ impl RsaSignatureKeyPair {
         Ok(kp)
     }
 
-    pub fn as_pkcs8(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.pkcs8)
+    fn as_pkcs8(&self) -> Result<Vec<u8>, CryptoError> {
+        Ok(self.pkcs8.clone())
     }
 
-    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
-        bail!(CryptoError::UnsupportedEncoding)
-    }
-
-    #[allow(dead_code)]
     pub fn generate(
         _alg: SignatureAlgorithm,
         _options: Option<SignatureOptions>,
@@ -66,8 +62,14 @@ impl RsaSignatureKeyPair {
         Ok(kp)
     }
 
-    pub fn raw_public_key(&self) -> &[u8] {
-        self.ring_kp.public_key().as_ref()
+    pub fn export(&self, _encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
+        bail!(CryptoError::UnsupportedEncoding)
+    }
+
+    pub fn public_key(&self) -> Result<RsaSignaturePublicKey, CryptoError> {
+        let ring_pk = self.ring_kp.public_key().clone();
+        let raw = ring_pk.as_ref().to_vec();
+        Ok(RsaSignaturePublicKey { alg: self.alg, raw })
     }
 }
 
@@ -181,7 +183,7 @@ pub struct RsaSignaturePublicKey {
 }
 
 impl RsaSignaturePublicKey {
-    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+    fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
         let pk = RsaSignaturePublicKey {
             alg,
             raw: raw.to_vec(),
@@ -189,7 +191,25 @@ impl RsaSignaturePublicKey {
         Ok(pk)
     }
 
-    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.raw)
+    fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+        Ok(self.raw.clone())
+    }
+
+    pub fn import(
+        alg: SignatureAlgorithm,
+        encoded: &[u8],
+        encoding: PublicKeyEncoding,
+    ) -> Result<Self, CryptoError> {
+        match encoding {
+            PublicKeyEncoding::Raw => Self::from_raw(alg, encoded),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
+    }
+
+    pub fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            PublicKeyEncoding::Raw => self.as_raw(),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
 }

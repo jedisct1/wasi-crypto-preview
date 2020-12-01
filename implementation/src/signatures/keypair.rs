@@ -15,18 +15,10 @@ pub enum SignatureKeyPair {
 
 impl SignatureKeyPair {
     pub(crate) fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
-        let encoded = match encoding {
-            KeyPairEncoding::Pkcs8 => match self {
-                SignatureKeyPair::Ecdsa(kp) => kp.as_pkcs8()?.to_vec(),
-                SignatureKeyPair::Eddsa(kp) => kp.as_pkcs8()?.to_vec(),
-                SignatureKeyPair::Rsa(kp) => kp.as_pkcs8()?.to_vec(),
-            },
-            KeyPairEncoding::Raw => match self {
-                SignatureKeyPair::Ecdsa(kp) => kp.as_raw()?.to_vec(),
-                SignatureKeyPair::Eddsa(kp) => kp.as_raw()?.to_vec(),
-                SignatureKeyPair::Rsa(kp) => kp.as_raw()?.to_vec(),
-            },
-            _ => bail!(CryptoError::UnsupportedEncoding),
+        let encoded = match self {
+            SignatureKeyPair::Ecdsa(kp) => kp.export(encoding)?,
+            SignatureKeyPair::Eddsa(kp) => kp.export(encoding)?,
+            SignatureKeyPair::Rsa(kp) => kp.export(encoding)?,
         };
         Ok(encoded)
     }
@@ -36,7 +28,7 @@ impl SignatureKeyPair {
         options: Option<SignatureOptions>,
     ) -> Result<SignatureKeyPair, CryptoError> {
         let kp = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_K256_SHA256 => {
                 SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::generate(alg, options)?)
             }
             SignatureAlgorithm::Ed25519 => {
@@ -58,7 +50,7 @@ impl SignatureKeyPair {
         encoding: KeyPairEncoding,
     ) -> Result<SignatureKeyPair, CryptoError> {
         let kp = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_K256_SHA256 => {
                 SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
             SignatureAlgorithm::Ed25519 => {
@@ -76,18 +68,9 @@ impl SignatureKeyPair {
 
     pub(crate) fn public_key(&self) -> Result<SignaturePublicKey, CryptoError> {
         let pk = match self {
-            SignatureKeyPair::Ecdsa(kp) => {
-                let raw_pk = kp.raw_public_key();
-                SignaturePublicKey::Ecdsa(EcdsaSignaturePublicKey::from_raw(kp.alg, raw_pk)?)
-            }
-            SignatureKeyPair::Eddsa(kp) => {
-                let raw_pk = kp.raw_public_key();
-                SignaturePublicKey::Eddsa(EddsaSignaturePublicKey::from_raw(kp.alg, raw_pk)?)
-            }
-            SignatureKeyPair::Rsa(kp) => {
-                let raw_pk = kp.raw_public_key();
-                SignaturePublicKey::Rsa(RsaSignaturePublicKey::from_raw(kp.alg, raw_pk)?)
-            }
+            SignatureKeyPair::Ecdsa(kp) => SignaturePublicKey::Ecdsa(kp.public_key()?),
+            SignatureKeyPair::Eddsa(kp) => SignaturePublicKey::Eddsa(kp.public_key()?),
+            SignatureKeyPair::Rsa(kp) => SignaturePublicKey::Rsa(kp.public_key()?),
         };
         Ok(pk)
     }

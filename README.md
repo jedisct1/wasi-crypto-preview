@@ -33,7 +33,7 @@ See the AssemblyScript and Rust bindings as an example.
 Currently supported algorithms as a proof of concept:
 
 * `ECDSA_P256_SHA256`
-* `ECDSA_P384_SHA384`
+* `ECDSA_K256_SHA256`
 * `Ed25519`
 * `RSA_PKCS1_2048_8192_SHA256`
 * `RSA_PKCS1_2048_8192_SHA384`

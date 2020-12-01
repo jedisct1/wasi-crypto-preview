@@ -25,36 +25,28 @@ impl SignaturePublicKey {
         encoded: &[u8],
         encoding: PublicKeyEncoding,
     ) -> Result<SignaturePublicKey, CryptoError> {
-        match encoding {
-            PublicKeyEncoding::Raw => {}
-            _ => bail!(CryptoError::UnsupportedEncoding),
-        }
         let pk = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_P384_SHA384 => {
-                SignaturePublicKey::Ecdsa(EcdsaSignaturePublicKey::from_raw(alg, encoded)?)
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                SignaturePublicKey::Ecdsa(EcdsaSignaturePublicKey::import(alg, encoded, encoding)?)
             }
             SignatureAlgorithm::Ed25519 => {
-                SignaturePublicKey::Eddsa(EddsaSignaturePublicKey::from_raw(alg, encoded)?)
+                SignaturePublicKey::Eddsa(EddsaSignaturePublicKey::import(alg, encoded, encoding)?)
             }
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
             | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
-                SignaturePublicKey::Rsa(RsaSignaturePublicKey::from_raw(alg, encoded)?)
+                SignaturePublicKey::Rsa(RsaSignaturePublicKey::import(alg, encoded, encoding)?)
             }
         };
         Ok(pk)
     }
 
     pub(crate) fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
-        match encoding {
-            PublicKeyEncoding::Raw => {}
-            _ => bail!(CryptoError::UnsupportedEncoding),
-        }
         let raw_pk = match self {
-            SignaturePublicKey::Ecdsa(pk) => pk.as_raw()?.to_vec(),
-            SignaturePublicKey::Eddsa(pk) => pk.as_raw()?.to_vec(),
-            SignaturePublicKey::Rsa(pk) => pk.as_raw()?.to_vec(),
+            SignaturePublicKey::Ecdsa(pk) => pk.export(encoding)?,
+            SignaturePublicKey::Eddsa(pk) => pk.export(encoding)?,
+            SignaturePublicKey::Rsa(pk) => pk.export(encoding)?,
         };
         Ok(raw_pk)
     }

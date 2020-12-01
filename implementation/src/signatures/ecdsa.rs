@@ -1,6 +1,14 @@
-use ring::signature::KeyPair as _;
+use ::sha2::{Digest, Sha256};
+use k256::ecdsa::{
+    self as ecdsa_k256, signature::DigestVerifier as _, signature::RandomizedDigestSigner as _,
+};
+use k256::elliptic_curve::sec1::ToEncodedPoint as _;
+use p256::ecdsa::{
+    self as ecdsa_p256, signature::DigestVerifier as _, signature::RandomizedDigestSigner as _,
+};
+use p256::elliptic_curve::sec1::ToEncodedPoint as _;
+use std::convert::TryFrom;
 use std::sync::Arc;
-use zeroize::Zeroize;
 
 use super::signature::*;
 use super::*;
@@ -13,64 +21,64 @@ pub struct EcdsaSignatureSecretKey {
     pub alg: SignatureAlgorithm,
 }
 
-#[derive(Debug, Clone)]
-pub struct EcdsaSignatureKeyPair {
-    pub alg: SignatureAlgorithm,
-    pub pkcs8: Vec<u8>,
-    pub ring_kp: Arc<ring::signature::EcdsaKeyPair>,
+enum EcdsaSigningKeyVariant {
+    P256(ecdsa_p256::SigningKey),
+    K256(ecdsa_k256::SigningKey),
 }
 
-impl Drop for EcdsaSignatureKeyPair {
-    fn drop(&mut self) {
-        self.pkcs8.zeroize();
-    }
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
+pub struct EcdsaSignatureKeyPair {
+    pub alg: SignatureAlgorithm,
+    #[derivative(Debug = "ignore")]
+    ctx: Arc<EcdsaSigningKeyVariant>,
 }
 
 impl EcdsaSignatureKeyPair {
-    fn ring_alg_from_alg(
-        alg: SignatureAlgorithm,
-    ) -> Result<&'static ring::signature::EcdsaSigningAlgorithm, CryptoError> {
-        let ring_alg = match alg {
+    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => {
-                &ring::signature::ECDSA_P256_SHA256_FIXED_SIGNING
+                let ecdsa_sk =
+                    ecdsa_p256::SigningKey::new(raw).map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaSigningKeyVariant::P256(ecdsa_sk)
             }
-            SignatureAlgorithm::ECDSA_P384_SHA384 => {
-                &ring::signature::ECDSA_P384_SHA384_FIXED_SIGNING
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                let ecdsa_sk =
+                    ecdsa_k256::SigningKey::new(raw).map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaSigningKeyVariant::K256(ecdsa_sk)
             }
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
-        Ok(ring_alg)
-    }
-
-    pub fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
-        let ring_alg = Self::ring_alg_from_alg(alg)?;
-        let ring_kp = ring::signature::EcdsaKeyPair::from_pkcs8(ring_alg, pkcs8)
-            .map_err(|_| CryptoError::InvalidKey)?;
-        let kp = EcdsaSignatureKeyPair {
+        Ok(EcdsaSignatureKeyPair {
             alg,
-            pkcs8: pkcs8.to_vec(),
-            ring_kp: Arc::new(ring_kp),
+            ctx: Arc::new(ctx),
+        })
+    }
+
+    pub fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+        let raw = match self.ctx.as_ref() {
+            EcdsaSigningKeyVariant::P256(x) => x.to_bytes().to_vec(),
+            EcdsaSigningKeyVariant::K256(x) => x.to_bytes().to_vec(),
         };
-        Ok(kp)
-    }
-
-    pub fn as_pkcs8(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.pkcs8)
-    }
-
-    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
-        bail!(CryptoError::UnsupportedEncoding)
+        Ok(raw)
     }
 
     pub fn generate(
         alg: SignatureAlgorithm,
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
-        let ring_alg = Self::ring_alg_from_alg(alg)?;
-        let rng = SecureRandom::new();
-        let pkcs8 = ring::signature::EcdsaKeyPair::generate_pkcs8(ring_alg, rng.ring_rng())
-            .map_err(|_| CryptoError::RNGError)?;
-        Self::from_pkcs8(alg, pkcs8.as_ref())
+        let mut rng = SecureRandom::new();
+        match alg {
+            SignatureAlgorithm::ECDSA_P256_SHA256 => {
+                let ecdsa_sk = ecdsa_p256::SigningKey::random(&mut rng);
+                Self::from_raw(alg, ecdsa_sk.to_bytes().as_slice())
+            }
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                let ecdsa_sk = ecdsa_k256::SigningKey::random(&mut rng);
+                Self::from_raw(alg, ecdsa_sk.to_bytes().as_slice())
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        }
     }
 
     pub fn import(
@@ -78,23 +86,47 @@ impl EcdsaSignatureKeyPair {
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Self, CryptoError> {
-        match encoding {
-            KeyPairEncoding::Pkcs8 => {}
+        ensure!(
+            alg == SignatureAlgorithm::ECDSA_P256_SHA256
+                || alg == SignatureAlgorithm::ECDSA_K256_SHA256,
+            CryptoError::UnsupportedAlgorithm
+        );
+        let kp = match encoding {
+            KeyPairEncoding::Raw => EcdsaSignatureKeyPair::from_raw(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
-        let kp = EcdsaSignatureKeyPair::from_pkcs8(alg, encoded)?;
         Ok(kp)
     }
 
-    pub fn raw_public_key(&self) -> &[u8] {
-        self.ring_kp.public_key().as_ref()
+    pub fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            KeyPairEncoding::Raw => self.as_raw(),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
+
+    pub fn public_key(&self) -> Result<EcdsaSignaturePublicKey, CryptoError> {
+        let ctx = match self.ctx.as_ref() {
+            EcdsaSigningKeyVariant::P256(x) => EcdsaVerifyKeyVariant::P256(x.verify_key()),
+            EcdsaSigningKeyVariant::K256(x) => EcdsaVerifyKeyVariant::K256(x.verify_key()),
+        };
+        Ok(EcdsaSignaturePublicKey {
+            alg: self.alg,
+            ctx: Arc::new(ctx),
+        })
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
+enum HashVariant {
+    Sha256(Sha256),
 }
 
 #[derive(Debug)]
 pub struct EcdsaSignatureState {
     pub kp: EcdsaSignatureKeyPair,
-    pub input: Vec<u8>,
+    h: HashVariant,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -121,25 +153,36 @@ impl SignatureLike for EcdsaSignature {
 
 impl EcdsaSignatureState {
     pub fn new(kp: EcdsaSignatureKeyPair) -> Self {
-        EcdsaSignatureState { kp, input: vec![] }
+        let h = HashVariant::Sha256(Sha256::new());
+        EcdsaSignatureState { kp, h }
     }
 }
 
 impl SignatureStateLike for EcdsaSignatureState {
     fn update(&mut self, input: &[u8]) -> Result<(), CryptoError> {
-        self.input.extend_from_slice(input);
+        match &mut self.h {
+            HashVariant::Sha256(x) => x.update(input),
+        };
         Ok(())
     }
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
-        let rng = SecureRandom::new();
-        let encoded_signature = self
-            .kp
-            .ring_kp
-            .sign(rng.ring_rng(), &self.input)
-            .map_err(|_| CryptoError::AlgorithmFailure)?
-            .as_ref()
-            .to_vec();
+        let mut rng = SecureRandom::new();
+        let digest = match &self.h {
+            HashVariant::Sha256(x) => x.clone(),
+        };
+        let encoded_signature = match self.kp.ctx.as_ref() {
+            EcdsaSigningKeyVariant::P256(x) => {
+                let encoded_signature: ecdsa_p256::Signature =
+                    x.sign_digest_with_rng(&mut rng, digest);
+                encoded_signature.as_ref().to_vec()
+            }
+            EcdsaSigningKeyVariant::K256(x) => {
+                let encoded_signature: ecdsa_k256::Signature =
+                    x.sign_digest_with_rng(&mut rng, digest);
+                encoded_signature.as_ref().to_vec()
+            }
+        };
         let signature = EcdsaSignature::new(SignatureEncoding::Raw, encoded_signature);
         Ok(Signature::new(Box::new(signature)))
     }
@@ -148,18 +191,21 @@ impl SignatureStateLike for EcdsaSignatureState {
 #[derive(Debug)]
 pub struct EcdsaSignatureVerificationState {
     pub pk: EcdsaSignaturePublicKey,
-    pub input: Vec<u8>,
+    h: HashVariant,
 }
 
 impl EcdsaSignatureVerificationState {
     pub fn new(pk: EcdsaSignaturePublicKey) -> Self {
-        EcdsaSignatureVerificationState { pk, input: vec![] }
+        let h = HashVariant::Sha256(Sha256::new());
+        EcdsaSignatureVerificationState { pk, h }
     }
 }
 
 impl SignatureVerificationStateLike for EcdsaSignatureVerificationState {
     fn update(&mut self, input: &[u8]) -> Result<(), CryptoError> {
-        self.input.extend_from_slice(input);
+        match &mut self.h {
+            HashVariant::Sha256(x) => x.update(input),
+        };
         Ok(())
     }
 
@@ -169,45 +215,98 @@ impl SignatureVerificationStateLike for EcdsaSignatureVerificationState {
             .as_any()
             .downcast_ref::<EcdsaSignature>()
             .ok_or(CryptoError::InvalidSignature)?;
-        let ring_alg = match (self.pk.alg, signature.encoding) {
-            (SignatureAlgorithm::ECDSA_P256_SHA256, SignatureEncoding::Raw) => {
-                &ring::signature::ECDSA_P256_SHA256_FIXED
-            }
-            (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::Raw) => {
-                &ring::signature::ECDSA_P384_SHA384_FIXED
-            }
-            (SignatureAlgorithm::ECDSA_P256_SHA256, SignatureEncoding::Der) => {
-                &ring::signature::ECDSA_P256_SHA256_ASN1
-            }
-            (SignatureAlgorithm::ECDSA_P384_SHA384, SignatureEncoding::Der) => {
-                &ring::signature::ECDSA_P384_SHA384_ASN1
-            }
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
+
+        let digest = match &self.h {
+            HashVariant::Sha256(x) => x.clone(),
         };
-        let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
-        ring_pk
-            .verify(self.input.as_ref(), signature.as_ref())
-            .map_err(|_| CryptoError::VerificationFailed)?;
+        match self.pk.ctx.as_ref() {
+            EcdsaVerifyKeyVariant::P256(x) => {
+                let ecdsa_signature = ecdsa_p256::Signature::try_from(signature.as_ref())
+                    .map_err(|_| CryptoError::VerificationFailed)?;
+                x.verify_digest(digest, &ecdsa_signature)
+            }
+            EcdsaVerifyKeyVariant::K256(x) => {
+                let ecdsa_signature = ecdsa_k256::Signature::try_from(signature.as_ref())
+                    .map_err(|_| CryptoError::VerificationFailed)?;
+                x.verify_digest(digest, &ecdsa_signature)
+            }
+        }
+        .map_err(|_| CryptoError::VerificationFailed)?;
         Ok(())
     }
 }
 
-#[derive(Clone, Debug)]
+enum EcdsaVerifyKeyVariant {
+    P256(ecdsa_p256::VerifyKey),
+    K256(ecdsa_k256::VerifyKey),
+}
+
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub struct EcdsaSignaturePublicKey {
     pub alg: SignatureAlgorithm,
-    pub raw: Vec<u8>,
+    #[derivative(Debug = "ignore")]
+    ctx: Arc<EcdsaVerifyKeyVariant>,
 }
 
 impl EcdsaSignaturePublicKey {
-    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+    fn from_sec(alg: SignatureAlgorithm, sec: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = match alg {
+            SignatureAlgorithm::ECDSA_P256_SHA256 => {
+                let ecdsa_sk =
+                    ecdsa_p256::VerifyKey::new(sec).map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaVerifyKeyVariant::P256(ecdsa_sk)
+            }
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                let ecdsa_sk =
+                    ecdsa_k256::VerifyKey::new(sec).map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaVerifyKeyVariant::K256(ecdsa_sk)
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
         let pk = EcdsaSignaturePublicKey {
             alg,
-            raw: raw.to_vec(),
+            ctx: Arc::new(ctx),
         };
         Ok(pk)
     }
 
-    pub fn as_raw(&self) -> Result<&[u8], CryptoError> {
-        Ok(&self.raw)
+    fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        Self::from_sec(alg, raw)
+    }
+
+    fn as_sec(&self, compress: bool) -> Result<Vec<u8>, CryptoError> {
+        let raw = match self.ctx.as_ref() {
+            EcdsaVerifyKeyVariant::P256(x) => x.to_encoded_point(compress).to_bytes().to_vec(),
+            EcdsaVerifyKeyVariant::K256(x) => x.to_encoded_point(compress).to_bytes().to_vec(),
+        };
+        Ok(raw)
+    }
+
+    fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+        self.as_sec(true)
+    }
+
+    pub fn import(
+        alg: SignatureAlgorithm,
+        encoded: &[u8],
+        encoding: PublicKeyEncoding,
+    ) -> Result<Self, CryptoError> {
+        match encoding {
+            PublicKeyEncoding::Raw => Self::from_raw(alg, encoded),
+            PublicKeyEncoding::Sec | PublicKeyEncoding::CompressedSec => {
+                Self::from_sec(alg, encoded)
+            }
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
+    }
+
+    pub fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            PublicKeyEncoding::Raw => self.as_raw(),
+            PublicKeyEncoding::Sec => self.as_sec(false),
+            PublicKeyEncoding::CompressedSec => self.as_sec(true),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
 }
