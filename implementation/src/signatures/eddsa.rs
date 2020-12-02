@@ -77,13 +77,12 @@ impl EddsaSignatureKeyPair {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EddsaSignature {
-    pub encoding: SignatureEncoding,
     pub encoded: Vec<u8>,
 }
 
 impl EddsaSignature {
-    pub fn new(encoding: SignatureEncoding, encoded: Vec<u8>) -> Self {
-        EddsaSignature { encoding, encoded }
+    pub fn new(encoded: Vec<u8>) -> Self {
+        EddsaSignature { encoded }
     }
 }
 
@@ -117,10 +116,7 @@ impl SignatureStateLike for EddsaSignatureState {
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
         let signature_u8 = Vec::from(self.kp.ctx.sign(&self.input).to_bytes());
-        let signature = EddsaSignature {
-            encoding: SignatureEncoding::Raw,
-            encoded: signature_u8,
-        };
+        let signature = EddsaSignature::new(signature_u8);
         Ok(Signature::new(Box::new(signature)))
     }
 }

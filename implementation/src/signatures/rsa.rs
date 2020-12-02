@@ -137,13 +137,12 @@ impl RsaSignatureKeyPair {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RsaSignature {
-    pub encoding: SignatureEncoding,
     pub encoded: Vec<u8>,
 }
 
 impl RsaSignature {
-    pub fn new(encoding: SignatureEncoding, encoded: Vec<u8>) -> Self {
-        RsaSignature { encoding, encoded }
+    pub fn new(encoded: Vec<u8>) -> Self {
+        RsaSignature { encoded }
     }
 }
 
@@ -231,7 +230,7 @@ impl SignatureStateLike for RsaSignatureState {
             .ctx
             .sign_blinded(&mut rng, padding_scheme(self.kp.alg), &digest)
             .map_err(|_| CryptoError::InvalidKey)?;
-        let signature = RsaSignature::new(SignatureEncoding::Raw, encoded_signature);
+        let signature = RsaSignature::new(encoded_signature);
         Ok(Signature::new(Box::new(signature)))
     }
 }

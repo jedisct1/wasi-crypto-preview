@@ -43,32 +43,23 @@ impl Signature {
         let signature = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => {
                 ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
-                Signature::new(Box::new(EcdsaSignature::new(
-                    SignatureEncoding::Raw,
-                    encoded.to_vec(),
-                )))
+                Signature::new(Box::new(EcdsaSignature::new(encoded.to_vec())))
             }
             SignatureAlgorithm::ECDSA_K256_SHA256 => {
                 ensure!(encoded.len() == 96, CryptoError::InvalidSignature);
-                Signature::new(Box::new(EcdsaSignature::new(
-                    SignatureEncoding::Raw,
-                    encoded.to_vec(),
-                )))
+                Signature::new(Box::new(EcdsaSignature::new(encoded.to_vec())))
             }
             SignatureAlgorithm::Ed25519 => {
                 ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
-                Signature::new(Box::new(EddsaSignature::new(
-                    SignatureEncoding::Raw,
-                    encoded.to_vec(),
-                )))
+                Signature::new(Box::new(EddsaSignature::new(encoded.to_vec())))
             }
             SignatureAlgorithm::RSA_PKCS1_2048_SHA256
             | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
             | SignatureAlgorithm::RSA_PKCS1_4096_SHA256
             | SignatureAlgorithm::RSA_PKCS1_3072_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => Signature::new(Box::new(
-                RsaSignature::new(SignatureEncoding::Raw, encoded.to_vec()),
-            )),
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => {
+                Signature::new(Box::new(RsaSignature::new(encoded.to_vec())))
+            }
         };
         Ok(signature)
     }

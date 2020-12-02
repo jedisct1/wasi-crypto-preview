@@ -131,13 +131,12 @@ pub struct EcdsaSignatureState {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EcdsaSignature {
-    pub encoding: SignatureEncoding,
     pub encoded: Vec<u8>,
 }
 
 impl EcdsaSignature {
-    pub fn new(encoding: SignatureEncoding, encoded: Vec<u8>) -> Self {
-        EcdsaSignature { encoding, encoded }
+    pub fn new(encoded: Vec<u8>) -> Self {
+        EcdsaSignature { encoded }
     }
 }
 
@@ -183,7 +182,7 @@ impl SignatureStateLike for EcdsaSignatureState {
                 encoded_signature.as_ref().to_vec()
             }
         };
-        let signature = EcdsaSignature::new(SignatureEncoding::Raw, encoded_signature);
+        let signature = EcdsaSignature::new(encoded_signature);
         Ok(Signature::new(Box::new(signature)))
     }
 }
