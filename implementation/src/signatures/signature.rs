@@ -57,7 +57,12 @@ impl Signature {
             | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
             | SignatureAlgorithm::RSA_PKCS1_4096_SHA256
             | SignatureAlgorithm::RSA_PKCS1_3072_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => {
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512
+            | SignatureAlgorithm::RSA_PSS_2048_SHA256
+            | SignatureAlgorithm::RSA_PSS_3072_SHA256
+            | SignatureAlgorithm::RSA_PSS_4096_SHA256
+            | SignatureAlgorithm::RSA_PSS_3072_SHA384
+            | SignatureAlgorithm::RSA_PSS_4096_SHA512 => {
                 Signature::new(Box::new(RsaSignature::new(encoded.to_vec())))
             }
         };
