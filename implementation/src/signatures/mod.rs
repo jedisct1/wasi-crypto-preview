@@ -198,10 +198,11 @@ fn test_signatures_eddsa() {
 fn test_signatures_rsa() {
     use crate::{AlgorithmType, CryptoCtx};
 
+    let alg = "RSA_PKCS1_2048_SHA256";
     let ctx = CryptoCtx::new();
 
     let kp_handle = ctx
-        .keypair_generate(AlgorithmType::Signatures, "RSA_PSS_2048_SHA256", None)
+        .keypair_generate(AlgorithmType::Signatures, alg, None)
         .unwrap();
     let pk_handle = ctx.keypair_publickey(kp_handle).unwrap();
 
@@ -213,7 +214,7 @@ fn test_signatures_rsa() {
     let pk_handle = ctx
         .publickey_import(
             AlgorithmType::Signatures,
-            "RSA_PKCS1_2048_SHA256",
+            alg,
             &raw,
             asymmetric_common::PublicKeyEncoding::Local,
         )
@@ -227,7 +228,7 @@ fn test_signatures_rsa() {
     let kp2_handle = ctx
         .keypair_import(
             AlgorithmType::Signatures,
-            "RSA_PKCS1_2048_SHA256",
+            alg,
             &raw,
             asymmetric_common::KeyPairEncoding::Local,
         )

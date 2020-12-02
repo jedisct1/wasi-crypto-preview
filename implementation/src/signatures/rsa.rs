@@ -140,12 +140,18 @@ impl RsaSignatureKeyPair {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RsaSignature {
-    pub encoded: Vec<u8>,
+    pub raw: Vec<u8>,
 }
 
 impl RsaSignature {
-    pub fn new(encoded: Vec<u8>) -> Self {
-        RsaSignature { encoded }
+    pub fn new(raw: Vec<u8>) -> Self {
+        RsaSignature { raw }
+    }
+
+    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        let expected_len = modulus_bits(alg)? / 8;
+        ensure!(raw.len() == expected_len, CryptoError::InvalidSignature);
+        Ok(Self::new(raw.to_vec()))
     }
 }
 
@@ -155,7 +161,7 @@ impl SignatureLike for RsaSignature {
     }
 
     fn as_ref(&self) -> &[u8] {
-        &self.encoded
+        &self.raw
     }
 }
 

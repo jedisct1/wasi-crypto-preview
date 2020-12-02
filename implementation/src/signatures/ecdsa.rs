@@ -131,12 +131,22 @@ pub struct EcdsaSignatureState {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EcdsaSignature {
-    pub encoded: Vec<u8>,
+    pub raw: Vec<u8>,
 }
 
 impl EcdsaSignature {
-    pub fn new(encoded: Vec<u8>) -> Self {
-        EcdsaSignature { encoded }
+    pub fn new(raw: Vec<u8>) -> Self {
+        EcdsaSignature { raw }
+    }
+
+    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        let expected_len = match alg {
+            SignatureAlgorithm::ECDSA_P256_SHA256 => 64,
+            SignatureAlgorithm::ECDSA_K256_SHA256 => 96,
+            _ => bail!(CryptoError::InvalidSignature),
+        };
+        ensure!(raw.len() == expected_len, CryptoError::InvalidSignature);
+        Ok(Self::new(raw.to_vec()))
     }
 }
 
@@ -146,7 +156,7 @@ impl SignatureLike for EcdsaSignature {
     }
 
     fn as_ref(&self) -> &[u8] {
-        &self.encoded
+        &self.raw
     }
 }
 

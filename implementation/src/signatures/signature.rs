@@ -40,30 +40,15 @@ impl Signature {
     }
 
     fn from_raw(alg: SignatureAlgorithm, encoded: &[u8]) -> Result<Self, CryptoError> {
-        let signature = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 => {
-                ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
-                Signature::new(Box::new(EcdsaSignature::new(encoded.to_vec())))
+        let signature = match alg.family() {
+            SignatureAlgorithmFamily::ECDSA => {
+                Signature::new(Box::new(EcdsaSignature::from_raw(alg, encoded)?))
             }
-            SignatureAlgorithm::ECDSA_K256_SHA256 => {
-                ensure!(encoded.len() == 96, CryptoError::InvalidSignature);
-                Signature::new(Box::new(EcdsaSignature::new(encoded.to_vec())))
+            SignatureAlgorithmFamily::EdDSA => {
+                Signature::new(Box::new(EddsaSignature::from_raw(alg, encoded)?))
             }
-            SignatureAlgorithm::Ed25519 => {
-                ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
-                Signature::new(Box::new(EddsaSignature::new(encoded.to_vec())))
-            }
-            SignatureAlgorithm::RSA_PKCS1_2048_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_4096_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_3072_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512
-            | SignatureAlgorithm::RSA_PSS_2048_SHA256
-            | SignatureAlgorithm::RSA_PSS_3072_SHA256
-            | SignatureAlgorithm::RSA_PSS_4096_SHA256
-            | SignatureAlgorithm::RSA_PSS_3072_SHA384
-            | SignatureAlgorithm::RSA_PSS_4096_SHA512 => {
-                Signature::new(Box::new(RsaSignature::new(encoded.to_vec())))
+            SignatureAlgorithmFamily::RSA => {
+                Signature::new(Box::new(RsaSignature::from_raw(alg, encoded)?))
             }
         };
         Ok(signature)

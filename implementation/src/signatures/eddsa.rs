@@ -77,12 +77,20 @@ impl EddsaSignatureKeyPair {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EddsaSignature {
-    pub encoded: Vec<u8>,
+    pub raw: Vec<u8>,
 }
 
 impl EddsaSignature {
-    pub fn new(encoded: Vec<u8>) -> Self {
-        EddsaSignature { encoded }
+    pub fn new(raw: Vec<u8>) -> Self {
+        EddsaSignature { raw: raw }
+    }
+    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+        let expected_len = match alg {
+            SignatureAlgorithm::Ed25519 => 64,
+            _ => bail!(CryptoError::InvalidSignature),
+        };
+        ensure!(raw.len() == expected_len, CryptoError::InvalidSignature);
+        Ok(Self::new(raw.to_vec()))
     }
 }
 
@@ -92,7 +100,7 @@ impl SignatureLike for EddsaSignature {
     }
 
     fn as_ref(&self) -> &[u8] {
-        &self.encoded
+        &self.raw
     }
 }
 
