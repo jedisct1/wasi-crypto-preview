@@ -742,7 +742,7 @@ In that case, the guest should retry with the same parameters until the function
 Example usage:
 
 ```rust
-let kp_handle = ctx.keypair_generate(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", None)?;
+let kp_handle = ctx.keypair_generate(AlgorithmType::Signatures, "RSA_PKCS1_2048_SHA256", None)?;
 ```
 
 ##### Params
@@ -772,7 +772,7 @@ The function may also return `unsupported_algorithm` if the algorithm is not sup
 Example usage:
 
 ```rust
-let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", KeypairEncoding::PKCS8)?;
+let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_SHA256", KeypairEncoding::PKCS8)?;
 ```
 
 ##### Params

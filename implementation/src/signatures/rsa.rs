@@ -11,6 +11,8 @@ use crate::rand::SecureRandom;
 
 const RAW_ENCODING_VERSION: u16 = 1;
 const RAW_ENCODING_ALG_ID: u16 = 1;
+const MIN_MODULUS_SIZE: usize = 2048;
+const MAX_MODULUS_SIZE: usize = 4096;
 
 #[derive(Debug, Clone)]
 pub struct RsaSignatureSecretKey {
@@ -75,10 +77,11 @@ impl RsaSignatureKeyPair {
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
         let modulus_bits = match alg {
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => 2048,
-            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => 3072,
+            SignatureAlgorithm::RSA_PKCS1_2048_SHA256 => 2048,
+            SignatureAlgorithm::RSA_PKCS1_3072_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA384 => 3072,
+            SignatureAlgorithm::RSA_PKCS1_4096_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => 4096,
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let mut rng = SecureRandom::new();
@@ -92,11 +95,8 @@ impl RsaSignatureKeyPair {
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Self, CryptoError> {
-        match alg {
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
-            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {}
+        match alg.family() {
+            SignatureAlgorithmFamily::RSA => {}
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         let mut kp = match encoding {
@@ -106,7 +106,10 @@ impl RsaSignatureKeyPair {
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
         let bits = kp.ctx.size();
-        ensure!((1920..=4096).contains(&bits), CryptoError::InvalidKey);
+        ensure!(
+            (MIN_MODULUS_SIZE..=MAX_MODULUS_SIZE).contains(&bits),
+            CryptoError::InvalidKey
+        );
         kp.ctx.validate().map_err(|_| CryptoError::InvalidKey)?;
         kp.ctx.precompute().map_err(|_| CryptoError::InvalidKey)?;
         Ok(kp)
@@ -149,14 +152,15 @@ impl SignatureLike for RsaSignature {
 
 fn padding_scheme(alg: SignatureAlgorithm) -> ::rsa::PaddingScheme {
     match alg {
-        SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
+        SignatureAlgorithm::RSA_PKCS1_2048_SHA256
+        | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
+        | SignatureAlgorithm::RSA_PKCS1_4096_SHA256 => {
             ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_256))
         }
-        SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-        | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+        SignatureAlgorithm::RSA_PKCS1_3072_SHA384 => {
             ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_384))
         }
-        SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => {
+        SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => {
             ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_512))
         }
         _ => unreachable!(),
@@ -171,6 +175,20 @@ enum HashVariant {
     Sha512(Sha512),
 }
 
+impl HashVariant {
+    fn for_alg(alg: SignatureAlgorithm) -> Result<Self, CryptoError> {
+        let h = match alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA256 => HashVariant::Sha256(Sha256::new()),
+            SignatureAlgorithm::RSA_PKCS1_3072_SHA384 => HashVariant::Sha384(Sha384::new()),
+            SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => HashVariant::Sha512(Sha512::new()),
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+        Ok(h)
+    }
+}
+
 #[derive(Debug)]
 pub struct RsaSignatureState {
     pub kp: RsaSignatureKeyPair,
@@ -179,13 +197,7 @@ pub struct RsaSignatureState {
 
 impl RsaSignatureState {
     pub fn new(kp: RsaSignatureKeyPair) -> Self {
-        let h = match kp.alg {
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => HashVariant::Sha256(Sha256::new()),
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => HashVariant::Sha384(Sha384::new()),
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => HashVariant::Sha512(Sha512::new()),
-            _ => unreachable!(),
-        };
+        let h = HashVariant::for_alg(kp.alg).unwrap();
         RsaSignatureState { kp, h }
     }
 }
@@ -225,13 +237,7 @@ pub struct RsaSignatureVerificationState {
 
 impl RsaSignatureVerificationState {
     pub fn new(pk: RsaSignaturePublicKey) -> Self {
-        let h = match pk.alg {
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => HashVariant::Sha256(Sha256::new()),
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => HashVariant::Sha384(Sha384::new()),
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => HashVariant::Sha512(Sha512::new()),
-            _ => unreachable!(),
-        };
+        let h = HashVariant::for_alg(pk.alg).unwrap();
         RsaSignatureVerificationState { pk, h }
     }
 }
@@ -327,7 +333,7 @@ impl RsaSignaturePublicKey {
         };
         let bits = pk.ctx.size();
         ensure!(
-            bits >= 2048 / 8 && bits <= 4096 / 8,
+            bits >= MIN_MODULUS_SIZE / 8 && bits <= MAX_MODULUS_SIZE / 8,
             CryptoError::InvalidKey
         );
         Ok(pk)

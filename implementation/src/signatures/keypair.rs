@@ -28,17 +28,14 @@ impl SignatureKeyPair {
         alg: SignatureAlgorithm,
         options: Option<SignatureOptions>,
     ) -> Result<SignatureKeyPair, CryptoError> {
-        let kp = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_K256_SHA256 => {
+        let kp = match alg.family() {
+            SignatureAlgorithmFamily::ECDSA => {
                 SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::generate(alg, options)?)
             }
-            SignatureAlgorithm::Ed25519 => {
+            SignatureAlgorithmFamily::EdDSA => {
                 SignatureKeyPair::Eddsa(EddsaSignatureKeyPair::generate(alg, options)?)
             }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
-            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+            SignatureAlgorithmFamily::RSA => {
                 SignatureKeyPair::Rsa(RsaSignatureKeyPair::generate(alg, options)?)
             }
         };
@@ -50,17 +47,14 @@ impl SignatureKeyPair {
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<SignatureKeyPair, CryptoError> {
-        let kp = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_K256_SHA256 => {
+        let kp = match alg.family() {
+            SignatureAlgorithmFamily::ECDSA => {
                 SignatureKeyPair::Ecdsa(EcdsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
-            SignatureAlgorithm::Ed25519 => {
+            SignatureAlgorithmFamily::EdDSA => {
                 SignatureKeyPair::Eddsa(EddsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
-            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+            SignatureAlgorithmFamily::RSA => {
                 SignatureKeyPair::Rsa(RsaSignatureKeyPair::import(alg, encoded, encoding)?)
             }
         };

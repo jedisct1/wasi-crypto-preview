@@ -19,7 +19,7 @@
   ;;; Example usage:
   ;;;
   ;;; ```rust
-  ;;; let kp_handle = ctx.keypair_generate(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", None)?;
+  ;;; let kp_handle = ctx.keypair_generate(AlgorithmType::Signatures, "RSA_PKCS1_2048_SHA256", None)?;
   ;;; ```
   (@interface func (export "keypair_generate")
     (param $algorithm_type $algorithm_type)
@@ -40,7 +40,7 @@
   ;;; Example usage:
   ;;;
   ;;; ```rust
-  ;;; let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_8192_SHA512", KeypairEncoding::PKCS8)?;
+  ;;; let kp_handle = ctx.keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_SHA256", KeypairEncoding::PKCS8)?;
   ;;; ```
   (@interface func (export "keypair_import")
     (param $algorithm_type $algorithm_type)

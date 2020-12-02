@@ -24,10 +24,33 @@ pub enum SignatureAlgorithm {
     ECDSA_P256_SHA256,
     ECDSA_K256_SHA256,
     Ed25519,
-    RSA_PKCS1_2048_8192_SHA256,
-    RSA_PKCS1_2048_8192_SHA384,
-    RSA_PKCS1_2048_8192_SHA512,
-    RSA_PKCS1_3072_8192_SHA384,
+    RSA_PKCS1_2048_SHA256,
+    RSA_PKCS1_3072_SHA256,
+    RSA_PKCS1_4096_SHA256,
+    RSA_PKCS1_3072_SHA384,
+    RSA_PKCS1_4096_SHA512,
+}
+
+pub enum SignatureAlgorithmFamily {
+    ECDSA,
+    EdDSA,
+    RSA,
+}
+
+impl SignatureAlgorithm {
+    pub fn family(&self) -> SignatureAlgorithmFamily {
+        match self {
+            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                SignatureAlgorithmFamily::ECDSA
+            }
+            SignatureAlgorithm::Ed25519 => SignatureAlgorithmFamily::EdDSA,
+            SignatureAlgorithm::RSA_PKCS1_2048_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => SignatureAlgorithmFamily::RSA,
+        }
+    }
 }
 
 impl TryFrom<&str> for SignatureAlgorithm {
@@ -38,10 +61,11 @@ impl TryFrom<&str> for SignatureAlgorithm {
             "ECDSA_P256_SHA256" => Ok(SignatureAlgorithm::ECDSA_P256_SHA256),
             "ECDSA_K256_SHA256" => Ok(SignatureAlgorithm::ECDSA_K256_SHA256),
             "ED25519" => Ok(SignatureAlgorithm::Ed25519),
-            "RSA_PKCS1_2048_8192_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256),
-            "RSA_PKCS1_2048_8192_SHA384" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384),
-            "RSA_PKCS1_2048_8192_SHA512" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512),
-            "RSA_PKCS1_3072_8192_SHA384" => Ok(SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384),
+            "RSA_PKCS1_2048_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_SHA256),
+            "RSA_PKCS1_3072_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_3072_SHA256),
+            "RSA_PKCS1_4096_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_4096_SHA256),
+            "RSA_PKCS1_3072_SHA384" => Ok(SignatureAlgorithm::RSA_PKCS1_3072_SHA384),
+            "RSA_PKCS1_4096_SHA512" => Ok(SignatureAlgorithm::RSA_PKCS1_4096_SHA512),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }
@@ -158,11 +182,7 @@ fn test_signatures_rsa() {
     let ctx = CryptoCtx::new();
 
     let kp_handle = ctx
-        .keypair_generate(
-            AlgorithmType::Signatures,
-            "RSA_PKCS1_2048_8192_SHA256",
-            None,
-        )
+        .keypair_generate(AlgorithmType::Signatures, "RSA_PKCS1_2048_SHA256", None)
         .unwrap();
     let pk_handle = ctx.keypair_publickey(kp_handle).unwrap();
 

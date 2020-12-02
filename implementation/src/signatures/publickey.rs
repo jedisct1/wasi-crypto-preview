@@ -25,17 +25,14 @@ impl SignaturePublicKey {
         encoded: &[u8],
         encoding: PublicKeyEncoding,
     ) -> Result<SignaturePublicKey, CryptoError> {
-        let pk = match alg {
-            SignatureAlgorithm::ECDSA_P256_SHA256 | SignatureAlgorithm::ECDSA_K256_SHA256 => {
+        let pk = match alg.family() {
+            SignatureAlgorithmFamily::ECDSA => {
                 SignaturePublicKey::Ecdsa(EcdsaSignaturePublicKey::import(alg, encoded, encoding)?)
             }
-            SignatureAlgorithm::Ed25519 => {
+            SignatureAlgorithmFamily::EdDSA => {
                 SignaturePublicKey::Eddsa(EddsaSignaturePublicKey::import(alg, encoded, encoding)?)
             }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
-            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
-            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+            SignatureAlgorithmFamily::RSA => {
                 SignaturePublicKey::Rsa(RsaSignaturePublicKey::import(alg, encoded, encoding)?)
             }
         };
