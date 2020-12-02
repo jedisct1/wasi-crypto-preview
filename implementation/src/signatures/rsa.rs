@@ -35,6 +35,19 @@ pub struct RsaSignatureKeyPair {
     ctx: ::rsa::RSAPrivateKey,
 }
 
+fn modulus_bits(alg: SignatureAlgorithm) -> Result<usize, CryptoError> {
+    let modulus_bits =
+        match alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_SHA256 => 2048,
+            SignatureAlgorithm::RSA_PKCS1_3072_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA384 => 3072,
+            SignatureAlgorithm::RSA_PKCS1_4096_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => 4096,
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+    Ok(modulus_bits)
+}
+
 impl RsaSignatureKeyPair {
     fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
         let ctx = ::rsa::RSAPrivateKey::from_pkcs8(&pkcs8).map_err(|_| CryptoError::InvalidKey)?;
@@ -76,14 +89,7 @@ impl RsaSignatureKeyPair {
         alg: SignatureAlgorithm,
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
-        let modulus_bits = match alg {
-            SignatureAlgorithm::RSA_PKCS1_2048_SHA256 => 2048,
-            SignatureAlgorithm::RSA_PKCS1_3072_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_3072_SHA384 => 3072,
-            SignatureAlgorithm::RSA_PKCS1_4096_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => 4096,
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
-        };
+        let modulus_bits = modulus_bits(alg)?;
         let mut rng = SecureRandom::new();
         let ctx = ::rsa::RSAPrivateKey::new(&mut rng, modulus_bits)
             .map_err(|_| CryptoError::UnsupportedAlgorithm)?;
@@ -105,9 +111,10 @@ impl RsaSignatureKeyPair {
             KeyPairEncoding::Local => Self::from_local(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
-        let bits = kp.ctx.size();
+        let modulus_size = kp.ctx.size();
+        let min_modulus_bits = modulus_bits(alg)?;
         ensure!(
-            (MIN_MODULUS_SIZE..=MAX_MODULUS_SIZE).contains(&bits),
+            (min_modulus_bits / 8..=MAX_MODULUS_SIZE / 8).contains(&modulus_size),
             CryptoError::InvalidKey
         );
         kp.ctx.validate().map_err(|_| CryptoError::InvalidKey)?;
@@ -331,9 +338,10 @@ impl RsaSignaturePublicKey {
             PublicKeyEncoding::Local => Self::from_local(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
-        let bits = pk.ctx.size();
+        let modulus_size = pk.ctx.size();
+        let min_modulus_bits = modulus_bits(alg)?;
         ensure!(
-            bits >= MIN_MODULUS_SIZE / 8 && bits <= MAX_MODULUS_SIZE / 8,
+            modulus_size >= min_modulus_bits / 8 && modulus_size <= MAX_MODULUS_SIZE / 8,
             CryptoError::InvalidKey
         );
         Ok(pk)
