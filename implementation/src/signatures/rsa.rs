@@ -53,11 +53,13 @@ fn modulus_bits(alg: SignatureAlgorithm) -> Result<usize, CryptoError> {
 
 impl RsaSignatureKeyPair {
     fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(pkcs8.len() < 4096, CryptoError::InvalidKey);
         let ctx = ::rsa::RSAPrivateKey::from_pkcs8(&pkcs8).map_err(|_| CryptoError::InvalidKey)?;
         Ok(RsaSignatureKeyPair { alg, ctx })
     }
 
     fn from_pem(alg: SignatureAlgorithm, pem: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(pem.len() < 4096, CryptoError::InvalidKey);
         let parsed_pem = ::rsa::pem::parse(pem).map_err(|_| CryptoError::InvalidKey)?;
         let ctx =
             ::rsa::RSAPrivateKey::try_from(parsed_pem).map_err(|_| CryptoError::InvalidKey)?;
@@ -65,6 +67,7 @@ impl RsaSignatureKeyPair {
     }
 
     fn from_local(alg: SignatureAlgorithm, local: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(local.len() < 2048, CryptoError::InvalidKey);
         let parts: RsaSignatureKeyPairParts =
             bincode::deserialize(local).map_err(|_| CryptoError::InvalidKey)?;
         ensure!(
@@ -320,17 +323,20 @@ pub struct RsaSignaturePublicKey {
 
 impl RsaSignaturePublicKey {
     fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(pkcs8.len() < 4096, CryptoError::InvalidKey);
         let ctx = ::rsa::RSAPublicKey::from_pkcs8(&pkcs8).map_err(|_| CryptoError::InvalidKey)?;
         Ok(RsaSignaturePublicKey { alg, ctx })
     }
 
     fn from_pem(alg: SignatureAlgorithm, pem: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(pem.len() < 4096, CryptoError::InvalidKey);
         let parsed_pem = ::rsa::pem::parse(pem).map_err(|_| CryptoError::InvalidKey)?;
         let ctx = ::rsa::RSAPublicKey::try_from(parsed_pem).map_err(|_| CryptoError::InvalidKey)?;
         Ok(RsaSignaturePublicKey { alg, ctx })
     }
 
     fn from_local(alg: SignatureAlgorithm, local: &[u8]) -> Result<Self, CryptoError> {
+        ensure!(local.len() < 1024, CryptoError::InvalidKey);
         let parts: RsaSignaturePublicKeyParts =
             bincode::deserialize(local).map_err(|_| CryptoError::InvalidKey)?;
         ensure!(
