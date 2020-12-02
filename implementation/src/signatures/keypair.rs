@@ -6,7 +6,7 @@ use super::*;
 use crate::asymmetric_common::*;
 use crate::error::*;
 
-#[warn(clippy::large_enum_variant)]
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone)]
 pub enum SignatureKeyPair {
     Ecdsa(EcdsaSignatureKeyPair),

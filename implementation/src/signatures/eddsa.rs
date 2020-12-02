@@ -82,7 +82,7 @@ pub struct EddsaSignature {
 
 impl EddsaSignature {
     pub fn new(raw: Vec<u8>) -> Self {
-        EddsaSignature { raw: raw }
+        EddsaSignature { raw }
     }
     pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
         let expected_len = match alg {
