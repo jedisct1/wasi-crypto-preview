@@ -25,14 +25,16 @@ pub enum SignatureAlgorithm {
     ECDSA_K256_SHA256,
     Ed25519,
     RSA_PKCS1_2048_SHA256,
-    RSA_PKCS1_3072_SHA256,
-    RSA_PKCS1_4096_SHA256,
+    RSA_PKCS1_2048_SHA384,
+    RSA_PKCS1_2048_SHA512,
     RSA_PKCS1_3072_SHA384,
+    RSA_PKCS1_3072_SHA512,
     RSA_PKCS1_4096_SHA512,
     RSA_PSS_2048_SHA256,
-    RSA_PSS_3072_SHA256,
-    RSA_PSS_4096_SHA256,
+    RSA_PSS_2048_SHA384,
+    RSA_PSS_2048_SHA512,
     RSA_PSS_3072_SHA384,
+    RSA_PSS_3072_SHA512,
     RSA_PSS_4096_SHA512,
 }
 
@@ -50,14 +52,16 @@ impl SignatureAlgorithm {
             }
             SignatureAlgorithm::Ed25519 => SignatureAlgorithmFamily::EdDSA,
             SignatureAlgorithm::RSA_PKCS1_2048_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
-            | SignatureAlgorithm::RSA_PKCS1_4096_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_2048_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_2048_SHA512
             | SignatureAlgorithm::RSA_PKCS1_3072_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA512
             | SignatureAlgorithm::RSA_PKCS1_4096_SHA512
             | SignatureAlgorithm::RSA_PSS_2048_SHA256
-            | SignatureAlgorithm::RSA_PSS_3072_SHA256
-            | SignatureAlgorithm::RSA_PSS_4096_SHA256
+            | SignatureAlgorithm::RSA_PSS_2048_SHA384
+            | SignatureAlgorithm::RSA_PSS_2048_SHA512
             | SignatureAlgorithm::RSA_PSS_3072_SHA384
+            | SignatureAlgorithm::RSA_PSS_3072_SHA512
             | SignatureAlgorithm::RSA_PSS_4096_SHA512 => SignatureAlgorithmFamily::RSA,
         }
     }
@@ -74,16 +78,19 @@ impl TryFrom<&str> for SignatureAlgorithm {
             "ED25519" => Ok(SignatureAlgorithm::Ed25519),
 
             "RSA_PKCS1_2048_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_SHA256),
-            "RSA_PKCS1_3072_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_3072_SHA256),
-            "RSA_PKCS1_4096_SHA256" => Ok(SignatureAlgorithm::RSA_PKCS1_4096_SHA256),
+            "RSA_PKCS1_2048_SHA384" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_SHA384),
+            "RSA_PKCS1_2048_SHA512" => Ok(SignatureAlgorithm::RSA_PKCS1_2048_SHA512),
             "RSA_PKCS1_3072_SHA384" => Ok(SignatureAlgorithm::RSA_PKCS1_3072_SHA384),
+            "RSA_PKCS1_3072_SHA512" => Ok(SignatureAlgorithm::RSA_PKCS1_3072_SHA512),
             "RSA_PKCS1_4096_SHA512" => Ok(SignatureAlgorithm::RSA_PKCS1_4096_SHA512),
 
             "RSA_PSS_2048_SHA256" => Ok(SignatureAlgorithm::RSA_PSS_2048_SHA256),
-            "RSA_PSS_3072_SHA256" => Ok(SignatureAlgorithm::RSA_PSS_3072_SHA256),
-            "RSA_PSS_4096_SHA256" => Ok(SignatureAlgorithm::RSA_PSS_4096_SHA256),
+            "RSA_PSS_2048_SHA384" => Ok(SignatureAlgorithm::RSA_PSS_2048_SHA384),
+            "RSA_PSS_2048_SHA512" => Ok(SignatureAlgorithm::RSA_PSS_2048_SHA512),
             "RSA_PSS_3072_SHA384" => Ok(SignatureAlgorithm::RSA_PSS_3072_SHA384),
+            "RSA_PSS_3072_SHA512" => Ok(SignatureAlgorithm::RSA_PSS_3072_SHA512),
             "RSA_PSS_4096_SHA512" => Ok(SignatureAlgorithm::RSA_PSS_4096_SHA512),
+
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         }
     }

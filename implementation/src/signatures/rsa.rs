@@ -37,15 +37,17 @@ pub struct RsaSignatureKeyPair {
 
 fn modulus_bits(alg: SignatureAlgorithm) -> Result<usize, CryptoError> {
     let modulus_bits = match alg {
-        SignatureAlgorithm::RSA_PKCS1_2048_SHA256 | SignatureAlgorithm::RSA_PSS_2048_SHA256 => 2048,
-        SignatureAlgorithm::RSA_PKCS1_3072_SHA256
-        | SignatureAlgorithm::RSA_PKCS1_3072_SHA384
-        | SignatureAlgorithm::RSA_PSS_3072_SHA256
-        | SignatureAlgorithm::RSA_PSS_3072_SHA384 => 3072,
-        SignatureAlgorithm::RSA_PKCS1_4096_SHA256
-        | SignatureAlgorithm::RSA_PKCS1_4096_SHA512
-        | SignatureAlgorithm::RSA_PSS_4096_SHA256
-        | SignatureAlgorithm::RSA_PSS_4096_SHA512 => 4096,
+        SignatureAlgorithm::RSA_PKCS1_2048_SHA256
+        | SignatureAlgorithm::RSA_PKCS1_2048_SHA384
+        | SignatureAlgorithm::RSA_PKCS1_2048_SHA512
+        | SignatureAlgorithm::RSA_PSS_2048_SHA256
+        | SignatureAlgorithm::RSA_PSS_2048_SHA384
+        | SignatureAlgorithm::RSA_PSS_2048_SHA512 => 2048,
+        SignatureAlgorithm::RSA_PKCS1_3072_SHA384
+        | SignatureAlgorithm::RSA_PKCS1_3072_SHA512
+        | SignatureAlgorithm::RSA_PSS_3072_SHA384
+        | SignatureAlgorithm::RSA_PSS_3072_SHA512 => 3072,
+        SignatureAlgorithm::RSA_PKCS1_4096_SHA512 | SignatureAlgorithm::RSA_PSS_4096_SHA512 => 4096,
         _ => bail!(CryptoError::UnsupportedAlgorithm),
     };
     Ok(modulus_bits)
@@ -170,27 +172,27 @@ impl SignatureLike for RsaSignature {
 
 fn padding_scheme(alg: SignatureAlgorithm) -> ::rsa::PaddingScheme {
     match alg {
-        SignatureAlgorithm::RSA_PKCS1_2048_SHA256
-        | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
-        | SignatureAlgorithm::RSA_PKCS1_4096_SHA256 => {
+        SignatureAlgorithm::RSA_PKCS1_2048_SHA256 => {
             ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_256))
         }
-        SignatureAlgorithm::RSA_PKCS1_3072_SHA384 => {
+        SignatureAlgorithm::RSA_PKCS1_2048_SHA384 | SignatureAlgorithm::RSA_PKCS1_3072_SHA384 => {
             ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_384))
         }
-        SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => {
+        SignatureAlgorithm::RSA_PKCS1_2048_SHA512
+        | SignatureAlgorithm::RSA_PKCS1_3072_SHA512
+        | SignatureAlgorithm::RSA_PKCS1_4096_SHA512 => {
             ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_512))
         }
 
-        SignatureAlgorithm::RSA_PSS_2048_SHA256
-        | SignatureAlgorithm::RSA_PSS_3072_SHA256
-        | SignatureAlgorithm::RSA_PSS_4096_SHA256 => {
+        SignatureAlgorithm::RSA_PSS_2048_SHA256 => {
             ::rsa::PaddingScheme::new_pss::<Sha256, _>(SecureRandom::new())
         }
-        SignatureAlgorithm::RSA_PSS_3072_SHA384 => {
+        SignatureAlgorithm::RSA_PSS_2048_SHA384 | SignatureAlgorithm::RSA_PSS_3072_SHA384 => {
             ::rsa::PaddingScheme::new_pss::<Sha384, _>(SecureRandom::new())
         }
-        SignatureAlgorithm::RSA_PSS_4096_SHA512 => {
+        SignatureAlgorithm::RSA_PSS_2048_SHA512
+        | SignatureAlgorithm::RSA_PSS_3072_SHA512
+        | SignatureAlgorithm::RSA_PSS_4096_SHA512 => {
             ::rsa::PaddingScheme::new_pss::<Sha512, _>(SecureRandom::new())
         }
         _ => unreachable!(),
@@ -207,20 +209,22 @@ enum HashVariant {
 
 impl HashVariant {
     fn for_alg(alg: SignatureAlgorithm) -> Result<Self, CryptoError> {
-        let h =
-            match alg {
-                SignatureAlgorithm::RSA_PKCS1_2048_SHA256
-                | SignatureAlgorithm::RSA_PKCS1_3072_SHA256
-                | SignatureAlgorithm::RSA_PKCS1_4096_SHA256
-                | SignatureAlgorithm::RSA_PSS_2048_SHA256
-                | SignatureAlgorithm::RSA_PSS_3072_SHA256
-                | SignatureAlgorithm::RSA_PSS_4096_SHA256 => HashVariant::Sha256(Sha256::new()),
-                SignatureAlgorithm::RSA_PKCS1_3072_SHA384
-                | SignatureAlgorithm::RSA_PSS_3072_SHA384 => HashVariant::Sha384(Sha384::new()),
-                SignatureAlgorithm::RSA_PKCS1_4096_SHA512
-                | SignatureAlgorithm::RSA_PSS_4096_SHA512 => HashVariant::Sha512(Sha512::new()),
-                _ => bail!(CryptoError::UnsupportedAlgorithm),
-            };
+        let h = match alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_SHA256 | SignatureAlgorithm::RSA_PSS_2048_SHA256 => {
+                HashVariant::Sha256(Sha256::new())
+            }
+            SignatureAlgorithm::RSA_PKCS1_2048_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA384
+            | SignatureAlgorithm::RSA_PSS_2048_SHA384
+            | SignatureAlgorithm::RSA_PSS_3072_SHA384 => HashVariant::Sha384(Sha384::new()),
+            SignatureAlgorithm::RSA_PKCS1_2048_SHA512
+            | SignatureAlgorithm::RSA_PKCS1_3072_SHA512
+            | SignatureAlgorithm::RSA_PKCS1_4096_SHA512
+            | SignatureAlgorithm::RSA_PSS_2048_SHA512
+            | SignatureAlgorithm::RSA_PSS_3072_SHA512
+            | SignatureAlgorithm::RSA_PSS_4096_SHA512 => HashVariant::Sha512(Sha512::new()),
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
         Ok(h)
     }
 }
