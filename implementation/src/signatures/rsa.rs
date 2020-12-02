@@ -1,5 +1,6 @@
-use ::rsa::{BigUint, PublicKey as _};
-use ring::signature::KeyPair as _;
+use ::rsa::{PublicKey as _, PublicKeyParts as _};
+use ::sha2::{Digest, Sha256, Sha384, Sha512};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use zeroize::Zeroize;
 
@@ -8,45 +9,82 @@ use crate::asymmetric_common::*;
 use crate::error::*;
 use crate::rand::SecureRandom;
 
+const RAW_ENCODING_VERSION: u16 = 1;
+const RAW_ENCODING_ALG_ID: u16 = 1;
+
 #[derive(Debug, Clone)]
 pub struct RsaSignatureSecretKey {
     pub alg: SignatureAlgorithm,
 }
 
+#[derive(Serialize, Deserialize, Zeroize)]
+struct RsaSignatureKeyPairParts {
+    version: u16,
+    alg_id: u16,
+    n: ::rsa::BigUint,
+    e: ::rsa::BigUint,
+    d: ::rsa::BigUint,
+    primes: Vec<::rsa::BigUint>,
+}
+
 #[derive(Clone, Debug)]
 pub struct RsaSignatureKeyPair {
     pub alg: SignatureAlgorithm,
-    pub pkcs8: Vec<u8>,
-    pub ring_kp: Arc<ring::signature::RsaKeyPair>,
-}
-
-impl Drop for RsaSignatureKeyPair {
-    fn drop(&mut self) {
-        self.pkcs8.zeroize();
-    }
+    ctx: ::rsa::RSAPrivateKey,
 }
 
 impl RsaSignatureKeyPair {
-    pub fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
-        let ring_kp =
-            ring::signature::RsaKeyPair::from_pkcs8(pkcs8).map_err(|_| CryptoError::InvalidKey)?;
-        let kp = RsaSignatureKeyPair {
-            alg,
-            pkcs8: pkcs8.to_vec(),
-            ring_kp: Arc::new(ring_kp),
-        };
-        Ok(kp)
+    fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = ::rsa::RSAPrivateKey::from_pkcs8(&pkcs8).map_err(|_| CryptoError::InvalidKey)?;
+        Ok(RsaSignatureKeyPair { alg, ctx })
     }
 
-    fn as_pkcs8(&self) -> Result<Vec<u8>, CryptoError> {
-        Ok(self.pkcs8.clone())
+    fn from_pem(alg: SignatureAlgorithm, pem: &[u8]) -> Result<Self, CryptoError> {
+        let parsed_pem = ::rsa::pem::parse(pem).map_err(|_| CryptoError::InvalidKey)?;
+        let ctx =
+            ::rsa::RSAPrivateKey::try_from(parsed_pem).map_err(|_| CryptoError::InvalidKey)?;
+        Ok(RsaSignatureKeyPair { alg, ctx })
+    }
+
+    fn from_local(alg: SignatureAlgorithm, local: &[u8]) -> Result<Self, CryptoError> {
+        let parts: RsaSignatureKeyPairParts =
+            bincode::deserialize(local).map_err(|_| CryptoError::InvalidKey)?;
+        ensure!(
+            parts.version == RAW_ENCODING_VERSION && parts.alg_id == RAW_ENCODING_ALG_ID,
+            CryptoError::InvalidKey
+        );
+        let ctx = ::rsa::RSAPrivateKey::from_components(parts.n, parts.e, parts.d, parts.primes);
+        Ok(RsaSignatureKeyPair { alg, ctx })
+    }
+
+    fn to_local(&self) -> Result<Vec<u8>, CryptoError> {
+        let parts = RsaSignatureKeyPairParts {
+            version: RAW_ENCODING_VERSION,
+            alg_id: RAW_ENCODING_ALG_ID,
+            n: self.ctx.n().clone(),
+            e: self.ctx.e().clone(),
+            d: self.ctx.d().clone(),
+            primes: self.ctx.primes().to_vec(),
+        };
+        let local = bincode::serialize(&parts).map_err(|_| CryptoError::InternalError)?;
+        Ok(local)
     }
 
     pub fn generate(
-        _alg: SignatureAlgorithm,
+        alg: SignatureAlgorithm,
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
-        bail!(CryptoError::NotImplemented)
+        let modulus_bits = match alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => 2048,
+            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => 3072,
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+        let mut rng = SecureRandom::new();
+        let ctx = ::rsa::RSAPrivateKey::new(&mut rng, modulus_bits)
+            .map_err(|_| CryptoError::UnsupportedAlgorithm)?;
+        Ok(RsaSignatureKeyPair { alg, ctx })
     }
 
     pub fn import(
@@ -54,31 +92,48 @@ impl RsaSignatureKeyPair {
         encoded: &[u8],
         encoding: KeyPairEncoding,
     ) -> Result<Self, CryptoError> {
-        match encoding {
-            KeyPairEncoding::Pkcs8 => {}
+        match alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {}
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+        let mut kp = match encoding {
+            KeyPairEncoding::Pkcs8 => Self::from_pkcs8(alg, encoded)?,
+            KeyPairEncoding::Pem => Self::from_pem(alg, encoded)?,
+            KeyPairEncoding::Local => Self::from_local(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
-        let kp = RsaSignatureKeyPair::from_pkcs8(alg, encoded)?;
+        let bits = kp.ctx.size();
+        ensure!((1920..=4096).contains(&bits), CryptoError::InvalidKey);
+        kp.ctx.validate().map_err(|_| CryptoError::InvalidKey)?;
+        kp.ctx.precompute().map_err(|_| CryptoError::InvalidKey)?;
         Ok(kp)
     }
 
-    pub fn export(&self, _encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
-        bail!(CryptoError::UnsupportedEncoding)
+    pub fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
+        match encoding {
+            KeyPairEncoding::Local => self.to_local(),
+            _ => bail!(CryptoError::UnsupportedEncoding),
+        }
     }
 
     pub fn public_key(&self) -> Result<RsaSignaturePublicKey, CryptoError> {
-        let ring_pk = self.ring_kp.public_key().clone();
-        let raw = ring_pk.as_ref().to_vec();
-        Ok(RsaSignaturePublicKey { alg: self.alg, raw })
+        let ctx = self.ctx.to_public_key();
+        Ok(RsaSignaturePublicKey { alg: self.alg, ctx })
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RsaSignature(pub Vec<u8>);
+pub struct RsaSignature {
+    pub encoding: SignatureEncoding,
+    pub encoded: Vec<u8>,
+}
 
 impl RsaSignature {
-    pub fn new(encoded: Vec<u8>) -> Self {
-        RsaSignature(encoded)
+    pub fn new(encoding: SignatureEncoding, encoded: Vec<u8>) -> Self {
+        RsaSignature { encoding, encoded }
     }
 }
 
@@ -88,43 +143,76 @@ impl SignatureLike for RsaSignature {
     }
 
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        &self.encoded
     }
+}
+
+fn padding_scheme(alg: SignatureAlgorithm) -> ::rsa::PaddingScheme {
+    match alg {
+        SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
+            ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_256))
+        }
+        SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+        | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
+            ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_384))
+        }
+        SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => {
+            ::rsa::PaddingScheme::new_pkcs1v15_sign(Some(::rsa::Hash::SHA2_512))
+        }
+        _ => unreachable!(),
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
+enum HashVariant {
+    Sha256(Sha256),
+    Sha384(Sha384),
+    Sha512(Sha512),
 }
 
 #[derive(Debug)]
 pub struct RsaSignatureState {
     pub kp: RsaSignatureKeyPair,
-    pub input: Vec<u8>,
+    h: HashVariant,
 }
 
 impl RsaSignatureState {
     pub fn new(kp: RsaSignatureKeyPair) -> Self {
-        RsaSignatureState { kp, input: vec![] }
+        let h = match kp.alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => HashVariant::Sha256(Sha256::new()),
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => HashVariant::Sha384(Sha384::new()),
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => HashVariant::Sha512(Sha512::new()),
+            _ => unreachable!(),
+        };
+        RsaSignatureState { kp, h }
     }
 }
 
 impl SignatureStateLike for RsaSignatureState {
     fn update(&mut self, input: &[u8]) -> Result<(), CryptoError> {
-        self.input.extend_from_slice(input);
+        match &mut self.h {
+            HashVariant::Sha256(x) => x.update(input),
+            HashVariant::Sha384(x) => x.update(input),
+            HashVariant::Sha512(x) => x.update(input),
+        };
         Ok(())
     }
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
-        let rng = SecureRandom::new();
-        let mut signature_u8 = vec![];
-        let padding_alg = match self.kp.alg {
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => &ring::signature::RSA_PKCS1_SHA256,
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384 => &ring::signature::RSA_PKCS1_SHA384,
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => &ring::signature::RSA_PKCS1_SHA512,
-            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => &ring::signature::RSA_PKCS1_SHA384,
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        let mut rng = SecureRandom::new();
+        let digest = match &self.h {
+            HashVariant::Sha256(x) => x.clone().finalize().as_slice().to_vec(),
+            HashVariant::Sha384(x) => x.clone().finalize().as_slice().to_vec(),
+            HashVariant::Sha512(x) => x.clone().finalize().as_slice().to_vec(),
         };
-        self.kp
-            .ring_kp
-            .sign(padding_alg, rng.ring_rng(), &self.input, &mut signature_u8)
-            .map_err(|_| CryptoError::AlgorithmFailure)?;
-        let signature = RsaSignature(signature_u8);
+        let encoded_signature = self
+            .kp
+            .ctx
+            .sign_blinded(&mut rng, padding_scheme(self.kp.alg), &digest)
+            .map_err(|_| CryptoError::InvalidKey)?;
+        let signature = RsaSignature::new(SignatureEncoding::Raw, encoded_signature);
         Ok(Signature::new(Box::new(signature)))
     }
 }
@@ -132,18 +220,29 @@ impl SignatureStateLike for RsaSignatureState {
 #[derive(Debug)]
 pub struct RsaSignatureVerificationState {
     pub pk: RsaSignaturePublicKey,
-    pub input: Vec<u8>,
+    h: HashVariant,
 }
 
 impl RsaSignatureVerificationState {
     pub fn new(pk: RsaSignaturePublicKey) -> Self {
-        RsaSignatureVerificationState { pk, input: vec![] }
+        let h = match pk.alg {
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => HashVariant::Sha256(Sha256::new()),
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => HashVariant::Sha384(Sha384::new()),
+            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => HashVariant::Sha512(Sha512::new()),
+            _ => unreachable!(),
+        };
+        RsaSignatureVerificationState { pk, h }
     }
 }
 
 impl SignatureVerificationStateLike for RsaSignatureVerificationState {
     fn update(&mut self, input: &[u8]) -> Result<(), CryptoError> {
-        self.input.extend_from_slice(input);
+        match &mut self.h {
+            HashVariant::Sha256(x) => x.update(input),
+            HashVariant::Sha384(x) => x.update(input),
+            HashVariant::Sha512(x) => x.update(input),
+        };
         Ok(())
     }
 
@@ -153,46 +252,66 @@ impl SignatureVerificationStateLike for RsaSignatureVerificationState {
             .as_any()
             .downcast_ref::<RsaSignature>()
             .ok_or(CryptoError::InvalidSignature)?;
-        let ring_alg = match self.pk.alg {
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256 => {
-                &ring::signature::RSA_PKCS1_2048_8192_SHA256
-            }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384 => {
-                &ring::signature::RSA_PKCS1_2048_8192_SHA384
-            }
-            SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512 => {
-                &ring::signature::RSA_PKCS1_2048_8192_SHA512
-            }
-            SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
-                &ring::signature::RSA_PKCS1_3072_8192_SHA384
-            }
-            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        let digest = match &self.h {
+            HashVariant::Sha256(x) => x.clone().finalize().as_slice().to_vec(),
+            HashVariant::Sha384(x) => x.clone().finalize().as_slice().to_vec(),
+            HashVariant::Sha512(x) => x.clone().finalize().as_slice().to_vec(),
         };
-        let ring_pk = ring::signature::UnparsedPublicKey::new(ring_alg, self.pk.as_raw()?);
-        ring_pk
-            .verify(self.input.as_ref(), signature.as_ref())
-            .map_err(|_| CryptoError::VerificationFailed)?;
+        self.pk
+            .ctx
+            .verify(padding_scheme(self.pk.alg), &digest, signature.as_ref())
+            .map_err(|_| CryptoError::InvalidSignature)?;
         Ok(())
     }
+}
+
+#[derive(Serialize, Deserialize, Zeroize)]
+struct RsaSignaturePublicKeyParts {
+    version: u16,
+    alg_id: u16,
+    n: ::rsa::BigUint,
+    e: ::rsa::BigUint,
 }
 
 #[derive(Clone, Debug)]
 pub struct RsaSignaturePublicKey {
     pub alg: SignatureAlgorithm,
-    pub raw: Vec<u8>,
+    ctx: ::rsa::RSAPublicKey,
 }
 
 impl RsaSignaturePublicKey {
-    fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
-        let pk = RsaSignaturePublicKey {
-            alg,
-            raw: raw.to_vec(),
-        };
-        Ok(pk)
+    fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = ::rsa::RSAPublicKey::from_pkcs8(&pkcs8).map_err(|_| CryptoError::InvalidKey)?;
+        Ok(RsaSignaturePublicKey { alg, ctx })
     }
 
-    fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
-        Ok(self.raw.clone())
+    fn from_pem(alg: SignatureAlgorithm, pem: &[u8]) -> Result<Self, CryptoError> {
+        let parsed_pem = ::rsa::pem::parse(pem).map_err(|_| CryptoError::InvalidKey)?;
+        let ctx = ::rsa::RSAPublicKey::try_from(parsed_pem).map_err(|_| CryptoError::InvalidKey)?;
+        Ok(RsaSignaturePublicKey { alg, ctx })
+    }
+
+    fn from_local(alg: SignatureAlgorithm, local: &[u8]) -> Result<Self, CryptoError> {
+        let parts: RsaSignaturePublicKeyParts =
+            bincode::deserialize(local).map_err(|_| CryptoError::InvalidKey)?;
+        ensure!(
+            parts.version == RAW_ENCODING_VERSION && parts.alg_id == RAW_ENCODING_ALG_ID,
+            CryptoError::InvalidKey
+        );
+        let ctx =
+            ::rsa::RSAPublicKey::new(parts.n, parts.e).map_err(|_| CryptoError::InvalidKey)?;
+        Ok(RsaSignaturePublicKey { alg, ctx })
+    }
+
+    fn to_local(&self) -> Result<Vec<u8>, CryptoError> {
+        let parts = RsaSignaturePublicKeyParts {
+            version: RAW_ENCODING_VERSION,
+            alg_id: RAW_ENCODING_ALG_ID,
+            n: self.ctx.n().clone(),
+            e: self.ctx.e().clone(),
+        };
+        let local = bincode::serialize(&parts).map_err(|_| CryptoError::InternalError)?;
+        Ok(local)
     }
 
     pub fn import(
@@ -200,15 +319,23 @@ impl RsaSignaturePublicKey {
         encoded: &[u8],
         encoding: PublicKeyEncoding,
     ) -> Result<Self, CryptoError> {
-        match encoding {
-            PublicKeyEncoding::Raw => Self::from_raw(alg, encoded),
+        let pk = match encoding {
+            PublicKeyEncoding::Pkcs8 => Self::from_pkcs8(alg, encoded)?,
+            PublicKeyEncoding::Pem => Self::from_pem(alg, encoded)?,
+            PublicKeyEncoding::Local => Self::from_local(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
-        }
+        };
+        let bits = pk.ctx.size();
+        ensure!(
+            bits >= 2048 / 8 && bits <= 4096 / 8,
+            CryptoError::InvalidKey
+        );
+        Ok(pk)
     }
 
     pub fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
         match encoding {
-            PublicKeyEncoding::Raw => self.as_raw(),
+            PublicKeyEncoding::Local => self.to_local(),
             _ => bail!(CryptoError::UnsupportedEncoding),
         }
     }

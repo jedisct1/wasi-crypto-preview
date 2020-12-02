@@ -21,7 +21,7 @@ pub struct EddsaSignatureKeyPair {
 }
 
 impl EddsaSignatureKeyPair {
-    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+    fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
         ensure!(raw.len() == KP_LEN, CryptoError::InvalidKey);
         let ctx = ed25519_dalek::Keypair::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
         Ok(EddsaSignatureKeyPair {
@@ -30,7 +30,7 @@ impl EddsaSignatureKeyPair {
         })
     }
 
-    pub fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+    fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
         Ok(Vec::from(self.ctx.to_bytes()))
     }
 
@@ -76,11 +76,14 @@ impl EddsaSignatureKeyPair {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct EddsaSignature(pub Vec<u8>);
+pub struct EddsaSignature {
+    pub encoding: SignatureEncoding,
+    pub encoded: Vec<u8>,
+}
 
 impl EddsaSignature {
-    pub fn new(encoded: Vec<u8>) -> Self {
-        EddsaSignature(encoded)
+    pub fn new(encoding: SignatureEncoding, encoded: Vec<u8>) -> Self {
+        EddsaSignature { encoding, encoded }
     }
 }
 
@@ -90,7 +93,7 @@ impl SignatureLike for EddsaSignature {
     }
 
     fn as_ref(&self) -> &[u8] {
-        &self.0
+        &self.encoded
     }
 }
 
@@ -114,7 +117,10 @@ impl SignatureStateLike for EddsaSignatureState {
 
     fn sign(&mut self) -> Result<Signature, CryptoError> {
         let signature_u8 = Vec::from(self.kp.ctx.sign(&self.input).to_bytes());
-        let signature = EddsaSignature(signature_u8);
+        let signature = EddsaSignature {
+            encoding: SignatureEncoding::Raw,
+            encoded: signature_u8,
+        };
         Ok(Signature::new(Box::new(signature)))
     }
 }

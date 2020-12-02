@@ -35,7 +35,7 @@ pub struct EcdsaSignatureKeyPair {
 }
 
 impl EcdsaSignatureKeyPair {
-    pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
+    fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
         let ctx = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => {
                 let ecdsa_sk =
@@ -55,7 +55,7 @@ impl EcdsaSignatureKeyPair {
         })
     }
 
-    pub fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
+    fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
         let raw = match self.ctx.as_ref() {
             EcdsaSigningKeyVariant::P256(x) => x.to_bytes().to_vec(),
             EcdsaSigningKeyVariant::K256(x) => x.to_bytes().to_vec(),

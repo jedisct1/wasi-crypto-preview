@@ -57,14 +57,17 @@ impl Signature {
             }
             SignatureAlgorithm::Ed25519 => {
                 ensure!(encoded.len() == 64, CryptoError::InvalidSignature);
-                Signature::new(Box::new(EddsaSignature::new(encoded.to_vec())))
+                Signature::new(Box::new(EddsaSignature::new(
+                    SignatureEncoding::Raw,
+                    encoded.to_vec(),
+                )))
             }
             SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA256
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA384
             | SignatureAlgorithm::RSA_PKCS1_2048_8192_SHA512
-            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => {
-                Signature::new(Box::new(RsaSignature::new(encoded.to_vec())))
-            }
+            | SignatureAlgorithm::RSA_PKCS1_3072_8192_SHA384 => Signature::new(Box::new(
+                RsaSignature::new(SignatureEncoding::Raw, encoded.to_vec()),
+            )),
         };
         Ok(signature)
     }

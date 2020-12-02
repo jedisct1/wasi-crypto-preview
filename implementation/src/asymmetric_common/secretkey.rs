@@ -6,20 +6,22 @@ use crate::{AlgorithmType, CryptoCtx};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SecretKeyEncoding {
     Raw,
-    Der,
+    Pkcs8,
     Pem,
     Sec,
     CompressedSec,
+    Local,
 }
 
 impl From<guest_types::SecretkeyEncoding> for SecretKeyEncoding {
     fn from(encoding: guest_types::SecretkeyEncoding) -> Self {
         match encoding {
             guest_types::SecretkeyEncoding::Raw => SecretKeyEncoding::Raw,
-            guest_types::SecretkeyEncoding::Der => SecretKeyEncoding::Der,
+            guest_types::SecretkeyEncoding::Pkcs8 => SecretKeyEncoding::Pkcs8,
             guest_types::SecretkeyEncoding::Pem => SecretKeyEncoding::Pem,
             guest_types::SecretkeyEncoding::Sec => SecretKeyEncoding::Sec,
             guest_types::SecretkeyEncoding::CompressedSec => SecretKeyEncoding::CompressedSec,
+            guest_types::SecretkeyEncoding::Local => SecretKeyEncoding::Local,
         }
     }
 }

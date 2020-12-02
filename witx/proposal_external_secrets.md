@@ -160,13 +160,13 @@ Alignment: 2
 Raw bytes.
 
 - <a href="#keypair_encoding.pkcs8" name="keypair_encoding.pkcs8"></a> `pkcs8`
-PCSK8 encoding.
-
-- <a href="#keypair_encoding.der" name="keypair_encoding.der"></a> `der`
-DER encoding.
+PCSK8/DER encoding.
 
 - <a href="#keypair_encoding.pem" name="keypair_encoding.pem"></a> `pem`
 PEM encoding.
+
+- <a href="#keypair_encoding.local" name="keypair_encoding.local"></a> `local`
+Implementation-defined encoding.
 
 ## <a href="#publickey_encoding" name="publickey_encoding"></a> `publickey_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a public key.
@@ -179,8 +179,8 @@ Alignment: 2
 - <a href="#publickey_encoding.raw" name="publickey_encoding.raw"></a> `raw`
 Raw bytes.
 
-- <a href="#publickey_encoding.der" name="publickey_encoding.der"></a> `der`
-DER encoding.
+- <a href="#publickey_encoding.pkcs8" name="publickey_encoding.pkcs8"></a> `pkcs8`
+PKCS8/DER encoding.
 
 - <a href="#publickey_encoding.pem" name="publickey_encoding.pem"></a> `pem`
 PEM encoding.
@@ -190,6 +190,9 @@ SEC encoding.
 
 - <a href="#publickey_encoding.compressed_sec" name="publickey_encoding.compressed_sec"></a> `compressed_sec`
 Compressed SEC encoding.
+
+- <a href="#publickey_encoding.local" name="publickey_encoding.local"></a> `local`
+Implementation-defined encoding.
 
 ## <a href="#secretkey_encoding" name="secretkey_encoding"></a> `secretkey_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a secret key.
@@ -202,8 +205,8 @@ Alignment: 2
 - <a href="#secretkey_encoding.raw" name="secretkey_encoding.raw"></a> `raw`
 Raw bytes.
 
-- <a href="#secretkey_encoding.der" name="secretkey_encoding.der"></a> `der`
-DER encoding.
+- <a href="#secretkey_encoding.pkcs8" name="secretkey_encoding.pkcs8"></a> `pkcs8`
+PKCS8/DER encoding.
 
 - <a href="#secretkey_encoding.pem" name="secretkey_encoding.pem"></a> `pem`
 PEM encoding.
@@ -213,6 +216,9 @@ SEC encoding.
 
 - <a href="#secretkey_encoding.compressed_sec" name="secretkey_encoding.compressed_sec"></a> `compressed_sec`
 Compressed SEC encoding.
+
+- <a href="#secretkey_encoding.local" name="secretkey_encoding.local"></a> `local`
+Implementation-defined encoding.
 
 ## <a href="#signature_encoding" name="signature_encoding"></a> `signature_encoding`: Enum(`u16`)
 Encoding to use for importing or exporting a signature.

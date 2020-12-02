@@ -9,8 +9,8 @@ use std::convert::TryFrom;
 pub enum KeyPairEncoding {
     Raw,
     Pkcs8,
-    Der,
     Pem,
+    Local,
 }
 
 impl From<guest_types::KeypairEncoding> for KeyPairEncoding {
@@ -18,8 +18,8 @@ impl From<guest_types::KeypairEncoding> for KeyPairEncoding {
         match encoding {
             guest_types::KeypairEncoding::Raw => KeyPairEncoding::Raw,
             guest_types::KeypairEncoding::Pkcs8 => KeyPairEncoding::Pkcs8,
-            guest_types::KeypairEncoding::Der => KeyPairEncoding::Der,
             guest_types::KeypairEncoding::Pem => KeyPairEncoding::Pem,
+            guest_types::KeypairEncoding::Local => KeyPairEncoding::Local,
         }
     }
 }

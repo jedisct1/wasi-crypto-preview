@@ -5,20 +5,22 @@ use crate::{AlgorithmType, CryptoCtx, HandleManagers};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PublicKeyEncoding {
     Raw,
-    Der,
+    Pkcs8,
     Pem,
     Sec,
     CompressedSec,
+    Local,
 }
 
 impl From<guest_types::PublickeyEncoding> for PublicKeyEncoding {
     fn from(encoding: guest_types::PublickeyEncoding) -> Self {
         match encoding {
             guest_types::PublickeyEncoding::Raw => PublicKeyEncoding::Raw,
-            guest_types::PublickeyEncoding::Der => PublicKeyEncoding::Der,
+            guest_types::PublickeyEncoding::Pkcs8 => PublicKeyEncoding::Pkcs8,
             guest_types::PublickeyEncoding::Pem => PublicKeyEncoding::Pem,
             guest_types::PublickeyEncoding::Sec => PublicKeyEncoding::Sec,
             guest_types::PublickeyEncoding::CompressedSec => PublicKeyEncoding::CompressedSec,
+            guest_types::PublickeyEncoding::Local => PublicKeyEncoding::Local,
         }
     }
 }

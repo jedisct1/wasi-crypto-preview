@@ -150,14 +150,14 @@
     ;;; Raw bytes.
     $raw
 
-    ;;; PCSK8 encoding.
+    ;;; PCSK8/DER encoding.
     $pkcs8
-
-    ;;; DER encoding.
-    $der
 
     ;;; PEM encoding.
     $pem
+
+    ;;; Implementation-defined encoding.
+    $local
   )
 )
 
@@ -167,8 +167,8 @@
     ;;; Raw bytes.
     $raw
 
-    ;;; DER encoding.
-    $der
+    ;;; PKCS8/DER encoding.
+    $pkcs8
 
     ;;; PEM encoding.
     $pem
@@ -178,6 +178,9 @@
 
     ;;; Compressed SEC encoding.
     $compressed_sec
+
+    ;;; Implementation-defined encoding.
+    $local
   )
 )
 
@@ -187,8 +190,8 @@
     ;;; Raw bytes.
     $raw
 
-    ;;; DER encoding.
-    $der
+    ;;; PKCS8/DER encoding.
+    $pkcs8
 
     ;;; PEM encoding.
     $pem
@@ -198,6 +201,9 @@
 
     ;;; Compressed SEC encoding.
     $compressed_sec
+
+    ;;; Implementation-defined encoding.
+    $local
   )
 )
 
