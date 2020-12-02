@@ -186,6 +186,35 @@ fn test_signatures_rsa() {
         .unwrap();
     let pk_handle = ctx.keypair_publickey(kp_handle).unwrap();
 
+    let pk_serialized = ctx
+        .publickey_export(pk_handle, asymmetric_common::PublicKeyEncoding::Local)
+        .unwrap();
+    let mut raw = vec![0u8; ctx.array_output_len(pk_serialized).unwrap()];
+    ctx.array_output_pull(pk_serialized, &mut raw).unwrap();
+    let pk_handle = ctx
+        .publickey_import(
+            AlgorithmType::Signatures,
+            "RSA_PKCS1_2048_SHA256",
+            &raw,
+            asymmetric_common::PublicKeyEncoding::Local,
+        )
+        .unwrap();
+
+    let kp_serialized = ctx
+        .keypair_export(kp_handle, asymmetric_common::KeyPairEncoding::Local)
+        .unwrap();
+    let mut raw = vec![0u8; ctx.array_output_len(kp_serialized).unwrap()];
+    ctx.array_output_pull(kp_serialized, &mut raw).unwrap();
+    let kp2_handle = ctx
+        .keypair_import(
+            AlgorithmType::Signatures,
+            "RSA_PKCS1_2048_SHA256",
+            &raw,
+            asymmetric_common::KeyPairEncoding::Local,
+        )
+        .unwrap();
+    let kp_handle = kp2_handle;
+
     let state_handle = ctx.signature_state_open(kp_handle).unwrap();
     ctx.signature_state_update(state_handle, b"test").unwrap();
     let signature_handle = ctx.signature_state_sign(state_handle).unwrap();
