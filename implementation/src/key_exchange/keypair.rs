@@ -20,13 +20,13 @@ impl KxKeyPair {
         }
     }
 
-    pub fn inner(&self) -> MutexGuard<Box<dyn KxKeyPairLike>> {
+    pub fn inner(&self) -> MutexGuard<'_, Box<dyn KxKeyPairLike>> {
         self.inner.lock()
     }
 
     pub fn locked<T, U>(&self, mut f: T) -> U
     where
-        T: FnMut(MutexGuard<Box<dyn KxKeyPairLike>>) -> U,
+        T: FnMut(MutexGuard<'_, Box<dyn KxKeyPairLike>>) -> U,
     {
         f(self.inner())
     }

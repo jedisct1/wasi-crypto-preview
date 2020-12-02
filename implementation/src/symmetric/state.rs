@@ -17,13 +17,13 @@ impl SymmetricState {
         }
     }
 
-    fn inner(&self) -> MutexGuard<Box<dyn SymmetricStateLike>> {
+    fn inner(&self) -> MutexGuard<'_, Box<dyn SymmetricStateLike>> {
         self.inner.lock()
     }
 
     fn locked<T, U>(&self, mut f: T) -> U
     where
-        T: FnMut(MutexGuard<Box<dyn SymmetricStateLike>>) -> U,
+        T: FnMut(MutexGuard<'_, Box<dyn SymmetricStateLike>>) -> U,
     {
         f(self.inner())
     }

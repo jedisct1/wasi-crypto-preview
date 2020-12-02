@@ -54,13 +54,13 @@ impl Signature {
         Ok(signature)
     }
 
-    pub fn inner(&self) -> MutexGuard<Box<dyn SignatureLike>> {
+    pub fn inner(&self) -> MutexGuard<'_, Box<dyn SignatureLike>> {
         self.inner.lock()
     }
 
     pub fn locked<T, U>(&self, mut f: T) -> U
     where
-        T: FnMut(MutexGuard<Box<dyn SignatureLike>>) -> U,
+        T: FnMut(MutexGuard<'_, Box<dyn SignatureLike>>) -> U,
     {
         f(self.inner())
     }
@@ -83,13 +83,13 @@ impl SignatureState {
         }
     }
 
-    fn inner(&self) -> MutexGuard<Box<dyn SignatureStateLike>> {
+    fn inner(&self) -> MutexGuard<'_, Box<dyn SignatureStateLike>> {
         self.inner.lock()
     }
 
     fn locked<T, U>(&self, mut f: T) -> U
     where
-        T: FnMut(MutexGuard<Box<dyn SignatureStateLike>>) -> U,
+        T: FnMut(MutexGuard<'_, Box<dyn SignatureStateLike>>) -> U,
     {
         f(self.inner())
     }
@@ -142,13 +142,13 @@ impl SignatureVerificationState {
         }
     }
 
-    fn inner(&self) -> MutexGuard<Box<dyn SignatureVerificationStateLike>> {
+    fn inner(&self) -> MutexGuard<'_, Box<dyn SignatureVerificationStateLike>> {
         self.inner.lock()
     }
 
     fn locked<T, U>(&self, mut f: T) -> U
     where
-        T: FnMut(MutexGuard<Box<dyn SignatureVerificationStateLike>>) -> U,
+        T: FnMut(MutexGuard<'_, Box<dyn SignatureVerificationStateLike>>) -> U,
     {
         f(self.inner())
     }
