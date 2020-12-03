@@ -80,6 +80,21 @@ impl RsaSignatureKeyPair {
         Ok(RsaSignatureKeyPair { alg, ctx })
     }
 
+    fn to_pkcs8(&self) -> Result<Vec<u8>, CryptoError> {
+        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
+        export_key
+            .as_pkcs8()
+            .map_err(|_| CryptoError::InternalError)
+    }
+
+    fn to_pem(&self) -> Result<Vec<u8>, CryptoError> {
+        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
+        export_key
+            .as_pkcs8_pem()
+            .map(|s| s.as_bytes().to_vec())
+            .map_err(|_| CryptoError::InternalError)
+    }
+
     fn to_local(&self) -> Result<Vec<u8>, CryptoError> {
         let parts = RsaSignatureKeyPairParts {
             version: RAW_ENCODING_VERSION,
@@ -132,6 +147,8 @@ impl RsaSignatureKeyPair {
 
     pub fn export(&self, encoding: KeyPairEncoding) -> Result<Vec<u8>, CryptoError> {
         match encoding {
+            KeyPairEncoding::Pkcs8 => self.to_pkcs8(),
+            KeyPairEncoding::Pem => self.to_pem(),
             KeyPairEncoding::Local => self.to_local(),
             _ => bail!(CryptoError::UnsupportedEncoding),
         }
@@ -352,6 +369,21 @@ impl RsaSignaturePublicKey {
         Ok(RsaSignaturePublicKey { alg, ctx })
     }
 
+    fn to_pkcs8(&self) -> Result<Vec<u8>, CryptoError> {
+        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
+        export_key
+            .as_pkcs8()
+            .map_err(|_| CryptoError::InternalError)
+    }
+
+    fn to_pem(&self) -> Result<Vec<u8>, CryptoError> {
+        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
+        export_key
+            .as_pkcs8_pem()
+            .map(|s| s.as_bytes().to_vec())
+            .map_err(|_| CryptoError::InternalError)
+    }
+
     fn to_local(&self) -> Result<Vec<u8>, CryptoError> {
         let parts = RsaSignaturePublicKeyParts {
             version: RAW_ENCODING_VERSION,
@@ -385,6 +417,8 @@ impl RsaSignaturePublicKey {
 
     pub fn export(&self, encoding: PublicKeyEncoding) -> Result<Vec<u8>, CryptoError> {
         match encoding {
+            PublicKeyEncoding::Pkcs8 => self.to_pkcs8(),
+            PublicKeyEncoding::Pem => self.to_pem(),
             PublicKeyEncoding::Local => self.to_local(),
             _ => bail!(CryptoError::UnsupportedEncoding),
         }

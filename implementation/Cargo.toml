@@ -21,6 +21,7 @@ parking_lot = "0.11"
 pqcrypto = { version = "0.11", default-features = false, features = ["pqcrypto-kyber"], optional = true }
 rand_core = "0.5"
 rsa = "0.3"
+rsa-export = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.9"
 subtle = "2.3"
