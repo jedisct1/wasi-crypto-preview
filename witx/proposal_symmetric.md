@@ -1280,7 +1280,7 @@ The returned length may include the encryption mode's padding requirements in ad
 
 For an encryption operation, the size of the output buffer should be `input_len + symmetric_state_max_tag_len()`.
 
-For a decryption operation, the size of the buffer that will store the decrypted data can be reduced to `ciphertext_len - symmetric_state_max_tag_len()` only if the algorithm is known to have a fixed tag length.
+For a decryption operation, the size of the buffer that will store the decrypted data must be `ciphertext_len - symmetric_state_max_tag_len()`.
 
 ##### Params
 - <a href="#symmetric_state_max_tag_len.handle" name="symmetric_state_max_tag_len.handle"></a> `handle`: [`symmetric_state`](#symmetric_state)
@@ -1364,7 +1364,9 @@ The function returns the tag.
 
 If `out` and `data` are the same address, decryption may happen in-place.
 
-The function returns the actual size of the decrypted message.
+`out_len` must be exactly `data_len` + `max_tag_len` bytes.
+
+The function returns the actual size of the decrypted message, which can be smaller than `out_len` for modes that requires padding.
 
 `invalid_tag` is returned if the tag didn't verify.
 
