@@ -117,6 +117,7 @@ impl AesGcmSymmetricState {
         let options = options.as_ref().ok_or(CryptoError::NonceRequired)?;
         let inner = options.inner.lock();
         let nonce_vec = inner.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
+        ensure!(nonce_vec.len() == NONCE_LEN, CryptoError::InvalidNonce);
         let mut nonce = [0u8; NONCE_LEN];
         nonce.copy_from_slice(&nonce_vec);
         let aes_gcm_impl = match alg {
@@ -164,16 +165,9 @@ impl SymmetricStateLike for AesGcmSymmetricState {
 
     fn encrypt_unchecked(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
         let data_len = data.len();
-        let out_len = data_len
-            .checked_add(self.max_tag_len()?)
-            .ok_or(CryptoError::InvalidLength)?;
-        if out.len() != out_len {
-            bail!(CryptoError::InvalidLength)
-        }
         let tag = self.encrypt_detached_unchecked(&mut out[..data_len], data)?;
-        let actual_out_len = data_len + tag.as_ref().len();
-        out[data_len..actual_out_len].copy_from_slice(tag.as_ref());
-        Ok(actual_out_len)
+        out[data_len..].copy_from_slice(tag.as_ref());
+        Ok(out.len())
     }
 
     fn encrypt_detached_unchecked(
@@ -182,10 +176,6 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         data: &[u8],
     ) -> Result<SymmetricTag, CryptoError> {
         ensure!(self.nonce_is_safe_to_use, CryptoError::NonceRequired);
-        let data_len = data.len();
-        if out.len() != data_len {
-            bail!(CryptoError::InvalidLength)
-        }
         if out.as_ptr() != data.as_ptr() {
             out.copy_from_slice(data);
         }
@@ -204,15 +194,8 @@ impl SymmetricStateLike for AesGcmSymmetricState {
     }
 
     fn decrypt_unchecked(&mut self, out: &mut [u8], data: &[u8]) -> Result<usize, CryptoError> {
-        let data_len = data.len();
-        let out_len = data_len
-            .checked_sub(self.max_tag_len()?)
-            .ok_or(CryptoError::InvalidTag)?;
-        if out.len() != out_len {
-            bail!(CryptoError::InvalidLength)
-        }
-        let raw_tag = &data[out_len..].to_vec();
-        self.decrypt_detached_unchecked(out, &data[..out_len], &raw_tag)
+        let raw_tag = &data[out.len()..].to_vec();
+        self.decrypt_detached_unchecked(out, &data[..out.len()], &raw_tag)
     }
 
     fn decrypt_detached_unchecked(
@@ -221,12 +204,8 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         data: &[u8],
         raw_tag: &[u8],
     ) -> Result<usize, CryptoError> {
-        let data_len = data.len();
-        if out.len() != data_len {
-            bail!(CryptoError::InvalidLength)
-        }
         if out.as_ptr() != data.as_ptr() {
-            out[..data_len].copy_from_slice(data);
+            out[..data.len()].copy_from_slice(data);
         }
         match &self.ctx {
             AesGcmVariant::Aes128(x) => x.decrypt_in_place_detached(
@@ -243,6 +222,6 @@ impl SymmetricStateLike for AesGcmSymmetricState {
             ),
         }
         .map_err(|_| CryptoError::InvalidTag)?;
-        Ok(data_len)
+        Ok(data.len())
     }
 }
