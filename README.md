@@ -58,6 +58,8 @@ Currently supported algorithms as a proof of concept:
 * `SHA-512/256`
 * `AES-128-GCM`
 * `AES-256-GCM`
+* `CHACHA20-POLY1305`
+* `XCHACHA20-POLY1305`
 * `XOODYAK-128`
 * `XOODYAK-160`
 * `X25519`

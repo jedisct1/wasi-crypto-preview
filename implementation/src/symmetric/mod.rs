@@ -1,4 +1,5 @@
 mod aes_gcm;
+mod chacha_poly;
 mod hkdf;
 mod hmac_sha2;
 mod key;
@@ -131,6 +132,8 @@ pub enum SymmetricAlgorithm {
     Sha512_256,
     Aes128Gcm,
     Aes256Gcm,
+    ChaCha20Poly1305,
+    XChaCha20Poly1305,
     Xoodyak128,
     Xoodyak160,
 }
@@ -151,6 +154,8 @@ impl TryFrom<&str> for SymmetricAlgorithm {
             "SHA-512/256" => Ok(SymmetricAlgorithm::Sha512_256),
             "AES-128-GCM" => Ok(SymmetricAlgorithm::Aes128Gcm),
             "AES-256-GCM" => Ok(SymmetricAlgorithm::Aes256Gcm),
+            "CHACHA20-POLY1305" => Ok(SymmetricAlgorithm::ChaCha20Poly1305),
+            "XCHACHA20-POLY1305" => Ok(SymmetricAlgorithm::XChaCha20Poly1305),
             "XOODYAK-128" => Ok(SymmetricAlgorithm::Xoodyak128),
             "XOODYAK-160" => Ok(SymmetricAlgorithm::Xoodyak160),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
