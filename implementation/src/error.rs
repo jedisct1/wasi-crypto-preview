@@ -55,6 +55,8 @@ pub enum CryptoError {
     InvalidOperation,
     #[error("Nonce required")]
     NonceRequired,
+    #[error("Nonce doesn't have a correct size")]
+    InvalidNonce,
     #[error("Option not set")]
     OptionNotSet,
     #[error("Key not found")]
@@ -94,6 +96,7 @@ impl From<CryptoError> for guest_types::CryptoErrno {
             CryptoError::InvalidTag => guest_types::CryptoErrno::InvalidTag,
             CryptoError::InvalidOperation => guest_types::CryptoErrno::InvalidOperation,
             CryptoError::NonceRequired => guest_types::CryptoErrno::NonceRequired,
+            CryptoError::InvalidNonce => guest_types::CryptoErrno::InvalidNonce,
             CryptoError::OptionNotSet => guest_types::CryptoErrno::OptionNotSet,
             CryptoError::NotFound => guest_types::CryptoErrno::NotFound,
             CryptoError::ParametersMissing => guest_types::CryptoErrno::ParametersMissing,

@@ -25,12 +25,13 @@ crypto_errno: enum(u16)
     - invalid_tag = 21
     - invalid_operation = 22
     - nonce_required = 23
-    - option_not_set = 24
-    - not_found = 25
-    - parameters_missing = 26
-    - in_progress = 27
-    - incompatible_keys = 28
-    - expired = 29
+    - invalid_nonce = 24
+    - option_not_set = 25
+    - not_found = 26
+    - parameters_missing = 27
+    - in_progress = 28
+    - incompatible_keys = 29
+    - expired = 30
 
 keypair_encoding: enum(u16)
     - raw = 0

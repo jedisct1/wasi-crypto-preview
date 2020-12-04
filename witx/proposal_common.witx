@@ -111,6 +111,9 @@
     ;;; If automatically generating a nonce cannot be done safely, the module never falls back to an insecure option and requests an explicit nonce by throwing that error.
     $nonce_required
 
+    ;;; The provided nonce doesn't have a correct size for the given cipher.
+    $invalid_nonce
+
     ;;; The named option was not set.
     ;;;
     ;;; The caller tried to read the value of an option that was not set.

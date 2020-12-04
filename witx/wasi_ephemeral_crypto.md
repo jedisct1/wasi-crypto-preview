@@ -117,6 +117,9 @@ Most encryption schemes require a nonce.
 In the absence of a nonce, the WASI cryptography module can automatically generate one, if that can be done safely. The nonce can be retrieved later with the `symmetric_state_option_get()` function using the `nonce` parameter.
 If automatically generating a nonce cannot be done safely, the module never falls back to an insecure option and requests an explicit nonce by throwing that error.
 
+- <a href="#crypto_errno.invalid_nonce" name="crypto_errno.invalid_nonce"></a> `invalid_nonce`
+The provided nonce doesn't have a correct size for the given cipher.
+
 - <a href="#crypto_errno.option_not_set" name="crypto_errno.option_not_set"></a> `option_not_set`
 The named option was not set.
 
