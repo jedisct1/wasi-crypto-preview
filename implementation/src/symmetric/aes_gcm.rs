@@ -25,8 +25,7 @@ pub struct AesGcmSymmetricState {
     #[derivative(Debug = "ignore")]
     ctx: AesGcmVariant,
     ad: Vec<u8>,
-    nonce: [u8; NONCE_LEN],
-    nonce_is_safe_to_use: bool,
+    nonce: Option<[u8; NONCE_LEN]>,
 }
 
 #[derive(Clone, Debug, Eq)]
@@ -134,8 +133,7 @@ impl AesGcmSymmetricState {
             options: options.clone(),
             ctx: aes_gcm_impl,
             ad: vec![],
-            nonce,
-            nonce_is_safe_to_use: true,
+            nonce: Some(nonce),
         };
         Ok(state)
     }
@@ -175,21 +173,22 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         out: &mut [u8],
         data: &[u8],
     ) -> Result<SymmetricTag, CryptoError> {
-        ensure!(self.nonce_is_safe_to_use, CryptoError::NonceRequired);
+        let nonce = self.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
         if out.as_ptr() != data.as_ptr() {
             out.copy_from_slice(data);
         }
         let raw_tag = match &self.ctx {
             AesGcmVariant::Aes128(x) => {
-                x.encrypt_in_place_detached(GenericArray::from_slice(&self.nonce), &self.ad, out)
+                x.encrypt_in_place_detached(GenericArray::from_slice(nonce), &self.ad, out)
             }
             AesGcmVariant::Aes256(x) => {
-                x.encrypt_in_place_detached(GenericArray::from_slice(&self.nonce), &self.ad, out)
+                x.encrypt_in_place_detached(GenericArray::from_slice(nonce), &self.ad, out)
             }
         }
         .map_err(|_| CryptoError::InternalError)?
         .to_vec();
-        self.nonce_is_safe_to_use = true;
+
+        self.nonce = None;
         Ok(SymmetricTag::new(self.alg, raw_tag))
     }
 
@@ -204,18 +203,19 @@ impl SymmetricStateLike for AesGcmSymmetricState {
         data: &[u8],
         raw_tag: &[u8],
     ) -> Result<usize, CryptoError> {
+        let nonce = self.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
         if out.as_ptr() != data.as_ptr() {
             out[..data.len()].copy_from_slice(data);
         }
         match &self.ctx {
             AesGcmVariant::Aes128(x) => x.decrypt_in_place_detached(
-                GenericArray::from_slice(&self.nonce),
+                GenericArray::from_slice(nonce),
                 &self.ad,
                 out,
                 GenericArray::from_slice(raw_tag),
             ),
             AesGcmVariant::Aes256(x) => x.decrypt_in_place_detached(
-                GenericArray::from_slice(&self.nonce),
+                GenericArray::from_slice(nonce),
                 &self.ad,
                 out,
                 GenericArray::from_slice(raw_tag),

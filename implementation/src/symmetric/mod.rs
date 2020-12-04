@@ -19,7 +19,7 @@ use self::xoodyak::*;
 use crate::error::*;
 use crate::handles::*;
 use crate::options::*;
-use parking_lot::Mutex;
+use parking_lot::{Mutex, MutexGuard};
 use std::any::Any;
 use std::convert::TryFrom;
 use std::sync::Arc;
@@ -49,6 +49,19 @@ impl Default for SymmetricOptions {
         SymmetricOptions {
             inner: Default::default(),
         }
+    }
+}
+
+impl SymmetricOptions {
+    fn inner(&self) -> MutexGuard<'_, SymmetricOptionsInner> {
+        self.inner.lock()
+    }
+
+    fn locked<T, U>(&self, mut f: T) -> U
+    where
+        T: FnMut(MutexGuard<'_, SymmetricOptionsInner>) -> U,
+    {
+        f(self.inner())
     }
 }
 

@@ -24,8 +24,7 @@ pub struct ChaChaPolySymmetricState {
     #[derivative(Debug = "ignore")]
     ctx: ChaChaPolyVariant,
     ad: Vec<u8>,
-    nonce: Vec<u8>,
-    nonce_is_safe_to_use: bool,
+    nonce: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Eq)]
@@ -113,16 +112,25 @@ impl ChaChaPolySymmetricState {
             .as_any()
             .downcast_ref::<ChaChaPolySymmetricKey>()
             .ok_or(CryptoError::InvalidKey)?;
-        let options = options.as_ref().ok_or(CryptoError::NonceRequired)?;
-        let inner = options.inner.lock();
-        let nonce_vec = inner.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
-        let nonce_len = match alg {
+        let expected_nonce_len = match alg {
             SymmetricAlgorithm::ChaCha20Poly1305 => 12,
             SymmetricAlgorithm::XChaCha20Poly1305 => 24,
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
-        ensure!(nonce_vec.len() == nonce_len, CryptoError::InvalidNonce);
-        let nonce = nonce_vec.clone();
+        let options = options.as_ref().ok_or(CryptoError::NonceRequired)?;
+        let nonce = options.locked(|mut options| {
+            if options.nonce.is_none() && expected_nonce_len >= 16 {
+                options.nonce = Some(vec![0u8; expected_nonce_len]);
+                let mut rng = SecureRandom::new();
+                rng.fill(options.nonce.as_mut().unwrap())?;
+            }
+            let nonce_vec = options.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
+            ensure!(
+                nonce_vec.len() == expected_nonce_len,
+                CryptoError::InvalidNonce
+            );
+            Ok(nonce_vec.clone())
+        })?;
         let aes_gcm_impl = match alg {
             SymmetricAlgorithm::ChaCha20Poly1305 => ChaChaPolyVariant::ChaCha(
                 ChaCha20Poly1305::new(GenericArray::from_slice(key.as_raw()?)),
@@ -137,8 +145,7 @@ impl ChaChaPolySymmetricState {
             options: options.clone(),
             ctx: aes_gcm_impl,
             ad: vec![],
-            nonce,
-            nonce_is_safe_to_use: true,
+            nonce: Some(nonce),
         };
         Ok(state)
     }
@@ -177,7 +184,7 @@ impl SymmetricStateLike for ChaChaPolySymmetricState {
         out: &mut [u8],
         data: &[u8],
     ) -> Result<SymmetricTag, CryptoError> {
-        ensure!(self.nonce_is_safe_to_use, CryptoError::NonceRequired);
+        let nonce = self.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
         let data_len = data.len();
         if out.len() != data_len {
             bail!(CryptoError::InvalidLength)
@@ -185,17 +192,19 @@ impl SymmetricStateLike for ChaChaPolySymmetricState {
         if out.as_ptr() != data.as_ptr() {
             out.copy_from_slice(data);
         }
+
         let raw_tag = match &self.ctx {
             ChaChaPolyVariant::ChaCha(x) => {
-                x.encrypt_in_place_detached(GenericArray::from_slice(&self.nonce), &self.ad, out)
+                x.encrypt_in_place_detached(GenericArray::from_slice(&nonce), &self.ad, out)
             }
             ChaChaPolyVariant::XChaCha(x) => {
-                x.encrypt_in_place_detached(GenericArray::from_slice(&self.nonce), &self.ad, out)
+                x.encrypt_in_place_detached(GenericArray::from_slice(&nonce), &self.ad, out)
             }
         }
         .map_err(|_| CryptoError::InternalError)?
         .to_vec();
-        self.nonce_is_safe_to_use = true;
+
+        self.nonce = None;
         Ok(SymmetricTag::new(self.alg, raw_tag))
     }
 
@@ -210,18 +219,19 @@ impl SymmetricStateLike for ChaChaPolySymmetricState {
         data: &[u8],
         raw_tag: &[u8],
     ) -> Result<usize, CryptoError> {
+        let nonce = self.nonce.as_ref().ok_or(CryptoError::NonceRequired)?;
         if out.as_ptr() != data.as_ptr() {
             out[..data.len()].copy_from_slice(data);
         }
         match &self.ctx {
             ChaChaPolyVariant::ChaCha(x) => x.decrypt_in_place_detached(
-                GenericArray::from_slice(&self.nonce),
+                GenericArray::from_slice(&nonce),
                 &self.ad,
                 out,
                 GenericArray::from_slice(raw_tag),
             ),
             ChaChaPolyVariant::XChaCha(x) => x.decrypt_in_place_detached(
-                GenericArray::from_slice(&self.nonce),
+                GenericArray::from_slice(&nonce),
                 &self.ad,
                 out,
                 GenericArray::from_slice(raw_tag),
