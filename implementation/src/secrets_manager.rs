@@ -11,7 +11,10 @@ impl CryptoCtx {
         bail!(CryptoError::UnsupportedFeature)
     }
 
-    pub fn secrets_manager_close(&self, _secrets_manager_handle: Handle) -> Result<(), CryptoError> {
+    pub fn secrets_manager_close(
+        &self,
+        _secrets_manager_handle: Handle,
+    ) -> Result<(), CryptoError> {
         bail!(CryptoError::UnsupportedFeature)
     }
 

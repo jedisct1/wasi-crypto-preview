@@ -109,7 +109,9 @@ impl crate::wasi_ephemeral_crypto_common::WasiEphemeralCryptoCommon for WasiCryp
         &self,
         secrets_manager_handle: guest_types::SecretsManager,
     ) -> Result<(), guest_types::CryptoErrno> {
-        Ok(self.ctx.secrets_manager_close(secrets_manager_handle.into())?)
+        Ok(self
+            .ctx
+            .secrets_manager_close(secrets_manager_handle.into())?)
     }
 
     fn secrets_manager_invalidate(
