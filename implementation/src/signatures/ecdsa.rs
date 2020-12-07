@@ -3,10 +3,12 @@ use k256::ecdsa::{
     self as ecdsa_k256, signature::DigestVerifier as _, signature::RandomizedDigestSigner as _,
 };
 use k256::elliptic_curve::sec1::ToEncodedPoint as _;
+use k256::pkcs8::{FromPrivateKey as _, FromPublicKey as _};
 use p256::ecdsa::{
     self as ecdsa_p256, signature::DigestVerifier as _, signature::RandomizedDigestSigner as _,
 };
 use p256::elliptic_curve::sec1::ToEncodedPoint as _;
+use p256::pkcs8::{FromPrivateKey as _, FromPublicKey as _};
 use std::convert::TryFrom;
 use std::sync::Arc;
 
@@ -55,6 +57,38 @@ impl EcdsaSignatureKeyPair {
         })
     }
 
+    fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = match alg {
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                let ecdsa_sk = ecdsa_k256::SigningKey::from_pkcs8_der(pkcs8)
+                    .map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaSigningKeyVariant::K256(ecdsa_sk)
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+        Ok(EcdsaSignatureKeyPair {
+            alg,
+            ctx: Arc::new(ctx),
+        })
+    }
+
+    fn from_pem(alg: SignatureAlgorithm, pem: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = match alg {
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                let ecdsa_sk = ecdsa_k256::SigningKey::from_pkcs8_pem(
+                    std::str::from_utf8(pem).map_err(|_| CryptoError::InvalidKey)?,
+                )
+                .map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaSigningKeyVariant::K256(ecdsa_sk)
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+        Ok(EcdsaSignatureKeyPair {
+            alg,
+            ctx: Arc::new(ctx),
+        })
+    }
+
     fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
         let raw = match self.ctx.as_ref() {
             EcdsaSigningKeyVariant::P256(x) => x.to_bytes().to_vec(),
@@ -93,6 +127,8 @@ impl EcdsaSignatureKeyPair {
         );
         let kp = match encoding {
             KeyPairEncoding::Raw => EcdsaSignatureKeyPair::from_raw(alg, encoded)?,
+            KeyPairEncoding::Pkcs8 => EcdsaSignatureKeyPair::from_pkcs8(alg, encoded)?,
+            KeyPairEncoding::Pem => EcdsaSignatureKeyPair::from_pem(alg, encoded)?,
             _ => bail!(CryptoError::UnsupportedEncoding),
         };
         Ok(kp)
@@ -280,6 +316,40 @@ impl EcdsaSignaturePublicKey {
         Ok(pk)
     }
 
+    fn from_pkcs8(alg: SignatureAlgorithm, pkcs8: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = match alg {
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                let ecdsa_sk = ecdsa_k256::VerifyingKey::from_public_key_der(pkcs8)
+                    .map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaVerifyingKeyVariant::K256(ecdsa_sk)
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+        let pk = EcdsaSignaturePublicKey {
+            alg,
+            ctx: Arc::new(ctx),
+        };
+        Ok(pk)
+    }
+
+    fn from_pem(alg: SignatureAlgorithm, pem: &[u8]) -> Result<Self, CryptoError> {
+        let ctx = match alg {
+            SignatureAlgorithm::ECDSA_K256_SHA256 => {
+                let ecdsa_sk = ecdsa_k256::VerifyingKey::from_public_key_pem(
+                    std::str::from_utf8(pem).map_err(|_| CryptoError::InvalidKey)?,
+                )
+                .map_err(|_| CryptoError::InvalidKey)?;
+                EcdsaVerifyingKeyVariant::K256(ecdsa_sk)
+            }
+            _ => bail!(CryptoError::UnsupportedAlgorithm),
+        };
+        let pk = EcdsaSignaturePublicKey {
+            alg,
+            ctx: Arc::new(ctx),
+        };
+        Ok(pk)
+    }
+
     fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
         Self::from_sec(alg, raw)
     }
@@ -306,6 +376,8 @@ impl EcdsaSignaturePublicKey {
             PublicKeyEncoding::Sec | PublicKeyEncoding::CompressedSec => {
                 Self::from_sec(alg, encoded)
             }
+            PublicKeyEncoding::Pkcs8 => Self::from_pkcs8(alg, encoded),
+            PublicKeyEncoding::Pem => Self::from_pem(alg, encoded),
             _ => bail!(CryptoError::UnsupportedEncoding),
         }
     }

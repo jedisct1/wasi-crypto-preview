@@ -16,8 +16,8 @@ ed25519-dalek = "1.0"
 getrandom = "0.2"
 hkdf = "0.10"
 hmac = "0.10"
-k256 = { version = "0.6", features = ["ecdsa", "std", "zeroize"] }
-p256 = { version = "0.6", features = ["ecdsa", "std", "zeroize"] }
+k256 = { version = "0.6", features = ["ecdsa", "std", "zeroize", "pkcs8", "pem"] }
+p256 = { version = "0.6", features = ["ecdsa", "std", "zeroize", "pkcs8", "pem"] }
 parking_lot = "0.11"
 pqcrypto = { version = "0.11", default-features = false, features = ["pqcrypto-kyber"], optional = true }
 rand_core = "0.5"
