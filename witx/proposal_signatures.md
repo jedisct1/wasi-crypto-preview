@@ -1329,7 +1329,7 @@ Example usage - signature verification:
 
 ```rust
 let pk_handle = ctx.publickey_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_pk, PublicKeyEncoding::CompressedSec)?;
-let signature_handle = ctx.signature_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_sig, PublicKeyEncoding::Der)?;
+let signature_handle = ctx.signature_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_sig, SignatureEncoding::Der)?;
 let state_handle = ctx.signature_verification_state_open(pk_handle)?;
 ctx.signature_verification_state_update(state_handle, "message")?;
 ctx.signature_verification_state_verify(signature_handle)?;
