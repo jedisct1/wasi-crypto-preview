@@ -35,7 +35,8 @@ A WASI-crypto implementation MUST implement the following algorithms, and MUST r
 | `AES-128-GCM`           | AES-128-GCM AEAD cipher                                                             |
 | `AES-256-GCM`           | AES-256-GCM AEAD cipher                                                             |
 | `CHACHA20-POLY1305`     | ChaCha20-Poly1305 AEAD cipher as specified in RFC8439                               |
-| `X25519`                | X25519 key exchange mechanism as specified in RFC7748                               |
+| `P256-SHA256`           | NIST p256 ECDH with the SHA-256 hash function                                       |
+| `X25519`                | X25519 ECDH as specified in RFC7748                                                 |
 
 Each algorithm belongs to one of these categories, represented by the `algorithm_type` type:
 
@@ -43,7 +44,7 @@ Each algorithm belongs to one of these categories, represented by the `algorithm
 * `symmetric` for any symmetric primitive or construction
 * `key_exhange` for key exchange mechanisms, including DH-based systems and KEMs.
 
-Implementation MAY also include the following algorithms in order to exercise additional features of the API:
+Implementations are also encouraged to include the following algorithms in order to exercise additional features of the API:
 
 | Identifier           | Algorithm                                                                                                                                        |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -51,6 +52,7 @@ Implementation MAY also include the following algorithms in order to exercise ad
 | `XCHACHA20-POLY1305` | ChaCha20-Poly1305 AEAD with ean xtended nonce, as specified in the most recent `draft-irtf-cfrg-xchacha` CFRG draft                              |
 | `KYBER768`           | KYBER-768 post-quantum key encapsulation mechanism, as specified in the most recent submission to NIST competition for post-quantum cryptography |
 
+Implementations are not limited to these algorithms, and the set of required algorithms will be revisited in every revision of the specification.
 
 # Common types
 
@@ -58,7 +60,39 @@ Implementation MAY also include the following algorithms in order to exercise ad
 
 The WASI-crypto APIs share a unique error set, represented as the `crypto_errno` error type.
 
-The set of possible errors and their description can be found in the `witx` definition of the `common` module.
+| Value                   | Descrpition                                                                                                                                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `success`               | Operation succeeded.                                                                                                                                                                                                              |
+| `guest_error`           | An error occurred when trying to during a conversion from a host type to a guest type. Only an internal bug can throw this error.                                                                                                 |
+| `not_implemented`       | The requested operation is valid, but not implemented by the host.                                                                                                                                                                |
+| `unsupported_feature`   | The requested feature is not supported by the chosen algorithm.                                                                                                                                                                   |
+| `prohibited_operation`  | The requested operation is valid, but was administratively prohibited.                                                                                                                                                            |
+| `unsupported_encoding`  | Unsupported encoding for an import or export operation.                                                                                                                                                                           |
+| `unsupported_algorithm` | The requested algorithm is not supported by the host.                                                                                                                                                                             |
+| `unsupported_option`    | The requested option is not supported by the currently selected algorithm                                                                                                                                                         |
+| `invalid_key`           | An invalid or incompatible key was supplied. The key may not be valid, or was generated for a different algorithm or parameters set.                                                                                              |
+| `invalid_length`        | The currently selected algorithm doesn't support the requested output length. This error is thrown by non-extensible hash functions, when requesting an output size larger than they produce out of a single block.               |
+| `verification_failed`   | A signature or authentication tag verification failed.                                                                                                                                                                            |
+| `rng_error`             | A secure random numbers generator is not available. The requested operation requires random numbers, but the host cannot securely generate them at the moment.                                                                    |
+| `algorithm_failure`     | An error was returned by the underlying cryptography library. The host may be running out of memory, parameters may be incompatible with the chosen implementation of an algorithm or another unexpected error may have happened. |
+| `invalid_signature`     | The supplied signature is invalid, or incompatible with the chosen algorithm.                                                                                                                                                     |
+| `closed`                | An attempt was made to close a handle that was already closed.                                                                                                                                                                    |
+| `invalid_handle`        | A function was called with an unassigned handle, a closed handle, or handle of an unexpected type.                                                                                                                                |
+| `overflow`              | The host needs to copy data to a guest-allocated buffer, but that buffer is too small.                                                                                                                                            |
+| `internal_error`        | An internal error occurred. This error is reserved to internal consistency checks, and must only be sent if the internal state of the host remains safe after an inconsistency was detected.                                      |
+| `too_many_handles`      | Too many handles are currently open, and a new one cannot be created. Implementations are free to represent handles as they want, and to enforce limits to limit resources usage.                                                 |
+| `key_not_supported`     | A key was provided, but the chosen algorithm doesn't support keys. This is returned by symmetric operations such as hash functions.                                                                                               |
+| `key_required`          | A key is required for the chosen algorithm, but none was given.                                                                                                                                                                   |
+| `invalid_tag`           | The provided authentication tag is invalid or incompatible with the current algorithm. Unlike `verification_failed`, this error code is returned when the tag cannot possibly verify for any input.                               |
+| `invalid_operation`     | The requested operation is incompatible with the current scheme.                                                                                                                                                                  |
+| `nonce_required`        | A nonce is required by a cipher.                                                                                                                                                                                                  |
+| `invalid_nonce`         | The provided nonce doesn't have a correct size for the given cipher.                                                                                                                                                              |
+| `option_not_set`        | The named option was not set.                                                                                                                                                                                                     |
+| `not_found`             | A key or key pair matching the requested identifier cannot be found using the supplied information.                                                                                                                               |
+| `parameters_missing`    | The algorithm requires parameters that haven't been set.                                                                                                                                                                          |
+| `in_progress`           | A requested computation is not done yet, and additional calls to the function are required.                                                                                                                                       |
+| `incompatible_keys`     | Multiple keys have been provided, but they do not share the same type.                                                                                                                                                            |
+| `expired`               | A managed key or secret expired and cannot be used any more.                                                                                                                                                                      |
 
 ## Handles
 
@@ -236,11 +270,11 @@ Some primitives may require a large scratch buffer, that should be accounted as 
 Here is an example of an option set for a password hashing function:
 
 ```rust
-let options_handle = ctx.symmetric_options_open()?;
-ctx.symmetric_options_set_guest_buffer(options_handle, "memory", &mut memory)?;
-ctx.symmetric_options_set_u64(options_handle, "opslimit", 5)?;
-ctx.symmetric_options_set_u64(options_handle, "parallelism", 8)?;
-let state_handle = ctx.symmetric_state_open("ARGON2-ID-13", None, Some(options))?;
+let options_handle = symmetric_options_open()?;
+symmetric_options_set_guest_buffer(options_handle, "memory", &mut memory)?;
+symmetric_options_set_u64(options_handle, "opslimit", 5)?;
+symmetric_options_set_u64(options_handle, "parallelism", 8)?;
+let state_handle = symmetric_state_open("ARGON2-ID-13", None, Some(options))?;
 ```
 
 # Asymmetric operations
@@ -321,3 +355,148 @@ let kp_handle = keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_SHA256
 
 A key pair can also be created from handles to a valid secret key and a valid public key. Both keys must have matching algorithms. If this is not the case, the function MUST return the `incompatible_keys` error code.
 
+```rust
+let kp_handle = keypair_from_pk_and_sk(pk_handle, sk_handle)?;
+```
+
+A WASI-crypto implementation can also create a new key pair. The key pair MUST be generated using a cryptographically-secure random number generator.
+
+```rust
+let kp_handle = keypair_generate("ECDSA_P256_SHA256")?;
+```
+
+That function returns:
+* `success` if a key pair was generated
+* `in_progress` if the function call would block for too long. The guest application MAY call the function again with the same parameters until it eventually succeeds. This return code is designed to avoid blocking runtimes doing cooperative scheduling. A guest application should not make any assertions about the maximum time a function can take to return, and a host is always allowed to block until completion.
+* `unsupported_algorithm` is returned if the algorithm type is not implemented by the runtime
+* `unsupported_feature` is returned if the algorithm type is supported by the runtime, but key pair generation is not, possibly due to the lack of a secure random number generator.
+
+Once generated, a key pair and its components can be exported if necessary.
+
+A key pair can be reused for multiple operations, as long as they share the same algorithm. A function expecting a different type of key pair MUST immediately return `invalid_key`.
+
+After use, a key pair can be disposed with `keypair_close()`:
+
+```rust
+keypair_close(sk_handle)?;
+```
+
+The `keypair_close()` function indicates that the key pair will not be needed any more.
+
+Closing a key pair decreases the reference count of the secret and private parts. Handles to these remain valid until their own reference count reaches `0`.
+
+# Key exchange systems
+
+A WASI-crypto implementation MUST support at least two different key exchange mechanisms:
+
+* Diffie-Hellman based key agreement, returning a deterministic secret for a given (public key, secret key) pair
+* Key encapsulation mechanisms, where the runtime is expected to generate a random secret, and encapsulate it using the recipient's public key.
+
+Key exchange mechanisms use the common asymetric key types: `secretkey`, `publickey` and `keypair`.
+
+Such keys can be created and exported using the common functions for handling asymmetric keys.
+
+However, implementations are encouraged to use the type aliases defined in the WITX specification when they are used in a key exchange context.
+
+| Type        | Alias          |
+| ----------- | -------------- |
+| `secretkey` | `kx_secretkey` |
+| `publickey` | `kx_publickey` |
+| `keypair`   | `kx_keypair`   |
+
+## Diffie-Hellman based key agreement
+
+```rust
+let shared_secret_handle = kx_dh(pk_handle, sk_handle)?;
+```
+
+The `kx_dh()` function returns an `array_output` handle from which the shared secret can be copied.
+
+If the public key is invalid or insecure (such as a low-order elliptic curve point), the `invalid_key` error code is returned instead.
+
+## Key encapsulation mechanisms
+
+The runtime is responsible for generating a random secret. The `kx_encapsulate()` function encapsulates it for a public key, and returns both the secret and its encrypted counterpart.
+
+```rust
+let (secret_handle, encapsulated_secret_handle) = kx_encapsulate(pk_handle)?;
+```
+
+Both returned values are `array_output` handles.
+
+The recipient can then decrypt the shared secret (supplied as a byte string) using their secret key:
+
+```rust
+let secret_handle = kx_decapsulate(sk_handle, encapsulated_secret)?;
+```
+
+If the decapsulation fails, the `kx_decapsulate()` function MUST return `verification_failed`.
+
+## Note on Hybrid Public Key Encryption
+
+A WASI-crypto implementation is not required to expose a Hybrid Public Key Encryption interface. HPKE can be easily and securely be reimplemented using the existing APIs.
+
+# Signatures
+
+Signatures use asymetric key types: `secretkey`, `publickey` and `keypair`.
+
+Such keys can be created and exported using the common functions for handling asymmetric keys.
+
+However, implementations are encouraged to use the type aliases defined in the WITX specification when they are used in a signature context.
+
+| Type        | Alias                 |
+| ----------- | --------------------- |
+| `secretkey` | `signature_secretkey` |
+| `publickey` | `signature_publickey` |
+| `keypair`   | `signature_keypair`   |
+
+Signatures introduce an additional `signature` type. A signature can be imported and exported with different encodings.
+
+A WASI-crypto implementation MUST support the `raw` encoding, that represents the signature as compact, a fixed-length byte sequence with a well-defined format for every algorithm. In addition, an implementation MAY support the `DER` format, or return `unsupported_encoding` if this is not the case.
+
+## Signature creation
+
+Signature computation requires the following steps:
+
+1) `signature_state_open()` to create a new state
+2) One of more calls to `signature_state_update()` to absorb a message to be signed
+3) `signature_state_sign()` to compute a signature for all the data absorbed until that point
+4) `signature_state_close()` to dispose the state
+
+A WASI-crypto implementation is expected to support a streaming interface (`signature_state_update()`) for all the implemented algorithms.
+
+However, doing so with two-pass algorithms such as EdDSA may require the runtime to accumulate a copy of the input until the signature is made. Implementations SHOULD limit the input length, and return the `overflow` error code if it is too long.
+Guest applications should not make any assertion about the maximum supported length, and should use pre-hashed signature systems if the input is large or is not fully available.
+
+`signature_state_sign()` does not reset the state.
+
+Additional `signature_state_update()`+`signature_state_sign()` sequences can be made in order to incrementally sign the input since the beginning of the transcript.
+
+```rust
+let kp_handle = keypair_import(AlgorithmType::Signatures, "Ed25519", keypair, KeypairEncoding::Raw)?;
+let state_handle = signature_state_open(kp_handle)?;
+signature_state_update(state_handle, b"message part 1")?;
+signature_state_update(state_handle, b"message part 2")?;
+let sig_handle = signature_state_sign(state_handle)?;
+let raw_sig = signature_export(sig_handle, SignatureEncoding::Raw)?;
+```
+
+## Signature verification
+
+Signature verifiction requires the following steps:
+
+1) `signature_verification_state_open()` to create a new state
+2) One of more calls to `signature_verification_state_update()` to absorb a message to be verified
+3) `signature_verification_state_verify()` to verify the signature of the entire input absorbed up to that point.
+4) `signature_verification_state_close()` to dispose the state
+
+States used for signature creation and verification are not interchangeable. An implementation MUST return the `invalid_handle` error if a verification function is called on a state originally opened for signature creation or the other way round.
+
+```rust
+let pk_handle = publickey_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_pk, PublicKeyEncoding::CompressedSec)?;
+let signature_handle = signature_import(AlgorithmType::Signatures, "ECDSA_P256_SHA256", encoded_sig, SignatureEncoding::Der)?;
+let state_handle = signature_verification_state_open(pk_handle)?;
+signature_verification_state_update(state_handle, "message")?;
+signature_verification_state_verify(signature_handle)?;
+signature_verification_state_close(signature_handle)?;
+```
