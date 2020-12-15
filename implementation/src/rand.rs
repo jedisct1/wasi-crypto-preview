@@ -1,5 +1,5 @@
 use crate::CryptoError;
-use rand_core::{OsRng, RngCore};
+use rand_core::{self, CryptoRng, OsRng, RngCore};
 
 pub struct SecureRandom;
 
@@ -14,9 +14,9 @@ impl SecureRandom {
     }
 }
 
-impl rand_core::CryptoRng for SecureRandom {}
+impl CryptoRng for SecureRandom {}
 
-impl rand_core::RngCore for SecureRandom {
+impl RngCore for SecureRandom {
     fn next_u32(&mut self) -> u32 {
         OsRng.next_u32()
     }
