@@ -500,3 +500,6 @@ signature_verification_state_update(state_handle, "message")?;
 signature_verification_state_verify(signature_handle)?;
 signature_verification_state_close(signature_handle)?;
 ```
+
+# Symmetric operations
+
