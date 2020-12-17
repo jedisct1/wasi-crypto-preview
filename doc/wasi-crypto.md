@@ -913,17 +913,17 @@ And well as at least one of the following operations:
 
 ```rust
 let mut memory = vec![0u8; 1_000_000_000];
-let options_handle = ctx.symmetric_options_open()?;
-ctx.symmetric_options_set_guest_buffer(options_handle, "memory", &mut memory)?;
-ctx.symmetric_options_set_u64(options_handle, "opslimit", 5)?;
-ctx.symmetric_options_set_u64(options_handle, "parallelism", 8)?;
+let options_handle = symmetric_options_open()?;
+symmetric_options_set_guest_buffer(options_handle, "memory", &mut memory)?;
+symmetric_options_set_u64(options_handle, "opslimit", 5)?;
+symmetric_options_set_u64(options_handle, "parallelism", 8)?;
 
-let state_handle = ctx.symmetric_state_open("ARGON2-ID-13", None, Some(options))?;
-ctx.symmtric_state_absorb(state_handle, b"password")?;
+let state_handle = symmetric_state_open("ARGON2-ID-13", None, Some(options))?;
+symmtric_state_absorb(state_handle, b"password")?;
 
-let pw_str_handle = ctx.symmetric_state_squeeze_tag(state_handle)?;
-let mut pw_str = vec![0u8; ctx.symmetric_tag_len(pw_str_handle)?];
-ctx.symmetric_tag_pull(pw_str_handle, &mut pw_str)?;
+let pw_str_handle = symmetric_state_squeeze_tag(state_handle)?;
+let mut pw_str = vec![0u8; symmetric_tag_len(pw_str_handle)?];
+symmetric_tag_pull(pw_str_handle, &mut pw_str)?;
 ```
 
 `absorb()` absorbs the low-entropy input.
@@ -959,18 +959,18 @@ AEADs MUST support the following operations:
 AEADs requiring a nonce MUST accept one as an option named `nonce`.
 
 ```rust
-let key_handle = ctx.symmetric_key_generate("AES-256-GCM-SIV", None)?;
+let key_handle = symmetric_key_generate("AES-256-GCM-SIV", None)?;
 let message = b"test";
 let mut nonce = [0u8; 24];
 
-let state_handle = ctx.symmetric_state_open("AES-256-GCM-SIV", Some(key_handle), None)?;
+let state_handle = symmetric_state_open("AES-256-GCM-SIV", Some(key_handle), None)?;
 
-let nonce_handle = ctx.symmetric_state_options_get(state_handle, "nonce")?;
-ctx.array_output_pull(nonce_handle, &mut nonce)?;
+let nonce_handle = symmetric_state_options_get(state_handle, "nonce")?;
+array_output_pull(nonce_handle, &mut nonce)?;
 
-let mut ciphertext = vec![0u8; message.len() + ctx.symmetric_state_max_tag_len(state_handle)?];
-ctx.symmetric_state_absorb(state_handle, "additional data")?;
-ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, message)?;
+let mut ciphertext = vec![0u8; message.len() + symmetric_state_max_tag_len(state_handle)?];
+symmetric_state_absorb(state_handle, "additional data")?;
+symmetric_state_encrypt(state_handle, &mut ciphertext, message)?;
 ```
 
 `absorb()` absorbs additional data. Multiple calls to `absorb()` MUST be equivalent to a single call with a concatenation of the inputs.
@@ -1010,15 +1010,15 @@ WASI-crypto implementers are encouraged to include the `XOODYAK-128` algorithm t
 let mut out = [0u8; 16];
 let mut out2 = [0u8; 16];
 let mut ciphertext = [0u8; 20];
-let key_handle = ctx.symmetric_key_generate("XOODYAK-128", None)?;
-let state_handle = ctx.symmetric_state_open("XOODYAK-128", Some(key_handle), None)?;
-ctx.symmetric_state_absorb(state_handle, b"data")?;
-ctx.symmetric_state_encrypt(state_handle, &mut ciphertext, b"abcd")?;
-ctx.symmetric_state_absorb(state_handle, b"more data")?;
-ctx.symmetric_state_squeeze(state_handle, &mut out)?;
-ctx.symmetric_state_squeeze(state_handle, &mut out2)?;
-ctx.symmetric_state_ratchet(state_handle)?;
-ctx.symmetric_state_absorb(state_handle, b"more data")?;
-let next_key_handle = ctx.symmetric_state_squeeze_key(state_handle, "XOODYAK-128")?;
+let key_handle = symmetric_key_generate("XOODYAK-128", None)?;
+let state_handle = symmetric_state_open("XOODYAK-128", Some(key_handle), None)?;
+symmetric_state_absorb(state_handle, b"data")?;
+symmetric_state_encrypt(state_handle, &mut ciphertext, b"abcd")?;
+symmetric_state_absorb(state_handle, b"more data")?;
+symmetric_state_squeeze(state_handle, &mut out)?;
+symmetric_state_squeeze(state_handle, &mut out2)?;
+symmetric_state_ratchet(state_handle)?;
+symmetric_state_absorb(state_handle, b"more data")?;
+let next_key_handle = symmetric_state_squeeze_key(state_handle, "XOODYAK-128")?;
 // ...
 ```
