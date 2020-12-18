@@ -442,17 +442,23 @@ A `keypair` object is an efficient way to represent a secret key and its public 
 
 Key pairs can be imported from a serialized representation. If a serialization format cannot encode both keys, it must represent the secret key, the runtime being responsible for computing the public counterpart.
 
+Example usage:
+
 ```rust
 let kp_handle = keypair_import(AlgorithmType::Signatures, "RSA_PKCS1_2048_SHA256", KeypairEncoding::PKCS8)?;
 ```
 
 A key pair can also be created from handles to a valid secret key and a valid public key. Both keys must have matching algorithms. If this is not the case, the function MUST return the `incompatible_keys` error code.
 
+Example usage:
+
 ```rust
 let kp_handle = keypair_from_pk_and_sk(pk_handle, sk_handle)?;
 ```
 
 A `wasi-crypto` implementation can also create a new key pair. The key pair MUST be generated using a cryptographically-secure random number generator.
+
+Example usage:
 
 ```rust
 let kp_handle = keypair_generate("ECDSA_P256_SHA256")?;
@@ -499,17 +505,21 @@ However, implementations are encouraged to use the type aliases defined in the W
 
 ## Diffie-Hellman based key agreement
 
+The `kx_dh()` function returns an `array_output` handle from which the shared secret can be copied.
+
+Example usage:
+
 ```rust
 let shared_secret_handle = kx_dh(pk_handle, sk_handle)?;
 ```
-
-The `kx_dh()` function returns an `array_output` handle from which the shared secret can be copied.
 
 If the public key is invalid or insecure (such as a low-order elliptic curve point), the `invalid_key` error code is returned instead.
 
 ## Key encapsulation mechanisms
 
 The runtime is responsible for generating a random secret. The `kx_encapsulate()` function encapsulates it for a public key, and returns both the secret and its encrypted counterpart.
+
+Example usage:
 
 ```rust
 let (secret_handle, encapsulated_secret_handle) = kx_encapsulate(pk_handle)?;
@@ -564,6 +574,8 @@ Guest applications should not make any assertion about the maximum supported len
 `signature_state_sign()` does not reset the state.
 
 Additional `signature_state_update()`+`signature_state_sign()` sequences can be made in order to incrementally sign the input since the beginning of the transcript.
+
+Example usage:
 
 ```rust
 let kp_handle = keypair_import(AlgorithmType::Signatures, "Ed25519", keypair, KeypairEncoding::Raw)?;
@@ -862,6 +874,8 @@ Hash functions MUST support the following set of operations:
 - `aborb()`
 - `squeeze()`
 
+Example usage:
+
 ```rust
 let mut out = [0u8; 64];
 let state_handle = symmetric_state_open("SHA-256", None)?;
@@ -926,6 +940,8 @@ Required operations:
 - `aborb()`
 - `squeeze()`
 
+Example usage:
+
 ```rust
 let mut out = [0u8; 64];
 let state_handle = symmetric_state_open("TupleHashXOF256", None, None)?;
@@ -981,6 +997,8 @@ XOFs MUST support the following operations:
 - `absorb()`
 - `squeeze()`
 
+Example usage:
+
 ```rust
 let mut subkey1 = vec![0u8; 32];
 let mut subkey2 = vec![0u8; 32];
@@ -999,10 +1017,12 @@ Password hashing functions MUST support the following operation:
 
 - `absorb()`
 
-And well as at least one of the following operations:
+As well as at least one of the following operations:
 
 - `squeeze()`
 - `squeeze_tag()`
+
+Example usage:
 
 ```rust
 let mut memory = vec![0u8; 1_000_000_000];
@@ -1051,6 +1071,8 @@ AEADs MUST support the following operations:
 
 AEADs requiring a nonce MUST accept one as an option named `nonce`.
 
+Example usage:
+
 ```rust
 let key_handle = symmetric_key_generate("AES-256-GCM-SIV", None)?;
 let message = b"test";
@@ -1098,6 +1120,8 @@ They MUST support the following operations:
 Additional operations are algorithm-dependant, and implementations including this type of algorithm MUST document the set of supported operations.
 
 `wasi-crypto` implementers are encouraged to include the `XOODYAK-128` algorithm to exercices an externsive set of operations typically supported by this kind of construction.
+
+Example usage:
 
 ```rust
 let mut out = [0u8; 16];
@@ -1232,6 +1256,8 @@ The function MUST return an `overflow` error code if the guest buffer supplied t
 
 Managed external secrets MUST have an expiration date, expressed as a UNIX timestamp in seconds.
 
+Example usage:
+
 ```rust
 let secrets_manager_handle = secrets_manager_open(options)?;
 let secret_id = external_secret_store(secrets_manager_handle, secret, 1639847110)?;
@@ -1297,6 +1323,8 @@ The `external_secret_encapsulate()` function encrypts a guest secret, and return
 An implementation can include a KEK version number or other metadata in the ciphertext.
 
 A nonce MUST be used for encryption. The implementation can use any encryption system, and guest applications MUST NOT rely on a specific format or ciphertext size. A deterministic key wrapping mechanism MUST not be used.
+
+Example usage:
 
 ```rust
 let secrets_manager_handle = secrets_manager_open(options)?;
