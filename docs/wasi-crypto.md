@@ -1,6 +1,8 @@
 # WASI cryptography modules
 
-The cryptography API is split across 6 modules:
+This document describes `wasi-crypto`, a set of APIs that a runtime can expose to WebAssembly modules in order to perform cryptographic operations and key management.
+
+The APIs are split across 6 modules:
 
 * `common` defines types and functions used by other modules, including secrets management mechanisms.
 * `asymmetric_common` defines types and functions required by asymmetric operations such as signature and key exchange mechanisms.
@@ -9,59 +11,26 @@ The cryptography API is split across 6 modules:
 * `kx`: defines functions for key exchange and key encapsulation.
 * `external_secrets` defines functions for storage and encryption of third-party secrets such as API tokens.
 
-# Algorithms
+Dependency tree:
 
-An algorithm and its public parameters are represented by a unique string.
+```text
+asymmetric_common
+    \_ common
 
-A `wasi-crypto` implementation MUST implement the following algorithms, and MUST represent them with the following string identifiers:
+symmetric
+    \_ common
 
-| Identifier              | Algorithm                                                                           |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| `ECDSA_P256_SHA256`     | ECDSA over the NIST p256 curve with the SHA-256 hash function                       |
-| `ECDSA_K256_SHA256`     | ECDSA over the secp256k1 curve with the SHA-256 hash function                       |
-| `Ed25519`               | Edwards Curve signatures over Edwards25519 (pure EdDSA) as specified in RFC8032     |
-| `RSA_PKCS1_2048_SHA256` | RSA signatures with a 2048 bit modulus, PKCS1 padding and the SHA-256 hash function |
-| `RSA_PKCS1_2048_SHA384` | RSA signatures with a 2048 bit modulus, PKCS1 padding and the SHA-384 hash function |
-| `RSA_PKCS1_2048_SHA512` | RSA signatures with a 2048 bit modulus, PKCS1 padding and the SHA-512 hash function |
-| `RSA_PKCS1_3072_SHA384` | RSA signatures with a 3072 bit modulus, PKCS1 padding and the SHA-384 hash function |
-| `RSA_PKCS1_3072_SHA512` | RSA signatures with a 3072 bit modulus, PKCS1 padding and the SHA-512 hash function |
-| `RSA_PKCS1_4096_SHA512` | RSA signatures with a 4096 bit modulus, PKCS1 padding and the SHA-512 hash function |
-| `RSA_PSS_2048_SHA256`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-256 hash function   |
-| `RSA_PSS_2048_SHA384`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-384 hash function   |
-| `RSA_PSS_2048_SHA512`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-512 hash function   |
-| `RSA_PSS_3072_SHA384`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-384 hash function   |
-| `RSA_PSS_3072_SHA512`   | RSA signatures with a 3072 bit modulus, PSS padding and the SHA-512 hash function   |
-| `RSA_PSS_4096_SHA512`   | RSA signatures with a 4096 bit modulus, PSS padding and the SHA-512 hash function   |
-| `HKDF-EXTRACT/SHA-256`  | RFC5869 `EXTRACT` function using the SHA-256 hash function                          |
-| `HKDF-EXTRACT/SHA-512`  | RFC5869 `EXTRACT` function using the SHA-512 hash function                          |
-| `HKDF-EXPAND/SHA-256`   | RFC5869 `EXPAND` function using the SHA-256 hash function                           |
-| `HKDF-EXPAND/SHA-512`   | RFC5869 `EXPAND` function using the SHA-512 hash function                           |
-| `HMAC/SHA-256`          | RFC2104 MAC using the SHA-256 hash function                                         |
-| `HMAC/SHA-512`          | RFC2104 MAC using the SHA-512 hash function                                         |
-| `SHA-256`               | SHA-256 hash function                                                               |
-| `SHA-512`               | SHA-512 hash function                                                               |
-| `SHA-512/256`           | SHA-512/256 hash function with a specific IV                                        |
-| `AES-128-GCM`           | AES-128-GCM AEAD cipher                                                             |
-| `AES-256-GCM`           | AES-256-GCM AEAD cipher                                                             |
-| `CHACHA20-POLY1305`     | ChaCha20-Poly1305 AEAD cipher as specified in RFC8439                               |
-| `P256-SHA256`           | NIST p256 ECDH with the SHA-256 hash function                                       |
-| `X25519`                | X25519 ECDH as specified in RFC7748                                                 |
+signatures
+    \_ common
+    \_ asymmetric_common
 
-Each algorithm belongs to one of these categories, represented by the `algorithm_type` type:
+kx
+    \_ common
+    \_ asymmetric_common
 
-* `signatures` for signature systems
-* `symmetric` for any symmetric primitive or construction
-* `key_exhange` for key exchange mechanisms, including DH-based systems and KEMs.
-
-Implementations are also encouraged to include the following algorithms in order to exercise additional features of the API:
-
-| Identifier           | Algorithm                                                                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `XOODYAK-128`        | XOODYAK lightweight scheme, as specified in the most recent submission to NIST competition for lightweight cryptography                          |
-| `XCHACHA20-POLY1305` | ChaCha20-Poly1305 AEAD with ean xtended nonce, as specified in the most recent `draft-irtf-cfrg-xchacha` CFRG draft                              |
-| `KYBER768`           | KYBER-768 post-quantum key encapsulation mechanism, as specified in the most recent submission to NIST competition for post-quantum cryptography |
-
-Implementations are not limited to these algorithms, and the set of required algorithms will be revisited in every revision of the specification.
+external_secrets
+    \_ common
+```
 
 # Common types
 
@@ -286,6 +255,60 @@ symmetric_options_set_u64(options_handle, "parallelism", 8)?;
 let state_handle = symmetric_state_open("ARGON2-ID-13", None, Some(options))?;
 ```
 
+# Algorithms
+
+All the APIs represent an algorithm and its public parameters as a unique string.
+
+A `wasi-crypto` implementation MUST implement the following algorithms, and MUST represent them with the following string identifiers:
+
+| Identifier              | Algorithm                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `ECDSA_P256_SHA256`     | ECDSA over the NIST p256 curve with the SHA-256 hash function                       |
+| `ECDSA_K256_SHA256`     | ECDSA over the secp256k1 curve with the SHA-256 hash function                       |
+| `Ed25519`               | Edwards Curve signatures over Edwards25519 (pure EdDSA) as specified in RFC8032     |
+| `RSA_PKCS1_2048_SHA256` | RSA signatures with a 2048 bit modulus, PKCS1 padding and the SHA-256 hash function |
+| `RSA_PKCS1_2048_SHA384` | RSA signatures with a 2048 bit modulus, PKCS1 padding and the SHA-384 hash function |
+| `RSA_PKCS1_2048_SHA512` | RSA signatures with a 2048 bit modulus, PKCS1 padding and the SHA-512 hash function |
+| `RSA_PKCS1_3072_SHA384` | RSA signatures with a 3072 bit modulus, PKCS1 padding and the SHA-384 hash function |
+| `RSA_PKCS1_3072_SHA512` | RSA signatures with a 3072 bit modulus, PKCS1 padding and the SHA-512 hash function |
+| `RSA_PKCS1_4096_SHA512` | RSA signatures with a 4096 bit modulus, PKCS1 padding and the SHA-512 hash function |
+| `RSA_PSS_2048_SHA256`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-256 hash function   |
+| `RSA_PSS_2048_SHA384`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-384 hash function   |
+| `RSA_PSS_2048_SHA512`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-512 hash function   |
+| `RSA_PSS_3072_SHA384`   | RSA signatures with a 2048 bit modulus, PSS padding and the SHA-384 hash function   |
+| `RSA_PSS_3072_SHA512`   | RSA signatures with a 3072 bit modulus, PSS padding and the SHA-512 hash function   |
+| `RSA_PSS_4096_SHA512`   | RSA signatures with a 4096 bit modulus, PSS padding and the SHA-512 hash function   |
+| `HKDF-EXTRACT/SHA-256`  | RFC5869 `EXTRACT` function using the SHA-256 hash function                          |
+| `HKDF-EXTRACT/SHA-512`  | RFC5869 `EXTRACT` function using the SHA-512 hash function                          |
+| `HKDF-EXPAND/SHA-256`   | RFC5869 `EXPAND` function using the SHA-256 hash function                           |
+| `HKDF-EXPAND/SHA-512`   | RFC5869 `EXPAND` function using the SHA-512 hash function                           |
+| `HMAC/SHA-256`          | RFC2104 MAC using the SHA-256 hash function                                         |
+| `HMAC/SHA-512`          | RFC2104 MAC using the SHA-512 hash function                                         |
+| `SHA-256`               | SHA-256 hash function                                                               |
+| `SHA-512`               | SHA-512 hash function                                                               |
+| `SHA-512/256`           | SHA-512/256 hash function with a specific IV                                        |
+| `AES-128-GCM`           | AES-128-GCM AEAD cipher                                                             |
+| `AES-256-GCM`           | AES-256-GCM AEAD cipher                                                             |
+| `CHACHA20-POLY1305`     | ChaCha20-Poly1305 AEAD cipher as specified in RFC8439                               |
+| `P256-SHA256`           | NIST p256 ECDH with the SHA-256 hash function                                       |
+| `X25519`                | X25519 ECDH as specified in RFC7748                                                 |
+
+Each algorithm belongs to one of these categories, represented by the `algorithm_type` type:
+
+* `signatures` for signature systems
+* `symmetric` for any symmetric primitive or construction
+* `key_exhange` for key exchange mechanisms, including DH-based systems and KEMs.
+
+Implementations are also encouraged to include the following algorithms in order to exercise additional features of the API:
+
+| Identifier           | Algorithm                                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `XOODYAK-128`        | XOODYAK lightweight scheme, as specified in the most recent submission to NIST competition for lightweight cryptography                          |
+| `XCHACHA20-POLY1305` | ChaCha20-Poly1305 AEAD with ean xtended nonce, as specified in the most recent `draft-irtf-cfrg-xchacha` CFRG draft                              |
+| `KYBER768`           | KYBER-768 post-quantum key encapsulation mechanism, as specified in the most recent submission to NIST competition for post-quantum cryptography |
+
+Implementations are not limited to these algorithms. An implementation can clude additional algorithms, and the set of required algorithms will be revisited in every revision of the specification.
+
 # Asymmetric operations
 
 Asymmetric operations depend on secret material, as well as a public counterpart.
@@ -394,7 +417,7 @@ The `keypair_close()` function indicates that the key pair will not be needed an
 
 Closing a key pair decreases the reference count of the secret and private parts. Handles to these remain valid until their own reference count reaches `0`.
 
-# Key exchange systems
+# Key exchange mechanisms
 
 A `wasi-crypto` implementation MUST support at least two different key exchange mechanisms:
 
