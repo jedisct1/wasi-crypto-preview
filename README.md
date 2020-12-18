@@ -19,8 +19,8 @@ processes, goals, scope, and deliverables.
   * signatures ([witx](witx/proposal_signatures.witx), [doc](witx/proposal_signatures.md))
   * key exchange ([witx](witx/proposal_kx.witx), [doc](witx/proposal_kx.md))
   * external secrets ([witx](witx/proposal_external_secrets.witx), [doc](witx/proposal_external_secrets.md))
-* [Short API overview](witx/wasi_ephemeral_crypto.txt)
-* [Wasmtime implementation](implementations/wasmtime) - ([wasmtime fork with wasi-crypto integration](https://github.com/jedisct1/wasmtime-crypto))
+* [Concise API overview](witx/wasi_ephemeral_crypto.txt)
+* [Wasmtime implementation](implementations/wasmtime) - [Wasmtime fork with wasi-crypto integration](https://github.com/jedisct1/wasmtime-crypto)
 * [Example AssemblyScript bindings](implementations/bindings/assemblyscript)
 * [Example Rust bindings](implementations/bindings/rust)
 
