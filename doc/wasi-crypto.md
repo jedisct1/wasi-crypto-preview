@@ -1232,6 +1232,8 @@ The function MUST check the authentication tag and return `invalid_tag` if it do
 
 # API overview
 
+## Types
+
 ```text
 crypto_errno: enum(u16)
     - success = 0
@@ -1357,10 +1359,11 @@ kx_keypair: alias(keypair)
 kx_publickey: alias(publickey)
 
 kx_secretkey: alias(secretkey)
+```
 
+## Common functions
 
-----------------------[Module: wasi_ephemeral_crypto_common]----------------------
-
+```text
 function options_open(): crypto_errno
     - Input:
         - algorithm_type: algorithm_type
@@ -1424,10 +1427,11 @@ function secrets_manager_invalidate(): crypto_errno
         - key_id: ptr<u8>
         - key_id_len: size
         - key_version: version
+```
 
+## Common asymmetric functions
 
-----------------------[Module: wasi_ephemeral_crypto_asymmetric_common]----------------------
-
+```text
 function keypair_generate(): crypto_errno
     - Input:
         - algorithm_type: algorithm_type
@@ -1574,10 +1578,11 @@ function secretkey_export(): crypto_errno
 function secretkey_close(): crypto_errno
     - Input:
         - sk: secretkey
+```
 
+## Signature API
 
-----------------------[Module: wasi_ephemeral_crypto_signatures]----------------------
-
+```text
 function signature_export(): crypto_errno
     - Input:
         - signature: signature
@@ -1641,10 +1646,11 @@ function signature_verification_state_close(): crypto_errno
 function signature_close(): crypto_errno
     - Input:
         - signature: signature
+```
 
+## Symmetric operations API
 
-----------------------[Module: wasi_ephemeral_crypto_symmetric]----------------------
-
+```text
 function symmetric_key_generate(): crypto_errno
     - Input:
         - algorithm_ptr: wasi_string_ptr
@@ -1846,10 +1852,11 @@ function symmetric_tag_verify(): crypto_errno
 function symmetric_tag_close(): crypto_errno
     - Input:
         - symmetric_tag: symmetric_tag
+```
 
+## Key exchange API
 
-----------------------[Module: wasi_ephemeral_crypto_kx]----------------------
-
+```text
 function kx_dh(): crypto_errno
     - Input:
         - pk: publickey
