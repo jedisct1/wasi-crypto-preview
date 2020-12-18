@@ -1,10 +1,8 @@
-# WASI-Crypto
-
 # Algorithms
 
 An algorithm and its public parameters are represented by a unique string.
 
-A WASI-crypto implementation MUST implement the following algorithms, and MUST represent them with the following string identifiers:
+A `wasi-crypto` implementation MUST implement the following algorithms, and MUST represent them with the following string identifiers:
 
 | Identifier              | Algorithm                                                                           |
 | ----------------------- | ----------------------------------------------------------------------------------- |
@@ -58,7 +56,7 @@ Implementations are not limited to these algorithms, and the set of required alg
 
 ## Errors
 
-The WASI-crypto APIs share a unique error set, represented as the `crypto_errno` error type.
+The `wasi-crypto` APIs share a unique error set, represented as the `crypto_errno` error type.
 
 | Value                   | Descrpition                                                                                                                                                                                                                       |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -105,16 +103,16 @@ All handle types MUST be thread-safe.
 
 Implementations can internally represent keys, group elements and signatures in any way.
 
-Applications never access these representations directly. Keys, group elements and signatures can only be “imported” or “exported” using well-defined, standard encodings. A WASI-crypto implementation is responsible for converting these encodings from and into a possibly more efficient internal representation.
+Applications never access these representations directly. Keys, group elements and signatures can only be “imported” or “exported” using well-defined, standard encodings. A `wasi-crypto` implementation is responsible for converting these encodings from and into a possibly more efficient internal representation.
 
-WASI-crypto implementations MUST define the following encodings:
+`wasi-crypto` implementations MUST define the following encodings:
 
 * `raw`: raw byte strings, as defined by individual primitives.
 * `pkcs8`: `PKCS#8`/`DER` encoding. Implementations MAY support encryption.
 * `pem`: `PEM`-encoded `PKCS#8`/`DER` format. Implementations MAY support encryption.
 * `sec`: Affine coordinates [`SEC-1`](https://www.secg.org/sec1-v2.pdf) elliptic curve point encoding.
 * `compressec_sec`: Single-coordinate [`SEC-1`](https://www.secg.org/sec1-v2.pdf) elliptic curve point encoding.
-* `local`: implemented-defined encoding. Such a representation can be more efficient than standard serialization formats, but is not defined not required by the WASI-crypto specification, and is thus not meant to be portable across implementations.
+* `local`: implemented-defined encoding. Such a representation can be more efficient than standard serialization formats, but is not defined not required by the `wasi-crypto` specification, and is thus not meant to be portable across implementations.
 
 Encodings are specified as constants, which are defined for individual key types:
 
@@ -129,15 +127,15 @@ Symmetric keys are of type `symmetric_key`.
 
 A symmetric key must be encodable and decodable from/to a raw byte string.
 
-Symmetric primitives have unique, well-defined representations of their input and outputs, and the WASI-crypto doesn't impose any modifications.
+Symmetric primitives have unique, well-defined representations of their input and outputs, and the `wasi-crypto` doesn't impose any modifications.
 
 ### Asymetric keys
 
 #### Secret keys
 
-A secret key may be representable as a fixed-size scalar. In that case, the WASI-crypto API requires a `raw` encoding type to be available both to import and export these keys.
+A secret key may be representable as a fixed-size scalar. In that case, the `wasi-crypto` API requires a `raw` encoding type to be available both to import and export these keys.
 
-`raw` encoding is the scalar encoded as simple a bit string. Some primitives traditionally use big-endian encoding, while others use little-end Ian. WASI-crypto defines a single `raw` encoding, corresponding to the most common representation.
+`raw` encoding is the scalar encoded as simple a bit string. Some primitives traditionally use big-endian encoding, while others use little-end Ian. `wasi-crypto` defines a single `raw` encoding, corresponding to the most common representation.
 In particular, for the curves currently required by the API:
 
 * Scalars and field elements must be encoded using big-endian for NIST curves
@@ -160,13 +158,13 @@ In particular:
 * A Curve25519 point is represented as its X coordinate in little-endian format. The top bit must be cleared.
 * An Edwards25519 point is represented as its Y coordinate and the sign of the X coordinate.
 
-Points on NIST curves must be importable/exportable using the standard `SEC-1` encoding, both with and without compression. The WASI-Crypto API defines the `sec` and `compressed_sec` encodings for that purpose.
+Points on NIST curves must be importable/exportable using the standard `SEC-1` encoding, both with and without compression. The `wasi-crypto` API defines the `sec` and `compressed_sec` encodings for that purpose.
 
 Finally, implementations MAY support a non-portable, optimized representation for public keys, referred to as `local` in the set of possible encodings for a public key.
 
 #### Key pairs for key exchange
 
-A WASI-crypto implementation MUST be able to store a key pair as a unique handle, from which handles of individual keys can later be extracted.
+A `wasi-crypto` implementation MUST be able to store a key pair as a unique handle, from which handles of individual keys can later be extracted.
 
 For every supported key type, an implementation MAY allow importation and exportation of a key pair as a single operation, either using a local encoding, or using `PKCS#8` or `PEM`-encoded `PKCS#8`.
 
@@ -359,7 +357,7 @@ A key pair can also be created from handles to a valid secret key and a valid pu
 let kp_handle = keypair_from_pk_and_sk(pk_handle, sk_handle)?;
 ```
 
-A WASI-crypto implementation can also create a new key pair. The key pair MUST be generated using a cryptographically-secure random number generator.
+A `wasi-crypto` implementation can also create a new key pair. The key pair MUST be generated using a cryptographically-secure random number generator.
 
 ```rust
 let kp_handle = keypair_generate("ECDSA_P256_SHA256")?;
@@ -387,7 +385,7 @@ Closing a key pair decreases the reference count of the secret and private parts
 
 # Key exchange systems
 
-A WASI-crypto implementation MUST support at least two different key exchange mechanisms:
+A `wasi-crypto` implementation MUST support at least two different key exchange mechanisms:
 
 * Diffie-Hellman based key agreement, returning a deterministic secret for a given (public key, secret key) pair
 * Key encapsulation mechanisms, where the runtime is expected to generate a random secret, and encapsulate it using the recipient's public key.
@@ -434,7 +432,7 @@ If the decapsulation fails, the `kx_decapsulate()` function MUST return `verific
 
 ## Note on Hybrid Public Key Encryption
 
-A WASI-crypto implementation is not required to expose a Hybrid Public Key Encryption interface. HPKE can be easily and securely be reimplemented using the existing APIs.
+A `wasi-crypto` implementation is not required to expose a Hybrid Public Key Encryption interface. HPKE can be easily and securely be reimplemented using the existing APIs.
 
 # Signatures
 
@@ -452,7 +450,7 @@ However, implementations are encouraged to use the type aliases defined in the W
 
 Signatures introduce an additional `signature` type. A signature can be imported and exported with different encodings.
 
-A WASI-crypto implementation MUST support the `raw` encoding, that represents the signature as compact, a fixed-length byte sequence with a well-defined format for every algorithm. In addition, an implementation MAY support the `DER` format, or return `unsupported_encoding` if this is not the case.
+A `wasi-crypto` implementation MUST support the `raw` encoding, that represents the signature as compact, a fixed-length byte sequence with a well-defined format for every algorithm. In addition, an implementation MAY support the `DER` format, or return `unsupported_encoding` if this is not the case.
 
 ## Signature creation
 
@@ -463,7 +461,7 @@ Signature computation requires the following steps:
 3) `signature_state_sign()` to compute a signature for all the data absorbed until that point
 4) `signature_state_close()` to dispose the state
 
-A WASI-crypto implementation is expected to support a streaming interface (`signature_state_update()`) for all the implemented algorithms.
+A `wasi-crypto` implementation is expected to support a streaming interface (`signature_state_update()`) for all the implemented algorithms.
 
 However, doing so with two-pass algorithms such as EdDSA may require the runtime to accumulate a copy of the input until the signature is made. Implementations SHOULD limit the input length, and return the `overflow` error code if it is too long.
 Guest applications should not make any assertion about the maximum supported length, and should use pre-hashed signature systems if the input is large or is not fully available.
@@ -503,7 +501,7 @@ signature_verification_state_close(signature_handle)?;
 
 # Symmetric operations
 
-The WASI-crypto symmetric API was designed with the following constraints in mind:
+The `wasi-crypto` symmetric API was designed with the following constraints in mind:
 - It should support a wide range of common primitives and construction
 - It should be future proof and easy to extend without breaking changes
 - The API should be generic without preventing access to additional features each algorithm may support
@@ -568,7 +566,7 @@ let key_handle = symmetric_key_generate("SHA-256")?;
 
 Some algorithm accept multiple key sizes. 
 
-The table below lists the key sizes that a WASI-crypto implementation SHOULD choose for common algorithms with a non-fixed key size:
+The table below lists the key sizes that a `wasi-crypto` implementation SHOULD choose for common algorithms with a non-fixed key size:
 
 | Algorithm              | Runtime-generated key size (bytes) |
 | ---------------------- | ---------------------------------- |
@@ -729,7 +727,7 @@ The host MUST return an `overflow` error code if the output buffer is too small,
 
 ## Authentication tags
 
-An authentication tag is always returned as handle. WASI-crypto bindings SHOULD verify them with the `symmetric_tag_verify()` function instead of exporting them and doing the verification themselves.
+An authentication tag is always returned as handle. `wasi-crypto` bindings SHOULD verify them with the `symmetric_tag_verify()` function instead of exporting them and doing the verification themselves.
 
 Authentication tags are assumed to be very small. For this reason, copying the actual tag to the guest environment requires a single function call, which also immediately invalides the handle. Unlike `array_output` handles, no streaming interface is necessary. Implementation can directly map handles to the raw representation of a tag.
 
@@ -898,7 +896,7 @@ squeeze(state_handle, &mut subkey1)?;
 squeeze(state_handle, &mut subkey2)?;
 ```
 
-WASI-crypto implementations MUST NOT copy the state. Repeated calls to the `squeeze()` function MUST produce different outputs.
+`wasi-crypto` implementations MUST NOT copy the state. Repeated calls to the `squeeze()` function MUST produce different outputs.
 
 ### Password hashing functions
 
@@ -1004,7 +1002,7 @@ They MUST support the following operations:
 
 Additional operations are algorithm-dependant, and implementations including this type of algorithm MUST document the set of supported operations.
 
-WASI-crypto implementers are encouraged to include the `XOODYAK-128` algorithm to exercices an externsive set of operations typically supported by this kind of construction.
+`wasi-crypto` implementers are encouraged to include the `XOODYAK-128` algorithm to exercices an externsive set of operations typically supported by this kind of construction.
 
 ```rust
 let mut out = [0u8; 16];
@@ -1021,4 +1019,846 @@ symmetric_state_ratchet(state_handle)?;
 symmetric_state_absorb(state_handle, b"more data")?;
 let next_key_handle = symmetric_state_squeeze_key(state_handle, "XOODYAK-128")?;
 // ...
+```
+
+# Managed keys
+
+A function performing a cryptographic operation using a secret key MUST accept that secret key as an opaque handle.
+
+This has several advantages:
+- Type safety: a handle represents the keying material as well as the algorithm the key must be used with. This prevents a key from being used with a different algorithm. While the type check is systematically made at runtime, this also simplifies static analysis and encourages bindings developers to use a dedicated type to represent secret keys, improving clarity and compile-time safety.
+- Leakage mitigation: the runtime SHOULD transparently overwrite secret keys stored in memory when handle are closed.
+- Isolation: a runtime can store keys in dedicated memory regions, encrypt them, set `PROT_READ`/`PROT_NONE` protection on pages containing keys at rest, insert guard pages around pages containing keys, or do any other extra safety measure to protect sensitive data.
+- HSM compatibility: keys may be generated by, or stored in a hardward or software security module.
+- A secret key can be internally managed by the runtime, allowing guest applications to use it for encryption, authentication and signature, without having access to the actual secret, even if the application is compromised.
+
+A single type is used to represent a key handle, no matter if the key was imported from a serialized representation by the application, allowing a single API to be shared in different contexts.
+
+We define a "managed key" as a key whose storage is managed by the runtime. In this context, applications can create a key handle from a key identifier a version. The runtime is responsible for loading the actual key using this information, and exposing it as a regular key handle.
+
+A managed key can be generated by the runtime given an algorithm description, or imported by the guest application from a serialized representation. The runtime stores it using any internal representation, and returns a unique key identifier and version number.
+
+All the functions managing keys are optional.
+
+An implementation can also refuse to perform some operations when a key is managed. In particular, an implementation can prohibit managed keys from being exported, while allowing application-generated keys to be exported. In the former case, the function MUST return the `prohibited_operation` error code.
+
+The runtime can also enforce expiration, forcing applications to frequently rotate secret keys. If a key identifier is valid but refers to an expired key, a function MUST return the `expired` error code. An implementation MAY also permanently delete a secret and return `not_found` after expiration.
+
+## Secrets management
+
+A secrets manager is used to access the runtime's key storage capabilities. The secrets management API is optional.
+
+`secrets_manager_open()` returns a handle to the secrets manager. The function accepts an option set, which can be used to provide credentials, select a secrets store, or set any implementation-specific parameters. The set of supported options and error codes that the function can return are implementation-defined.
+
+Guest applications SHOULD NOT use secrets management capabilities in portable applications.
+
+The `secrets_manager_open()` function may not be present if the host doesn't support secrets management.
+
+`secrets_manager_close()` indicates that a secrets manager is not going to be used any longer. Implementatins MUST use reference counting, and only free the related resources on no more managed secrets linked to that manager are in use.
+
+Implementations MUST NOT require the `secrets_manager_close()` function to be called in order to finalize durable storage of manage secrets.
+
+## Key identifiers and versions
+
+A managed key should be accessible by a guest application using an identifier and a version. Key identifiers and versions for new keys are assigned by the runtime.
+
+A runtime MUST ensure global uniqueness of key identifiers. Key identifiers MUST NOT be deterministic. In particular, they MUST NOT be hashes of the actual keys.
+
+Versions are signed 64 bit integers, and MUST be monotically increasing. Versions can be between `0x0` and `0xfeffffffffffffff` (included), the following values being reserved:
+
+* `0xff00000000000000` (`unspecified`): represents the absence of a version.
+* `0xff00000000000001` (`latest`): represents the latest version of a key, when used as a function parameter.
+* `0xff00000000000002` (`all`): represents all the versions of a key, when used as a function parameter.
+
+A guest application can revoke a managed key with the `secrets_manager_invalidate()` function.
+
+If the runtime doesn't support that feature for the given key handle, it MUST return the `unsupported_feature` error code.
+
+Otherwise, the runtime MUST ensure that a `not_found` error code will be returned whenever the application tries to obtain a key handle using the key identifier and any of the invalidated versions.
+
+Revoking all the versions of a given key:
+
+```rust
+let secrets_manager_handle = secrets_manager_open(options)?;
+secrets_manager_invalidate(secrets_manager_handle, key_id, Version::All)?;
+```
+
+Revoking only the latest version of a key:
+
+```rust
+secrets_manager_invalidate(secrets_manager_handle, key_id, Version::Latest)?;
+```
+
+Revoking only a specific version of a key:
+
+```rust
+secrets_manager_invalidate(secrets_manager_handle, key_id, 15)?;
+```
+
+A function involving managed keys MUST return `not_found` if a (key identifier, version) tuple is not found or has been revoked.
+
+An implementation MAY limit the size and number of versions and keys. If one of these limits is exceeded, it MUST return the `overflow` error code.
+
+## Functions dedicated to managed keys
+
+The distinction between keys stored by the runtime, and keys that are ephemeral or stored by the guest application has to be made.
+
+If the host provides secrets management capabilities, the symmetric operations, signature, and key exchange APIs can be augmented with the following functions:
+
+* `keypair_generate_managed()`: generate a managed key pair. The runtime MUST ensure that long-term storage of the key pair was made before returning from the function. The runtime is also responsible for assigning a key identifier and base version to the new key.
+* `keypair_store_managed()`: convert an existing key pair into a managed key pair. This function can be used by a guest application to leverage the host secrets management capabilities to store a key pair generated and imported by the application itself. The runtime MUST ensure that long-term storage of the key pair was made before returning from the function. The runtime is also responsible for assigning a key identifier and base to the new key.
+* `keypair_replace_managed()`: create a new version of a key pair. The host MUST monotically increement the version number, durably store the new versin, and MUST NOT invalidate any previous versions of the key pair. All versions of a key must share the exact same algorithm. If this is not the case, the implementation MUST return the `incompatible_keys` error code.
+* `keypair_id()`: return the key identifier assigned by the runtime to a key pair handle. If the key is not managed, the function must return the special `0xff00000000000000` (`unspecified`) value. The function MUST return an `overflow` error code if the guest buffer supplied to store the identifier is too small.
+* `keypair_from_id()`: return a key pair handle given a key identifier and version. The version must be an exact version number of the special `0xff00000000000001` (`latest`) value. The function MUST return `not_found` if no matching key pair is found.
+* `symmetric_key_generate_managed()`: generate a managed symmetric key. The runtime MUST ensure that long-term storage of the key was made before returning from the function. The runtime is also responsible for assigning a key identifier and base to the new key.
+* `symmetric_key_store_managed()`: convert an existing symmetric key into a managed symmetric key. This function can be used by a guest application to leverage the host secrets management capabilities to store a key generated and imported by the application itself. The runtime MUST ensure that long-term storage of the key was made before returning from the function. The runtime is also responsible for assigning a key identifier and base version to the new key.
+* `symmetric_key_id()`: return the key identifier assigned by the runtime to a symmetric key handle. If the key is not managed, the function must return the special `0xff00000000000000` (`unspecified`) value. The function MUST return an `overflow` error code if the guest buffer supplied to store the identifier is too small.
+* `symmetric_key_from_id()`: return a symmetric key handle given a key identifier and version. The version must be an exact version number of the special `0xff00000000000001` (`latest`) value. The function MUST return `not_found` if no matching key is found.
+
+# External secrets
+
+External secrets are binary blobs, that can represent external API tokens or anything that is not meant to be consumed by the `wasi-crypto` APIs. They don't include algorithm identifiers and can't be directly used for cryptographic operations via the `wasi-crypto` APIs.
+
+These secrets can be securely stored, and then retrieved using an identifier.
+
+Alternatively, the secrets manager can encrypt them, and applications will supply the ciphertext get the original secret back.
+
+The external secrets API is optional and require secrets management capabilities to be implemented.
+
+## External secrets storage
+
+A runtime can be responsible for storing external secrets. In that context, a guest application can only access such secrets using a key identifier and version. The following functions are optional. The runtime can choose to implement external secrets storage, external secrets encryption or both.
+
+The `external_secret_store()` function stores an external secret. The runtime MUST assign a unique secret identifier and base version number to the secret, and complete long-term storage of the secret before returning from the function.
+
+The secret identifier MUST NOT be deterministic. Version numbers use the same type as managed key versions, and the same ranges of valid and reserved values.
+
+The function MUST return an `overflow` error code if the guest buffer supplied to store the identifier is too small. On success, it returns the secret identifier.
+
+Managed external secrets MUST have an expiration date, expressed as a UNIX timestamp in seconds.
+
+```rust
+let secrets_manager_handle = secrets_manager_open(options)?;
+let secret_id = external_secret_store(secrets_manager_handle, secret, 1639847110)?;
+```
+
+Secrets are byte arrays that don't require any additional serialization.
+
+A guest application can later retrieve an external secret given an identifier and version, using the `external_secret_from_id()` function:
+
+```rust
+let secrets_manager_handle = secrets_manager_open(options)?;
+let secret = external_secret_from_id(secrets_manager_handle, secret_id, Version::Latest)?;
+```
+
+The function returns an `array_ouput` handle on success. On error, it MUST return one of:
+- `not_found` if the (`secret_id`, `version`) tuple doesn't map to a stored secret
+- `expired` if the secret has expired.
+
+An implementation MAY permanently delete a secret and return `not_found` after expiration.
+
+A secret can also be revoked using the `external_secret_invalidate()` function:
+
+If the runtime doesn't support that feature, it MUST return the `unsupported_feature` error code.
+
+Otherwise, the runtime MUST ensure that a `not_found` error code will be returned whenever the application tries to obtain a secret using the secret identifier and any of the invalidated versions.
+
+Revoking all the versions of a given secret:
+
+```rust
+let secrets_manager_handle = secrets_manager_open(options)?;
+external_secret_invalidate(secrets_manager_handle, secret_id, Version::All)?;
+```
+
+Revoking only the latest version of a secret:
+
+```rust
+external_secret_invalidate(secrets_manager_handle, secret_id, Version::Latest)?;
+```
+
+Revoking only a specific version of a secret:
+
+```rust
+external_secret_invalidate(secrets_manager_handle, secret_id, 15)?;
+```
+
+A function involving managed external secrets MUST return `not_found` if a (secret identifier, version) tuple is not found or has been revoked.
+
+An implementation MAY limit the size and number of versions and external secrets. If one of these limits is exceeded, it MUST return the `overflow` error code.
+
+## Runtime-encrypted secrets
+
+In order to limit the number of secrets to manage, a runtime can also encrypt and decrypt secrets from a guest application using a single internal key encryption key (KEK) per user or per application.
+
+A KEK is entirely managed by the runtime, and doesn't have a key identifier or any other representation in the public API.
+
+The `external_secret_encapsulate()` function encrypts a guest secret, and returns a serialized structure that includes:
+
+- A nonce.
+- The secret, encrypted using the KEK and the nonce. The KEK MUST have been generated by the runtime, MUST NOT be visible to the guest application.
+- The expiration date for the secret.
+- An authenticator for the nonce, secret and expiration date. The secret and expiration date MUST NOT be authenticated individually.
+
+An implementation can include a KEK version number or other metadata in the ciphertext.
+
+A nonce MUST be used for encryption. The implementation can use any encryption system, and guest applications MUST NOT rely on a specific format or ciphertext size. A deterministic key wrapping mechanism MUST not be used.
+
+```rust
+let secrets_manager_handle = secrets_manager_open(options)?;
+let encrypted_secret = external_secret_encapsulate(secret, 1639847110)?;
+```
+
+The `external_secret_decapsulate()` function verifies and decrypts a guest-provided encrypted secret:
+
+```rust
+let secrets_manager_handle = secrets_manager_open(options)?;
+let secret = external_secret_decapsulate(encrypted_secret)?;
+```
+
+The function returns an `array_output` object on success.
+
+The runtime MUST check the expiration date and return `expired` if the secret is not valid any longer.
+The function MUST check the authentication tag and return `invalid_tag` if it doesn't verify.
+
+# API overview
+
+```text
+crypto_errno: enum(u16)
+    - success = 0
+    - guest_error = 1
+    - not_implemented = 2
+    - unsupported_feature = 3
+    - prohibited_operation = 4
+    - unsupported_encoding = 5
+    - unsupported_algorithm = 6
+    - unsupported_option = 7
+    - invalid_key = 8
+    - invalid_length = 9
+    - verification_failed = 10
+    - rng_error = 11
+    - algorithm_failure = 12
+    - invalid_signature = 13
+    - closed = 14
+    - invalid_handle = 15
+    - overflow = 16
+    - internal_error = 17
+    - too_many_handles = 18
+    - key_not_supported = 19
+    - key_required = 20
+    - invalid_tag = 21
+    - invalid_operation = 22
+    - nonce_required = 23
+    - invalid_nonce = 24
+    - option_not_set = 25
+    - not_found = 26
+    - parameters_missing = 27
+    - in_progress = 28
+    - incompatible_keys = 29
+    - expired = 30
+
+keypair_encoding: enum(u16)
+    - raw = 0
+    - pkcs8 = 1
+    - pem = 2
+    - local = 3
+
+publickey_encoding: enum(u16)
+    - raw = 0
+    - pkcs8 = 1
+    - pem = 2
+    - sec = 3
+    - compressed_sec = 4
+    - local = 5
+
+secretkey_encoding: enum(u16)
+    - raw = 0
+    - pkcs8 = 1
+    - pem = 2
+    - sec = 3
+    - compressed_sec = 4
+    - local = 5
+
+signature_encoding: enum(u16)
+    - raw = 0
+    - der = 1
+
+algorithm_type: enum(u16)
+    - signatures = 0
+    - symmetric = 1
+    - key_exchange = 2
+
+version: int(u64)
+    - unspecified = 0
+    - latest = 1
+    - all = 2
+
+alias size = usize
+
+alias timestamp = u64
+
+array_output: handle
+
+options: handle
+
+secrets_manager: handle
+
+keypair: handle
+
+signature_state: handle
+
+signature: handle
+
+publickey: handle
+
+secretkey: handle
+
+signature_verification_state: handle
+
+symmetric_state: handle
+
+symmetric_key: handle
+
+symmetric_tag: handle
+
+opt_options_u: enum(u8)
+    - some = 0
+    - none = 1
+
+union opt_options (tag: opt_options_u, padding: 8 bytes)
+    - some: options (if tag=0)
+    - none: void (if tag=1)
+
+opt_symmetric_key_u: enum(u8)
+    - some = 0
+    - none = 1
+
+union opt_symmetric_key (tag: opt_symmetric_key_u, padding: 8 bytes)
+    - some: symmetric_key (if tag=0)
+    - none: void (if tag=1)
+
+signature_keypair: alias(keypair)
+
+signature_publickey: alias(publickey)
+
+signature_secretkey: alias(secretkey)
+
+kx_keypair: alias(keypair)
+
+kx_publickey: alias(publickey)
+
+kx_secretkey: alias(secretkey)
+
+
+----------------------[Module: wasi_ephemeral_crypto_common]----------------------
+
+function options_open(): crypto_errno
+    - Input:
+        - algorithm_type: algorithm_type
+    - Output:
+        - handle: mut_ptr<options>
+
+function options_close(): crypto_errno
+    - Input:
+        - handle: options
+
+function options_set(): crypto_errno
+    - Input:
+        - handle: options
+        - name_ptr: wasi_string_ptr
+        - name_len: usize
+        - value: ptr<u8>
+        - value_len: size
+
+function options_set_u64(): crypto_errno
+    - Input:
+        - handle: options
+        - name_ptr: wasi_string_ptr
+        - name_len: usize
+        - value: u64
+
+function options_set_guest_buffer(): crypto_errno
+    - Input:
+        - handle: options
+        - name_ptr: wasi_string_ptr
+        - name_len: usize
+        - buffer: mut_ptr<u8>
+        - buffer_len: size
+
+function array_output_len(): crypto_errno
+    - Input:
+        - array_output: array_output
+    - Output:
+        - len: mut_ptr<size>
+
+function array_output_pull(): crypto_errno
+    - Input:
+        - array_output: array_output
+        - buf: mut_ptr<u8>
+        - buf_len: size
+    - Output:
+        - len: mut_ptr<size>
+
+function secrets_manager_open(): crypto_errno
+    - Input:
+        - options: opt_options
+    - Output:
+        - handle: mut_ptr<secrets_manager>
+
+function secrets_manager_close(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+
+function secrets_manager_invalidate(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - key_id: ptr<u8>
+        - key_id_len: size
+        - key_version: version
+
+
+----------------------[Module: wasi_ephemeral_crypto_asymmetric_common]----------------------
+
+function keypair_generate(): crypto_errno
+    - Input:
+        - algorithm_type: algorithm_type
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - options: opt_options
+    - Output:
+        - handle: mut_ptr<keypair>
+
+function keypair_import(): crypto_errno
+    - Input:
+        - algorithm_type: algorithm_type
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - encoded: ptr<u8>
+        - encoded_len: size
+        - encoding: keypair_encoding
+    - Output:
+        - handle: mut_ptr<keypair>
+
+function keypair_generate_managed(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - algorithm_type: algorithm_type
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - options: opt_options
+    - Output:
+        - handle: mut_ptr<keypair>
+
+function keypair_store_managed(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - kp: keypair
+        - kp_id: mut_ptr<u8>
+        - kp_id_max_len: size
+
+function keypair_replace_managed(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - kp_old: keypair
+        - kp_new: keypair
+    - Output:
+        - version: mut_ptr<version>
+
+function keypair_id(): crypto_errno
+    - Input:
+        - kp: keypair
+        - kp_id: mut_ptr<u8>
+        - kp_id_max_len: size
+    - Output:
+        - kp_id_len: mut_ptr<size>
+        - version: mut_ptr<version>
+
+function keypair_from_id(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - kp_id: ptr<u8>
+        - kp_id_len: size
+        - kp_version: version
+    - Output:
+        - handle: mut_ptr<keypair>
+
+function keypair_from_pk_and_sk(): crypto_errno
+    - Input:
+        - publickey: publickey
+        - secretkey: secretkey
+    - Output:
+        - handle: mut_ptr<keypair>
+
+function keypair_export(): crypto_errno
+    - Input:
+        - kp: keypair
+        - encoding: keypair_encoding
+    - Output:
+        - encoded: mut_ptr<array_output>
+
+function keypair_publickey(): crypto_errno
+    - Input:
+        - kp: keypair
+    - Output:
+        - pk: mut_ptr<publickey>
+
+function keypair_secretkey(): crypto_errno
+    - Input:
+        - kp: keypair
+    - Output:
+        - sk: mut_ptr<secretkey>
+
+function keypair_close(): crypto_errno
+    - Input:
+        - kp: keypair
+
+function publickey_import(): crypto_errno
+    - Input:
+        - algorithm_type: algorithm_type
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - encoded: ptr<u8>
+        - encoded_len: size
+        - encoding: publickey_encoding
+    - Output:
+        - pk: mut_ptr<publickey>
+
+function publickey_export(): crypto_errno
+    - Input:
+        - pk: publickey
+        - encoding: publickey_encoding
+    - Output:
+        - encoded: mut_ptr<array_output>
+
+function publickey_verify(): crypto_errno
+    - Input:
+        - pk: publickey
+
+function publickey_from_secretkey(): crypto_errno
+    - Input:
+        - sk: secretkey
+    - Output:
+        - pk: mut_ptr<publickey>
+
+function publickey_close(): crypto_errno
+    - Input:
+        - pk: publickey
+
+function secretkey_import(): crypto_errno
+    - Input:
+        - algorithm_type: algorithm_type
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - encoded: ptr<u8>
+        - encoded_len: size
+        - encoding: secretkey_encoding
+    - Output:
+        - sk: mut_ptr<secretkey>
+
+function secretkey_export(): crypto_errno
+    - Input:
+        - sk: secretkey
+        - encoding: secretkey_encoding
+    - Output:
+        - encoded: mut_ptr<array_output>
+
+function secretkey_close(): crypto_errno
+    - Input:
+        - sk: secretkey
+
+
+----------------------[Module: wasi_ephemeral_crypto_signatures]----------------------
+
+function signature_export(): crypto_errno
+    - Input:
+        - signature: signature
+        - encoding: signature_encoding
+    - Output:
+        - encoded: mut_ptr<array_output>
+
+function signature_import(): crypto_errno
+    - Input:
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - encoded: ptr<u8>
+        - encoded_len: size
+        - encoding: signature_encoding
+    - Output:
+        - signature: mut_ptr<signature>
+
+function signature_state_open(): crypto_errno
+    - Input:
+        - kp: signature_keypair
+    - Output:
+        - state: mut_ptr<signature_state>
+
+function signature_state_update(): crypto_errno
+    - Input:
+        - state: signature_state
+        - input: ptr<u8>
+        - input_len: size
+
+function signature_state_sign(): crypto_errno
+    - Input:
+        - state: signature_state
+    - Output:
+        - signature: mut_ptr<array_output>
+
+function signature_state_close(): crypto_errno
+    - Input:
+        - state: signature_state
+
+function signature_verification_state_open(): crypto_errno
+    - Input:
+        - kp: signature_publickey
+    - Output:
+        - state: mut_ptr<signature_verification_state>
+
+function signature_verification_state_update(): crypto_errno
+    - Input:
+        - state: signature_verification_state
+        - input: ptr<u8>
+        - input_len: size
+
+function signature_verification_state_verify(): crypto_errno
+    - Input:
+        - state: signature_verification_state
+        - signature: signature
+
+function signature_verification_state_close(): crypto_errno
+    - Input:
+        - state: signature_verification_state
+
+function signature_close(): crypto_errno
+    - Input:
+        - signature: signature
+
+
+----------------------[Module: wasi_ephemeral_crypto_symmetric]----------------------
+
+function symmetric_key_generate(): crypto_errno
+    - Input:
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - options: opt_options
+    - Output:
+        - handle: mut_ptr<symmetric_key>
+
+function symmetric_key_import(): crypto_errno
+    - Input:
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - raw: ptr<u8>
+        - raw_len: size
+    - Output:
+        - handle: mut_ptr<symmetric_key>
+
+function symmetric_key_export(): crypto_errno
+    - Input:
+        - symmetric_key: symmetric_key
+    - Output:
+        - encoded: mut_ptr<array_output>
+
+function symmetric_key_close(): crypto_errno
+    - Input:
+        - symmetric_key: symmetric_key
+
+function symmetric_key_generate_managed(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - options: opt_options
+    - Output:
+        - handle: mut_ptr<symmetric_key>
+
+function symmetric_key_store_managed(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - symmetric_key: symmetric_key
+        - symmetric_key_id: mut_ptr<u8>
+        - symmetric_key_id_max_len: size
+
+function symmetric_key_replace_managed(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - symmetric_key_old: symmetric_key
+        - symmetric_key_new: symmetric_key
+    - Output:
+        - version: mut_ptr<version>
+
+function symmetric_key_id(): crypto_errno
+    - Input:
+        - symmetric_key: symmetric_key
+        - symmetric_key_id: mut_ptr<u8>
+        - symmetric_key_id_max_len: size
+    - Output:
+        - symmetric_key_id_len: mut_ptr<size>
+        - version: mut_ptr<version>
+
+function symmetric_key_from_id(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - symmetric_key_id: ptr<u8>
+        - symmetric_key_id_len: size
+        - symmetric_key_version: version
+    - Output:
+        - handle: mut_ptr<symmetric_key>
+
+function symmetric_state_open(): crypto_errno
+    - Input:
+        - algorithm_ptr: wasi_string_ptr
+        - algorithm_len: usize
+        - key: opt_symmetric_key
+        - options: opt_options
+    - Output:
+        - symmetric_state: mut_ptr<symmetric_state>
+
+function symmetric_state_options_get(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - name_ptr: wasi_string_ptr
+        - name_len: usize
+        - value: mut_ptr<u8>
+        - value_max_len: size
+    - Output:
+        - value_len: mut_ptr<size>
+
+function symmetric_state_options_get_u64(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - name_ptr: wasi_string_ptr
+        - name_len: usize
+    - Output:
+        - value: mut_ptr<u64>
+
+function symmetric_state_close(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+
+function symmetric_state_absorb(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - data: ptr<u8>
+        - data_len: size
+
+function symmetric_state_squeeze(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - out: mut_ptr<u8>
+        - out_len: size
+
+function symmetric_state_squeeze_tag(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+    - Output:
+        - symmetric_tag: mut_ptr<symmetric_tag>
+
+function symmetric_state_squeeze_key(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - alg_str_ptr: wasi_string_ptr
+        - alg_str_len: usize
+    - Output:
+        - symmetric_key: mut_ptr<symmetric_key>
+
+function symmetric_state_max_tag_len(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+    - Output:
+        - len: mut_ptr<size>
+
+function symmetric_state_encrypt(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - out: mut_ptr<u8>
+        - out_len: size
+        - data: ptr<u8>
+        - data_len: size
+    - Output:
+        - actual_out_len: mut_ptr<size>
+
+function symmetric_state_encrypt_detached(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - out: mut_ptr<u8>
+        - out_len: size
+        - data: ptr<u8>
+        - data_len: size
+    - Output:
+        - symmetric_tag: mut_ptr<symmetric_tag>
+
+function symmetric_state_decrypt(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - out: mut_ptr<u8>
+        - out_len: size
+        - data: ptr<u8>
+        - data_len: size
+    - Output:
+        - actual_out_len: mut_ptr<size>
+
+function symmetric_state_decrypt_detached(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+        - out: mut_ptr<u8>
+        - out_len: size
+        - data: ptr<u8>
+        - data_len: size
+        - raw_tag: ptr<u8>
+        - raw_tag_len: size
+    - Output:
+        - actual_out_len: mut_ptr<size>
+
+function symmetric_state_ratchet(): crypto_errno
+    - Input:
+        - handle: symmetric_state
+
+function symmetric_tag_len(): crypto_errno
+    - Input:
+        - symmetric_tag: symmetric_tag
+    - Output:
+        - len: mut_ptr<size>
+
+function symmetric_tag_pull(): crypto_errno
+    - Input:
+        - symmetric_tag: symmetric_tag
+        - buf: mut_ptr<u8>
+        - buf_len: size
+    - Output:
+        - len: mut_ptr<size>
+
+function symmetric_tag_verify(): crypto_errno
+    - Input:
+        - symmetric_tag: symmetric_tag
+        - expected_raw_tag_ptr: ptr<u8>
+        - expected_raw_tag_len: size
+
+function symmetric_tag_close(): crypto_errno
+    - Input:
+        - symmetric_tag: symmetric_tag
+
+
+----------------------[Module: wasi_ephemeral_crypto_kx]----------------------
+
+function kx_dh(): crypto_errno
+    - Input:
+        - pk: publickey
+        - sk: secretkey
+    - Output:
+        - shared_secret: mut_ptr<array_output>
+
+function kx_encapsulate(): crypto_errno
+    - Input:
+        - pk: publickey
+    - Output:
+        - secret: mut_ptr<array_output>
+        - encapsulated_secret: mut_ptr<array_output>
+
+function kx_decapsulate(): crypto_errno
+    - Input:
+        - sk: secretkey
+        - encapsulated_secret: ptr<u8>
+        - encapsulated_secret_len: size
+    - Output:
+        - secret: mut_ptr<array_output>
 ```
