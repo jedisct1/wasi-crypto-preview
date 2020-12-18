@@ -1,11 +1,12 @@
 # WASI cryptography modules
 
-The cryptography API is split across 5 modules:
+The cryptography API is split across 6 modules:
 
 * `common` defines types and functions used by other modules, including secrets management mechanisms.
 * `asymmetric_common` defines types and functions required by asymmetric operations such as signature and key exchange mechanisms.
 * `symmetric` defines functions for symmetric operations.
 * `signatures` defines functions for signature creation and verification.
+* `kx`: defines functions for key exchange and key encapsulation.
 * `external_secrets` defines functions for storage and encryption of third-party secrets such as API tokens.
 
 # Algorithms
