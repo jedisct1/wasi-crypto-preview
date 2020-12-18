@@ -59,6 +59,7 @@ This document describes `wasi-crypto`, a set of APIs that a runtime can expose t
   - [Signature API](#signature-api)
   - [Symmetric operations API](#symmetric-operations-api)
   - [Key exchange API](#key-exchange-api)
+  - [External secrets API](#external-secrets-api)
 
 # Modules
 
@@ -1960,6 +1961,63 @@ function kx_decapsulate(): crypto_errno
         - sk: secretkey
         - encapsulated_secret: ptr<u8>
         - encapsulated_secret_len: size
+    - Output:
+        - secret: mut_ptr<array_output>
+```
+
+## External secrets API
+
+```text
+function external_secret_store(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret: ptr<u8>
+        - secret_len: size
+        - expiration: timestamp
+        - secret_id: mut_ptr<u8>
+        - secret_id_max_len: size
+
+function external_secret_replace(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret: ptr<u8>
+        - secret_len: size
+        - expiration: timestamp
+        - secret_id: ptr<u8>
+        - secret_id_len: size
+    - Output:
+        - secret_version: mut_ptr<version>
+
+function external_secret_from_id(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret_id: ptr<u8>
+        - secret_id_len: size
+        - secret_version: version
+    - Output:
+        - secret: mut_ptr<array_output>
+
+function external_secret_invalidate(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret_id: ptr<u8>
+        - secret_id_len: size
+        - secret_version: version
+
+function external_secret_encapsulate(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - secret: ptr<u8>
+        - secret_len: size
+        - expiration: timestamp
+    - Output:
+        - encrypted_secret: mut_ptr<array_output>
+
+function external_secret_decapsulate(): crypto_errno
+    - Input:
+        - secrets_manager: secrets_manager
+        - encrypted_secret: ptr<u8>
+        - encrypted_secret_len: size
     - Output:
         - secret: mut_ptr<array_output>
 ```
