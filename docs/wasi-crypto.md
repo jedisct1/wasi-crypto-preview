@@ -1,6 +1,66 @@
-# WASI cryptography modules
+# WASI cryptography APIs (proposal)
 
 This document describes `wasi-crypto`, a set of APIs that a runtime can expose to WebAssembly modules in order to perform cryptographic operations and key management.
+
+- [WASI cryptography APIs (proposal)](#wasi-cryptography-apis-proposal)
+- [Modules](#modules)
+- [Common types](#common-types)
+  - [Errors](#errors)
+  - [Handles](#handles)
+  - [Encodings](#encodings)
+    - [Symmetric keys](#symmetric-keys)
+    - [Asymmetric keys](#asymmetric-keys)
+      - [Secret keys](#secret-keys)
+      - [Public keys](#public-keys)
+      - [Key pairs for key exchange](#key-pairs-for-key-exchange)
+      - [Key pairs for signatures](#key-pairs-for-signatures)
+    - [Signatures](#signatures)
+  - [Required encodings and key types](#required-encodings-and-key-types)
+  - [Array outputs](#array-outputs)
+  - [Options](#options)
+- [Algorithms](#algorithms)
+- [Asymmetric operations](#asymmetric-operations)
+  - [Secret keys](#secret-keys-1)
+  - [Public keys](#public-keys-1)
+  - [Key pairs](#key-pairs)
+- [Key exchange mechanisms](#key-exchange-mechanisms)
+  - [Diffie-Hellman based key agreement](#diffie-hellman-based-key-agreement)
+  - [Key encapsulation mechanisms](#key-encapsulation-mechanisms)
+  - [Note on Hybrid Public Key Encryption](#note-on-hybrid-public-key-encryption)
+- [Signatures](#signatures-1)
+  - [Signature creation](#signature-creation)
+  - [Signature verification](#signature-verification)
+- [Symmetric operations](#symmetric-operations)
+  - [Options](#options-1)
+  - [Symmetric keys](#symmetric-keys-1)
+  - [State](#state)
+  - [Symmetric operations](#symmetric-operations-1)
+  - [Authentication tags](#authentication-tags)
+  - [Patterns](#patterns)
+    - [Hash functions](#hash-functions)
+    - [Message Authentication Codes](#message-authentication-codes)
+    - [Tuple hashing](#tuple-hashing)
+    - [Key derivation using extract-and-expand](#key-derivation-using-extract-and-expand)
+    - [Key derivation using a XOF](#key-derivation-using-a-xof)
+    - [Password hashing functions](#password-hashing-functions)
+    - [AEADs](#aeads)
+    - [Session authenticated modes](#session-authenticated-modes)
+- [Managed keys](#managed-keys)
+  - [Secrets management](#secrets-management)
+  - [Key identifiers and versions](#key-identifiers-and-versions)
+  - [Functions dedicated to managed keys](#functions-dedicated-to-managed-keys)
+- [External secrets](#external-secrets)
+  - [External secrets storage](#external-secrets-storage)
+  - [Runtime-encrypted secrets](#runtime-encrypted-secrets)
+- [API overview](#api-overview)
+  - [Types](#types)
+  - [Common functions](#common-functions)
+  - [Common asymmetric functions](#common-asymmetric-functions)
+  - [Signature API](#signature-api)
+  - [Symmetric operations API](#symmetric-operations-api)
+  - [Key exchange API](#key-exchange-api)
+
+# Modules
 
 The APIs are split across 6 modules:
 
@@ -109,7 +169,7 @@ A symmetric key must be encodable and decodable from/to a raw byte string.
 
 Symmetric primitives have unique, well-defined representations of their input and outputs, and the `wasi-crypto` doesn't impose any modifications.
 
-### Asymetric keys
+### Asymmetric keys
 
 #### Secret keys
 
