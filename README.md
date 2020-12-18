@@ -1,7 +1,9 @@
-# wasi-crypto-preview
+# wasi-crypto
 
 A proposal for a WASI cryptography API.
 
+* [High-level goals](docs/HighLevelGoals.md)
+* [Design](design/security.md)
 * [Specification](docs/wasi-crypto.md)
 * Interface definitions:
   * common types and functions ([witx](witx/proposal_common.witx), [doc](witx/proposal_common.md))
