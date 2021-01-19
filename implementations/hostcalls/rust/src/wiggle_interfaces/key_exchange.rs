@@ -1,7 +1,7 @@
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 use crate::WasiCryptoCtx;
 
-impl crate::wasi_ephemeral_crypto_kx::WasiEphemeralCryptoKx for WasiCryptoCtx {
+impl crate::wiggle_interfaces::wasi_ephemeral_crypto_kx::WasiEphemeralCryptoKx for WasiCryptoCtx {
     // --- key exchange
 
     fn kx_dh(

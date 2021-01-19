@@ -1,5 +1,5 @@
 use super::*;
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 use crate::{AlgorithmType, CryptoCtx, HandleManagers};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

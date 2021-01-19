@@ -1,10 +1,10 @@
 use crate::error::*;
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 use crate::WasiCryptoCtx;
 
 use std::convert::TryInto;
 
-impl crate::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetricCommon
+impl crate::wiggle_interfaces::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetricCommon
     for WasiCryptoCtx
 {
     // --- keypair_manager

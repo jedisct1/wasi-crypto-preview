@@ -3,7 +3,6 @@ mod kem;
 mod keypair;
 mod publickey;
 mod secretkey;
-mod wasi_glue;
 
 use std::any::Any;
 use std::convert::TryFrom;

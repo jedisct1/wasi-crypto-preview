@@ -1,9 +1,11 @@
 use std::convert::TryInto;
 
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 use crate::WasiCryptoCtx;
 
-impl crate::wasi_ephemeral_crypto_common::WasiEphemeralCryptoCommon for WasiCryptoCtx {
+impl crate::wiggle_interfaces::wasi_ephemeral_crypto_common::WasiEphemeralCryptoCommon
+    for WasiCryptoCtx
+{
     // --- options
 
     fn options_open(

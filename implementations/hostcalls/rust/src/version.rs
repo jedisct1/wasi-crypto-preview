@@ -1,4 +1,4 @@
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Version(u64);

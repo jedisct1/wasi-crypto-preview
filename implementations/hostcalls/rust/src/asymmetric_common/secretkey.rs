@@ -1,6 +1,6 @@
 use super::*;
 use crate::signatures::SignatureSecretKey;
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 use crate::{AlgorithmType, CryptoCtx};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

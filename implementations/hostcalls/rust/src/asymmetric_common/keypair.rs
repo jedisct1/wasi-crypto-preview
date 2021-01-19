@@ -1,6 +1,6 @@
 use super::*;
 use crate::options::Options;
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 use crate::AlgorithmType;
 
 use std::convert::TryFrom;

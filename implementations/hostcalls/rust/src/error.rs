@@ -1,5 +1,4 @@
-use super::types as guest_types;
-use super::WasiCryptoCtx;
+use crate::wiggle_interfaces::{guest_types, WasiCryptoCtx};
 
 pub use anyhow::Error;
 

@@ -12,7 +12,7 @@ use super::*;
 use crate::array_output::*;
 use crate::error::*;
 use crate::handles::*;
-use crate::types as guest_types;
+use crate::wiggle_interfaces::guest_types;
 use crate::{CryptoCtx, HandleManagers};
 
 #[derive(Clone)]

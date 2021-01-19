@@ -12,7 +12,6 @@ mod keypair;
 mod managed_keypair;
 mod publickey;
 mod secretkey;
-mod wasi_glue;
 
 pub use self::keypair::{KeyPair, KeyPairEncoding};
 pub use self::publickey::{PublicKey, PublicKeyEncoding};

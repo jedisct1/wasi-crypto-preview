@@ -5,7 +5,6 @@ mod publickey;
 mod rsa;
 mod secretkey;
 mod signature;
-mod wasi_glue;
 
 use crate::options::*;
 use crate::{asymmetric_common, error::*};
