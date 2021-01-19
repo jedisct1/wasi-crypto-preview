@@ -1,5 +1,6 @@
 use ::rsa::{PublicKey as _, PublicKeyParts as _};
 use ::sha2::{Digest, Sha256, Sha384, Sha512};
+use rsa_export::{Encode as _, PemEncode as _};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use zeroize::Zeroize;
@@ -81,15 +82,11 @@ impl RsaSignatureKeyPair {
     }
 
     fn to_pkcs8(&self) -> Result<Vec<u8>, CryptoError> {
-        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
-        export_key
-            .as_pkcs8()
-            .map_err(|_| CryptoError::InternalError)
+        self.ctx.as_pkcs8().map_err(|_| CryptoError::InternalError)
     }
 
     fn to_pem(&self) -> Result<Vec<u8>, CryptoError> {
-        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
-        export_key
+        self.ctx
             .as_pkcs8_pem()
             .map(|s| s.as_bytes().to_vec())
             .map_err(|_| CryptoError::InternalError)
@@ -370,15 +367,11 @@ impl RsaSignaturePublicKey {
     }
 
     fn to_pkcs8(&self) -> Result<Vec<u8>, CryptoError> {
-        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
-        export_key
-            .as_pkcs8()
-            .map_err(|_| CryptoError::InternalError)
+        self.ctx.as_pkcs8().map_err(|_| CryptoError::InternalError)
     }
 
     fn to_pem(&self) -> Result<Vec<u8>, CryptoError> {
-        let export_key = rsa_export::RsaKey::new(self.ctx.clone());
-        export_key
+        self.ctx
             .as_pkcs8_pem()
             .map(|s| s.as_bytes().to_vec())
             .map_err(|_| CryptoError::InternalError)
