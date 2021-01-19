@@ -6,7 +6,7 @@ pub enum CryptoError {
     #[error("Success")]
     Success,
     #[error("Guest error")]
-    GuestError(#[from] wiggle::GuestError),
+    GuestError(#[from] Error),
     #[error("Not implemented")]
     NotImplemented,
     #[error("Unsupported feature")]

@@ -71,3 +71,9 @@ impl From<wiggle::GuestError> for guest_types::CryptoErrno {
         guest_types::CryptoErrno::GuestError
     }
 }
+
+impl From<wiggle::GuestError> for CryptoError {
+    fn from(e: wiggle::GuestError) -> Self {
+        CryptoError::GuestError(e.into())
+    }
+}
