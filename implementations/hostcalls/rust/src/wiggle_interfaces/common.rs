@@ -1,11 +1,10 @@
 use std::convert::TryInto;
 
-use crate::wiggle_interfaces::guest_types;
-use crate::WasiCryptoCtx;
+use super::{guest_types, WasiCryptoCtx};
+use crate::version::Version;
+use crate::AlgorithmType;
 
-impl crate::wiggle_interfaces::wasi_ephemeral_crypto_common::WasiEphemeralCryptoCommon
-    for WasiCryptoCtx
-{
+impl super::wasi_ephemeral_crypto_common::WasiEphemeralCryptoCommon for WasiCryptoCtx {
     // --- options
 
     fn options_open(
@@ -128,5 +127,27 @@ impl crate::wiggle_interfaces::wasi_ephemeral_crypto_common::WasiEphemeralCrypto
             .ctx
             .secrets_manager_invalidate(secrets_manager_handle.into(), key_id, key_version.into())?
             .into())
+    }
+}
+
+impl From<guest_types::AlgorithmType> for AlgorithmType {
+    fn from(options_type: guest_types::AlgorithmType) -> Self {
+        match options_type {
+            guest_types::AlgorithmType::Signatures => AlgorithmType::Signatures,
+            guest_types::AlgorithmType::Symmetric => AlgorithmType::Symmetric,
+            guest_types::AlgorithmType::KeyExchange => AlgorithmType::KeyExchange,
+        }
+    }
+}
+
+impl From<guest_types::Version> for Version {
+    fn from(version: guest_types::Version) -> Self {
+        Version(version.into())
+    }
+}
+
+impl From<Version> for guest_types::Version {
+    fn from(version: Version) -> Self {
+        version.into()
     }
 }

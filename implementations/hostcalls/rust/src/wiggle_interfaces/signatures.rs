@@ -1,9 +1,7 @@
-use crate::wiggle_interfaces::guest_types;
-use crate::WasiCryptoCtx;
+use super::{guest_types, WasiCryptoCtx};
+use crate::signatures::SignatureEncoding;
 
-impl crate::wiggle_interfaces::wasi_ephemeral_crypto_signatures::WasiEphemeralCryptoSignatures
-    for WasiCryptoCtx
-{
+impl super::wasi_ephemeral_crypto_signatures::WasiEphemeralCryptoSignatures for WasiCryptoCtx {
     // --- signature
 
     fn signature_export(
@@ -124,5 +122,14 @@ impl crate::wiggle_interfaces::wasi_ephemeral_crypto_signatures::WasiEphemeralCr
         signature_handle: guest_types::Signature,
     ) -> Result<(), guest_types::CryptoErrno> {
         Ok(self.ctx.signature_close(signature_handle.into())?.into())
+    }
+}
+
+impl From<guest_types::SignatureEncoding> for SignatureEncoding {
+    fn from(encoding: guest_types::SignatureEncoding) -> Self {
+        match encoding {
+            guest_types::SignatureEncoding::Raw => SignatureEncoding::Raw,
+            guest_types::SignatureEncoding::Der => SignatureEncoding::Der,
+        }
     }
 }

@@ -12,7 +12,6 @@ use super::*;
 use crate::array_output::*;
 use crate::error::*;
 use crate::handles::*;
-use crate::wiggle_interfaces::guest_types;
 use crate::{CryptoCtx, HandleManagers};
 
 #[derive(Clone)]
@@ -119,15 +118,6 @@ pub trait SignatureStateLike: Sync + Send {
 pub enum SignatureEncoding {
     Raw,
     Der,
-}
-
-impl From<guest_types::SignatureEncoding> for SignatureEncoding {
-    fn from(encoding: guest_types::SignatureEncoding) -> Self {
-        match encoding {
-            guest_types::SignatureEncoding::Raw => SignatureEncoding::Raw,
-            guest_types::SignatureEncoding::Der => SignatureEncoding::Der,
-        }
-    }
 }
 
 #[derive(Clone)]

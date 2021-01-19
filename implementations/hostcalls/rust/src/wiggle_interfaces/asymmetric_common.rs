@@ -1,10 +1,10 @@
+use super::{guest_types, WasiCryptoCtx};
+use crate::asymmetric_common::{KeyPairEncoding, PublicKeyEncoding, SecretKeyEncoding};
 use crate::error::*;
-use crate::wiggle_interfaces::guest_types;
-use crate::WasiCryptoCtx;
 
 use std::convert::TryInto;
 
-impl crate::wiggle_interfaces::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetricCommon
+impl super::wasi_ephemeral_crypto_asymmetric_common::WasiEphemeralCryptoAsymmetricCommon
     for WasiCryptoCtx
 {
     // --- keypair_manager
@@ -255,5 +255,42 @@ impl crate::wiggle_interfaces::wasi_ephemeral_crypto_asymmetric_common::WasiEphe
         kp_handle: guest_types::Keypair,
     ) -> Result<guest_types::Secretkey, guest_types::CryptoErrno> {
         Ok(self.ctx.keypair_secretkey(kp_handle.into())?.into())
+    }
+}
+
+impl From<guest_types::KeypairEncoding> for KeyPairEncoding {
+    fn from(encoding: guest_types::KeypairEncoding) -> Self {
+        match encoding {
+            guest_types::KeypairEncoding::Raw => KeyPairEncoding::Raw,
+            guest_types::KeypairEncoding::Pkcs8 => KeyPairEncoding::Pkcs8,
+            guest_types::KeypairEncoding::Pem => KeyPairEncoding::Pem,
+            guest_types::KeypairEncoding::Local => KeyPairEncoding::Local,
+        }
+    }
+}
+
+impl From<guest_types::PublickeyEncoding> for PublicKeyEncoding {
+    fn from(encoding: guest_types::PublickeyEncoding) -> Self {
+        match encoding {
+            guest_types::PublickeyEncoding::Raw => PublicKeyEncoding::Raw,
+            guest_types::PublickeyEncoding::Pkcs8 => PublicKeyEncoding::Pkcs8,
+            guest_types::PublickeyEncoding::Pem => PublicKeyEncoding::Pem,
+            guest_types::PublickeyEncoding::Sec => PublicKeyEncoding::Sec,
+            guest_types::PublickeyEncoding::CompressedSec => PublicKeyEncoding::CompressedSec,
+            guest_types::PublickeyEncoding::Local => PublicKeyEncoding::Local,
+        }
+    }
+}
+
+impl From<guest_types::SecretkeyEncoding> for SecretKeyEncoding {
+    fn from(encoding: guest_types::SecretkeyEncoding) -> Self {
+        match encoding {
+            guest_types::SecretkeyEncoding::Raw => SecretKeyEncoding::Raw,
+            guest_types::SecretkeyEncoding::Pkcs8 => SecretKeyEncoding::Pkcs8,
+            guest_types::SecretkeyEncoding::Pem => SecretKeyEncoding::Pem,
+            guest_types::SecretkeyEncoding::Sec => SecretKeyEncoding::Sec,
+            guest_types::SecretkeyEncoding::CompressedSec => SecretKeyEncoding::CompressedSec,
+            guest_types::SecretkeyEncoding::Local => SecretKeyEncoding::Local,
+        }
     }
 }

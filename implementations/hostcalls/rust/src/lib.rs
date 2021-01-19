@@ -34,7 +34,6 @@ use options::*;
 use secrets_manager::*;
 use signatures::*;
 use symmetric::*;
-use wiggle_interfaces::*;
 
 pub use asymmetric_common::{KeyPairEncoding, PublicKeyEncoding};
 pub use error::CryptoError;
@@ -62,16 +61,6 @@ pub enum AlgorithmType {
     Signatures,
     Symmetric,
     KeyExchange,
-}
-
-impl From<guest_types::AlgorithmType> for AlgorithmType {
-    fn from(options_type: guest_types::AlgorithmType) -> Self {
-        match options_type {
-            guest_types::AlgorithmType::Signatures => AlgorithmType::Signatures,
-            guest_types::AlgorithmType::Symmetric => AlgorithmType::Symmetric,
-            guest_types::AlgorithmType::KeyExchange => AlgorithmType::KeyExchange,
-        }
-    }
 }
 
 pub struct CryptoCtx {

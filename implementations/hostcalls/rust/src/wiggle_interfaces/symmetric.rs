@@ -1,12 +1,9 @@
 use std::convert::TryInto;
 
+use super::{guest_types, WasiCryptoCtx};
 use crate::error::*;
-use crate::wiggle_interfaces::guest_types;
-use crate::WasiCryptoCtx;
 
-impl crate::wiggle_interfaces::wasi_ephemeral_crypto_symmetric::WasiEphemeralCryptoSymmetric
-    for WasiCryptoCtx
-{
+impl super::wasi_ephemeral_crypto_symmetric::WasiEphemeralCryptoSymmetric for WasiCryptoCtx {
     // --- secrets_manager
 
     fn symmetric_key_generate_managed(

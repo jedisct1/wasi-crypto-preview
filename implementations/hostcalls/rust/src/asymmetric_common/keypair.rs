@@ -1,6 +1,5 @@
 use super::*;
 use crate::options::Options;
-use crate::wiggle_interfaces::guest_types;
 use crate::AlgorithmType;
 
 use std::convert::TryFrom;
@@ -11,17 +10,6 @@ pub enum KeyPairEncoding {
     Pkcs8,
     Pem,
     Local,
-}
-
-impl From<guest_types::KeypairEncoding> for KeyPairEncoding {
-    fn from(encoding: guest_types::KeypairEncoding) -> Self {
-        match encoding {
-            guest_types::KeypairEncoding::Raw => KeyPairEncoding::Raw,
-            guest_types::KeypairEncoding::Pkcs8 => KeyPairEncoding::Pkcs8,
-            guest_types::KeypairEncoding::Pem => KeyPairEncoding::Pem,
-            guest_types::KeypairEncoding::Local => KeyPairEncoding::Local,
-        }
-    }
 }
 
 #[derive(Clone)]

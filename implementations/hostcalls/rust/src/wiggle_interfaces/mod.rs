@@ -78,6 +78,7 @@ impl WasiCryptoCtx {
 
 pub mod asymmetric_common;
 pub mod common;
+pub mod error;
 pub mod key_exchange;
 pub mod signatures;
 pub mod symmetric;
