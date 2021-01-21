@@ -34,3 +34,6 @@ zeroize = "1.2"
 
 [features]
 default = ["pqcrypto"]
+
+[badges]
+maintenance = { status = "experimental" }

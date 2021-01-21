@@ -37,7 +37,7 @@ use secrets_manager::*;
 use signatures::*;
 use symmetric::*;
 
-pub use asymmetric_common::{KeyPairEncoding, PublicKeyEncoding};
+pub use asymmetric_common::{KeyPairEncoding, PublicKeyEncoding, SecretKeyEncoding};
 pub use error::CryptoError;
 pub use handles::Handle;
 pub use signatures::SignatureEncoding;
