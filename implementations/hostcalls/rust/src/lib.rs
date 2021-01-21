@@ -22,9 +22,6 @@ mod signatures;
 mod symmetric;
 mod version;
 
-#[cfg(feature = "wiggle")]
-mod wiggle_interfaces;
-
 use std::collections::HashMap;
 use std::rc::Rc;
 
