@@ -79,6 +79,10 @@ impl SymmetricKey {
         let array_handle = unsafe { raw::symmetric_key_export(self.handle) }?;
         ArrayOutput::new(array_handle).into_vec()
     }
+
+    pub fn state(&self, options: Option<&SymmetricOptions>) -> Result<SymmetricState, Error> {
+        SymmetricState::new(self.alg, Some(self), options)
+    }
 }
 
 impl Drop for SymmetricKey {

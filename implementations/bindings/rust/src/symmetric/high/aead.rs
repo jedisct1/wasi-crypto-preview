@@ -28,6 +28,10 @@ impl AeadKey {
     pub fn from_raw(alg: &'static str, encoded: impl AsRef<[u8]>) -> Result<Self, Error> {
         SymmetricKey::from_raw(alg, encoded).map(Self)
     }
+
+    pub fn aead(self: &Self, nonce: Option<&[u8]>, ad: Option<&[u8]>) -> Result<Aead, Error> {
+        Aead::new(self, nonce, ad)
+    }
 }
 
 #[derive(Debug)]
