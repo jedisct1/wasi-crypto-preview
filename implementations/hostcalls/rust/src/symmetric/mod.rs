@@ -180,15 +180,15 @@ impl TryFrom<&str> for SymmetricAlgorithm {
 fn test_hash_sha512_256() {
     use crate::CryptoCtx;
 
-    // "SHA-512/256" here is plain SHA-512 truncated to 256 bits (libsodium/NaCl
-    // convention), NOT the FIPS 180-4 variant with distinct initial values.
-    // SHA-512("abc") truncated to its first 32 bytes:
+    // Per the WASI-crypto spec, "SHA-512/256" is the FIPS 180-4 hash function
+    // with its own distinct initial values (NOT plain SHA-512 truncated). For
+    // "abc" that is 53048e26...:
     let expected =
-        hex_to_bytes("ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a");
-    // The FIPS SHA-512/256("abc") would instead start with 53048e26..., which we
-    // must NOT produce here.
-    let fips =
         hex_to_bytes("53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23");
+    // Plain SHA-512 truncated to its first 32 bytes would instead be ddaf35...,
+    // which we must NOT produce here.
+    let truncated =
+        hex_to_bytes("ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a");
 
     let ctx = CryptoCtx::new();
     let state_handle = ctx.symmetric_state_open("SHA-512/256", None, None).unwrap();
@@ -197,8 +197,12 @@ fn test_hash_sha512_256() {
     ctx.symmetric_state_squeeze(state_handle, &mut out).unwrap();
     ctx.symmetric_state_close(state_handle).unwrap();
 
-    assert_eq!(out.to_vec(), expected, "SHA-512/256 must be truncated SHA-512");
-    assert_ne!(out.to_vec(), fips, "SHA-512/256 must not be the FIPS variant");
+    assert_eq!(out.to_vec(), expected, "SHA-512/256 must be the FIPS 180-4 variant");
+    assert_ne!(
+        out.to_vec(),
+        truncated,
+        "SHA-512/256 must not be plain truncated SHA-512"
+    );
 }
 
 #[cfg(test)]

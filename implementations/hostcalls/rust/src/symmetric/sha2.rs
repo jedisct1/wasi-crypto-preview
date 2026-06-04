@@ -1,18 +1,14 @@
 use super::state::*;
 use super::*;
 
-use ::sha2::{Digest, Sha256, Sha512};
-
-// SHA-512/256 here is plain SHA-512 truncated to 256 bits (the libsodium/NaCl
-// convention), not the FIPS 180-4 variant that uses distinct initial values.
-const SHA512_256_LEN: usize = 32;
+use ::sha2::{Digest, Sha256, Sha512, Sha512_256};
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 enum HashVariant {
     Sha256(Sha256),
     Sha512(Sha512),
-    Sha512_256(Sha512),
+    Sha512_256(Sha512_256),
 }
 
 #[derive(Derivative)]
@@ -35,7 +31,7 @@ impl Sha2SymmetricState {
         let ctx = match alg {
             SymmetricAlgorithm::Sha256 => HashVariant::Sha256(Sha256::new()),
             SymmetricAlgorithm::Sha512 => HashVariant::Sha512(Sha512::new()),
-            SymmetricAlgorithm::Sha512_256 => HashVariant::Sha512_256(Sha512::new()),
+            SymmetricAlgorithm::Sha512_256 => HashVariant::Sha512_256(Sha512_256::new()),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };
         Ok(Sha2SymmetricState { alg, options, ctx })
@@ -74,7 +70,7 @@ impl SymmetricStateLike for Sha2SymmetricState {
         let raw = match &self.ctx {
             HashVariant::Sha256(x) => x.clone().finalize().to_vec(),
             HashVariant::Sha512(x) => x.clone().finalize().to_vec(),
-            HashVariant::Sha512_256(x) => x.clone().finalize()[..SHA512_256_LEN].to_vec(),
+            HashVariant::Sha512_256(x) => x.clone().finalize().to_vec(),
         };
         ensure!(raw.len() >= out.len(), CryptoError::InvalidLength);
         out.copy_from_slice(&raw[..out.len()]);
