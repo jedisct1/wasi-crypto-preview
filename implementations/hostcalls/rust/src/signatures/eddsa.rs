@@ -1,4 +1,5 @@
 use ed25519_dalek::Signer as _;
+use std::convert::TryInto;
 use std::sync::Arc;
 
 use super::*;
@@ -17,13 +18,15 @@ pub struct EddsaSignatureSecretKey {
 #[derive(Debug, Clone)]
 pub struct EddsaSignatureKeyPair {
     pub alg: SignatureAlgorithm,
-    pub ctx: Arc<ed25519_dalek::Keypair>,
+    pub ctx: Arc<ed25519_dalek::SigningKey>,
 }
 
 impl EddsaSignatureKeyPair {
     fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
         ensure!(raw.len() == KP_LEN, CryptoError::InvalidKey);
-        let ctx = ed25519_dalek::Keypair::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
+        let bytes: &[u8; KP_LEN] = raw.try_into().map_err(|_| CryptoError::InvalidKey)?;
+        let ctx =
+            ed25519_dalek::SigningKey::from_keypair_bytes(bytes).map_err(|_| CryptoError::InvalidKey)?;
         Ok(EddsaSignatureKeyPair {
             alg,
             ctx: Arc::new(ctx),
@@ -31,7 +34,7 @@ impl EddsaSignatureKeyPair {
     }
 
     fn as_raw(&self) -> Result<Vec<u8>, CryptoError> {
-        Ok(Vec::from(self.ctx.to_bytes()))
+        Ok(Vec::from(self.ctx.to_keypair_bytes()))
     }
 
     pub fn generate(
@@ -39,7 +42,7 @@ impl EddsaSignatureKeyPair {
         _options: Option<SignatureOptions>,
     ) -> Result<Self, CryptoError> {
         let mut rng = SecureRandom::new();
-        let ctx = ed25519_dalek::Keypair::generate(&mut rng);
+        let ctx = ed25519_dalek::SigningKey::generate(&mut rng);
         Ok(EddsaSignatureKeyPair {
             alg,
             ctx: Arc::new(ctx),
@@ -70,7 +73,7 @@ impl EddsaSignatureKeyPair {
     }
 
     pub fn public_key(&self) -> Result<EddsaSignaturePublicKey, CryptoError> {
-        let ctx = self.ctx.public;
+        let ctx = self.ctx.verifying_key();
         Ok(EddsaSignaturePublicKey { alg: self.alg, ctx })
     }
 }
@@ -153,13 +156,13 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
             .as_any()
             .downcast_ref::<EddsaSignature>()
             .ok_or(CryptoError::InvalidSignature)?;
-        let mut signature_u8 = [0u8; KP_LEN];
+        let mut signature_u8 = [0u8; ed25519_dalek::SIGNATURE_LENGTH];
         ensure!(
             signature.as_ref().len() == signature_u8.len(),
             CryptoError::InvalidSignature
         );
         signature_u8.copy_from_slice(signature.as_ref());
-        let dalek_signature = ed25519_dalek::Signature::new(signature_u8);
+        let dalek_signature = ed25519_dalek::Signature::from_bytes(&signature_u8);
         self.pk
             .ctx
             .verify_strict(self.input.as_ref(), &dalek_signature)
@@ -170,12 +173,15 @@ impl SignatureVerificationStateLike for EddsaSignatureVerificationState {
 #[derive(Clone, Debug)]
 pub struct EddsaSignaturePublicKey {
     pub alg: SignatureAlgorithm,
-    pub ctx: ed25519_dalek::PublicKey,
+    pub ctx: ed25519_dalek::VerifyingKey,
 }
 
 impl EddsaSignaturePublicKey {
     fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
-        let ctx = ed25519_dalek::PublicKey::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
+        ensure!(raw.len() == PK_LEN, CryptoError::InvalidKey);
+        let bytes: &[u8; PK_LEN] = raw.try_into().map_err(|_| CryptoError::InvalidKey)?;
+        let ctx =
+            ed25519_dalek::VerifyingKey::from_bytes(bytes).map_err(|_| CryptoError::InvalidKey)?;
         let pk = EddsaSignaturePublicKey { alg, ctx };
         Ok(pk)
     }

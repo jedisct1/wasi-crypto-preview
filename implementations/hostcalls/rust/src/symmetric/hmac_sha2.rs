@@ -3,7 +3,7 @@ use super::*;
 use crate::rand::SecureRandom;
 
 use ::sha2::{Sha256, Sha512};
-use hmac::{Hmac, Mac, NewMac};
+use hmac::{Hmac, Mac};
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
@@ -109,10 +109,10 @@ impl HmacSha2SymmetricState {
             .ok_or(CryptoError::InvalidKey)?;
         let ctx = match alg {
             SymmetricAlgorithm::HmacSha256 => HmacVariant::Sha256(
-                Hmac::<Sha256>::new_varkey(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
+                Hmac::<Sha256>::new_from_slice(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
             ),
             SymmetricAlgorithm::HmacSha512 => HmacVariant::Sha512(
-                Hmac::<Sha512>::new_varkey(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
+                Hmac::<Sha512>::new_from_slice(key.as_raw()?).map_err(|_| CryptoError::InvalidKey)?,
             ),
             _ => bail!(CryptoError::UnsupportedAlgorithm),
         };

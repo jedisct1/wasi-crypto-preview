@@ -6,7 +6,6 @@ edition = "2018"
 publish = false
 
 [dependencies]
-num_enum = "0.5"
-wiggle = "0.22"
+num_enum = "0.7"
 
 [workspace]

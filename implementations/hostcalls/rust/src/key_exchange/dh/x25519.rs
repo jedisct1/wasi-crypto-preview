@@ -4,7 +4,6 @@ use super::*;
 use curve25519_dalek::{
     constants::{BASEPOINT_ORDER, X25519_BASEPOINT},
     montgomery::MontgomeryPoint,
-    scalar::Scalar,
 };
 use subtle::ConstantTimeEq;
 
@@ -39,22 +38,18 @@ impl X25519PublicKey {
 pub struct X25519SecretKey {
     alg: KxAlgorithm,
     raw: Vec<u8>,
-    clamped_scalar: Scalar,
 }
 
 impl X25519SecretKey {
     fn new(alg: KxAlgorithm, raw: Vec<u8>) -> Result<Self, CryptoError> {
-        let mut sk_clamped = [0u8; SK_LEN];
-        sk_clamped.copy_from_slice(&raw);
-        sk_clamped[0] &= 248;
-        sk_clamped[SK_LEN - 1] |= 64;
-        let clamped_scalar = Scalar::from_bits(sk_clamped);
-        let sk = X25519SecretKey {
-            alg,
-            raw,
-            clamped_scalar,
-        };
-        Ok(sk)
+        ensure!(raw.len() == SK_LEN, CryptoError::InvalidKey);
+        Ok(X25519SecretKey { alg, raw })
+    }
+
+    fn sk_bytes(&self) -> [u8; SK_LEN] {
+        let mut sk = [0u8; SK_LEN];
+        sk.copy_from_slice(&self.raw);
+        sk
     }
 }
 
@@ -203,7 +198,7 @@ impl KxPublicKeyLike for X25519PublicKey {
     fn verify(&self) -> Result<(), CryptoError> {
         reject_neutral_element(&self.group_element)?;
         reject_noncanonical_fe(&self.group_element.0)?;
-        let order_check = BASEPOINT_ORDER * self.group_element;
+        let order_check = self.group_element * BASEPOINT_ORDER;
         ensure!(
             reject_neutral_element(&order_check).is_err(),
             CryptoError::InvalidKey
@@ -214,7 +209,7 @@ impl KxPublicKeyLike for X25519PublicKey {
 
 impl X25519SecretKey {
     fn x25519_publickey(&self) -> Result<X25519PublicKey, CryptoError> {
-        let group_element = X25519_BASEPOINT * self.clamped_scalar;
+        let group_element = X25519_BASEPOINT.mul_clamped(self.sk_bytes());
         reject_neutral_element(&group_element).map_err(|_| CryptoError::RNGError)?;
         let pk = X25519PublicKey {
             alg: self.alg,
@@ -252,7 +247,7 @@ impl KxSecretKeyLike for X25519SecretKey {
             .downcast_ref::<X25519PublicKey>()
             .ok_or(CryptoError::InvalidKey)?;
         let pk_ge: &MontgomeryPoint = &pk.group_element;
-        let shared_secret: MontgomeryPoint = pk_ge * self.clamped_scalar;
+        let shared_secret: MontgomeryPoint = pk_ge.mul_clamped(self.sk_bytes());
         reject_neutral_element(&shared_secret)?;
         Ok(shared_secret.as_bytes().to_vec())
     }

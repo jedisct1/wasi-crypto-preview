@@ -2,7 +2,7 @@ use super::*;
 use state::*;
 
 use crate::rand::SecureRandom;
-use ::aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, NewAead};
+use ::aes_gcm::aead::{generic_array::GenericArray, AeadInPlace, KeyInit};
 use ::aes_gcm::{Aes128Gcm, Aes256Gcm, AesGcm};
 use byteorder::{ByteOrder, LittleEndian};
 use subtle::ConstantTimeEq;

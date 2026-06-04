@@ -1,6 +1,8 @@
 use super::*;
-pub use pqcrypto::kem::kyber768;
-pub use pqcrypto::prelude::*;
+pub use pqcrypto_kyber::kyber768;
+pub use pqcrypto_traits::kem::{
+    Ciphertext as _, PublicKey as _, SecretKey as _, SharedSecret as _,
+};
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -16,8 +18,6 @@ impl Kyber768PublicKey {
             raw.len() == kyber768::public_key_bytes(),
             CryptoError::InvalidKey
         );
-        let mut raw_ = [0u8; kyber768::public_key_bytes()];
-        raw_.copy_from_slice(&raw);
         let pq_pk = kyber768::PublicKey::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
         Ok(Kyber768PublicKey { alg, pq_pk })
     }
@@ -37,8 +37,6 @@ impl Kyber768SecretKey {
             raw.len() == kyber768::secret_key_bytes(),
             CryptoError::InvalidKey
         );
-        let mut raw_ = [0u8; kyber768::secret_key_bytes()];
-        raw_.copy_from_slice(&raw);
         let pq_sk = kyber768::SecretKey::from_bytes(&raw).map_err(|_| CryptoError::InvalidKey)?;
         Ok(Kyber768SecretKey { alg, pq_sk })
     }

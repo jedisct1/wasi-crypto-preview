@@ -3,12 +3,12 @@ use k256::ecdsa::{
     self as ecdsa_k256, signature::DigestVerifier as _, signature::RandomizedDigestSigner as _,
 };
 use k256::elliptic_curve::sec1::ToEncodedPoint as _;
-use k256::pkcs8::{FromPrivateKey as _, FromPublicKey as _};
+use k256::pkcs8::{DecodePrivateKey as _, DecodePublicKey as _};
 use p256::ecdsa::{
     self as ecdsa_p256, signature::DigestVerifier as _, signature::RandomizedDigestSigner as _,
 };
 use p256::elliptic_curve::sec1::ToEncodedPoint as _;
-use p256::pkcs8::{FromPrivateKey as _, FromPublicKey as _};
+use p256::pkcs8::{DecodePrivateKey as _, DecodePublicKey as _};
 use std::convert::TryFrom;
 use std::sync::Arc;
 
@@ -41,12 +41,12 @@ impl EcdsaSignatureKeyPair {
         let ctx = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => {
                 let ecdsa_sk =
-                    ecdsa_p256::SigningKey::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
+                    ecdsa_p256::SigningKey::from_slice(raw).map_err(|_| CryptoError::InvalidKey)?;
                 EcdsaSigningKeyVariant::P256(ecdsa_sk)
             }
             SignatureAlgorithm::ECDSA_K256_SHA256 => {
                 let ecdsa_sk =
-                    ecdsa_k256::SigningKey::from_bytes(raw).map_err(|_| CryptoError::InvalidKey)?;
+                    ecdsa_k256::SigningKey::from_slice(raw).map_err(|_| CryptoError::InvalidKey)?;
                 EcdsaSigningKeyVariant::K256(ecdsa_sk)
             }
             _ => bail!(CryptoError::UnsupportedAlgorithm),
@@ -143,8 +143,8 @@ impl EcdsaSignatureKeyPair {
 
     pub fn public_key(&self) -> Result<EcdsaSignaturePublicKey, CryptoError> {
         let ctx = match self.ctx.as_ref() {
-            EcdsaSigningKeyVariant::P256(x) => EcdsaVerifyingKeyVariant::P256(x.verify_key()),
-            EcdsaSigningKeyVariant::K256(x) => EcdsaVerifyingKeyVariant::K256(x.verify_key()),
+            EcdsaSigningKeyVariant::P256(x) => EcdsaVerifyingKeyVariant::P256(*x.verifying_key()),
+            EcdsaSigningKeyVariant::K256(x) => EcdsaVerifyingKeyVariant::K256(*x.verifying_key()),
         };
         Ok(EcdsaSignaturePublicKey {
             alg: self.alg,
@@ -220,12 +220,12 @@ impl SignatureStateLike for EcdsaSignatureState {
             EcdsaSigningKeyVariant::P256(x) => {
                 let encoded_signature: ecdsa_p256::Signature =
                     x.sign_digest_with_rng(&mut rng, digest);
-                encoded_signature.as_ref().to_vec()
+                encoded_signature.to_bytes().to_vec()
             }
             EcdsaSigningKeyVariant::K256(x) => {
                 let encoded_signature: ecdsa_k256::Signature =
                     x.sign_digest_with_rng(&mut rng, digest);
-                encoded_signature.as_ref().to_vec()
+                encoded_signature.to_bytes().to_vec()
             }
         };
         let signature = EcdsaSignature::new(encoded_signature);
