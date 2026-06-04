@@ -178,7 +178,7 @@ impl EcdsaSignature {
     pub fn from_raw(alg: SignatureAlgorithm, raw: &[u8]) -> Result<Self, CryptoError> {
         let expected_len = match alg {
             SignatureAlgorithm::ECDSA_P256_SHA256 => 64,
-            SignatureAlgorithm::ECDSA_K256_SHA256 => 96,
+            SignatureAlgorithm::ECDSA_K256_SHA256 => 64,
             _ => bail!(CryptoError::InvalidSignature),
         };
         ensure!(raw.len() == expected_len, CryptoError::InvalidSignature);

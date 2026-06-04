@@ -17,7 +17,7 @@ impl ArrayOutput {
         let data_len = data.len();
         let buf_len = buf.len();
         ensure!(buf_len >= data_len, CryptoError::Overflow);
-        buf.copy_from_slice(data);
+        buf[..data_len].copy_from_slice(data);
         Ok(data_len)
     }
 

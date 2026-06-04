@@ -80,15 +80,16 @@ fn reject_neutral_element(pk: &MontgomeryPoint) -> Result<(), CryptoError> {
     let mut pk_ = [0u8; PK_LEN];
     pk_.copy_from_slice(&pk.0);
     pk_[PK_LEN - 1] &= 127;
-    if zero.ct_eq(pk.as_bytes()).unwrap_u8() == 1 {
+    if zero.ct_eq(&pk_).unwrap_u8() == 1 {
         bail!(CryptoError::InvalidKey);
     }
     Ok(())
 }
 
-static L: [u8; PK_LEN] = [
-    0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x14, 0xde, 0xf9, 0xde, 0xa2, 0xf7, 0x9c, 0xd6, 0x58, 0x12, 0x63, 0x1a, 0x5c, 0xf5, 0xd3, 0xed,
+// 2^255 - 19, the field characteristic, little-endian.
+static P: [u8; PK_LEN] = [
+    0xed, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
 ];
 
 fn reject_noncanonical_fe(s: &[u8]) -> Result<(), CryptoError> {
@@ -97,15 +98,15 @@ fn reject_noncanonical_fe(s: &[u8]) -> Result<(), CryptoError> {
 
     let mut i = 31;
     loop {
-        c |= ((((s[i] as i32) - (L[i] as i32)) >> 8) as u8) & n;
-        n &= ((((s[i] ^ L[i]) as i32) - 1) >> 8) as u8;
+        c |= ((((s[i] as i32) - (P[i] as i32)) >> 8) as u8) & n;
+        n &= ((((s[i] ^ P[i]) as i32) - 1) >> 8) as u8;
         if i == 0 {
             break;
         } else {
             i -= 1;
         }
     }
-    if c == 0 {
+    if c != 0 {
         Ok(())
     } else {
         bail!(CryptoError::InvalidKey)

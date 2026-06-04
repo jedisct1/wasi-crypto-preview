@@ -60,7 +60,7 @@ impl<HandleType: Clone + Send + Sync> HandlesManagerInner<HandleType> {
                 break;
             }
             ensure!(handle != self.last_handle, CryptoError::TooManyHandles);
-            handle = self.next_handle(self.last_handle);
+            handle = self.next_handle(handle);
         }
         self.last_handle = handle;
         ensure!(

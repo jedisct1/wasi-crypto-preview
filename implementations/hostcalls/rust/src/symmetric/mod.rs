@@ -252,6 +252,53 @@ fn test_hkdf() {
 }
 
 #[test]
+fn test_encryption_chacha20poly1305() {
+    use crate::{AlgorithmType, CryptoCtx};
+
+    let ctx = CryptoCtx::new();
+
+    let msg = b"test";
+    let nonce = [42u8; 12];
+    let key_handle = ctx
+        .symmetric_key_generate("CHACHA20-POLY1305", None)
+        .unwrap();
+    assert_eq!(symmetric_key_to_vec(&ctx, key_handle).unwrap().len(), 32);
+
+    let options_handle = ctx.options_open(AlgorithmType::Symmetric).unwrap();
+    ctx.options_set(options_handle, "nonce", &nonce).unwrap();
+
+    let symmetric_state = ctx
+        .symmetric_state_open("CHACHA20-POLY1305", Some(key_handle), Some(options_handle))
+        .unwrap();
+    let mut ciphertext_with_tag =
+        vec![0u8; msg.len() + ctx.symmetric_state_max_tag_len(symmetric_state).unwrap()];
+    ctx.symmetric_state_encrypt(symmetric_state, &mut ciphertext_with_tag, msg)
+        .unwrap();
+    ctx.symmetric_state_close(symmetric_state).unwrap();
+
+    let symmetric_state = ctx
+        .symmetric_state_open("CHACHA20-POLY1305", Some(key_handle), Some(options_handle))
+        .unwrap();
+    let mut msg2 = vec![0u8; msg.len()];
+    ctx.symmetric_state_decrypt(symmetric_state, &mut msg2, &ciphertext_with_tag)
+        .unwrap();
+    ctx.symmetric_state_close(symmetric_state).unwrap();
+    assert_eq!(msg, &msg2[..]);
+}
+
+#[cfg(test)]
+fn symmetric_key_to_vec(
+    ctx: &crate::CryptoCtx,
+    key_handle: Handle,
+) -> Result<Vec<u8>, CryptoError> {
+    let array_output = ctx.symmetric_key_export(key_handle)?;
+    let len = ctx.array_output_len(array_output)?;
+    let mut bytes = vec![0u8; len];
+    ctx.array_output_pull(array_output, &mut bytes)?;
+    Ok(bytes)
+}
+
+#[test]
 fn test_encryption() {
     use crate::{AlgorithmType, CryptoCtx};
 

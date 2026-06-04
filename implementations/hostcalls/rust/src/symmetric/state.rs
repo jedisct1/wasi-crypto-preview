@@ -55,6 +55,9 @@ impl SymmetricState {
             SymmetricAlgorithm::Aes128Gcm | SymmetricAlgorithm::Aes256Gcm => {
                 SymmetricState::new(Box::new(AesGcmSymmetricState::new(alg, key, options)?))
             }
+            SymmetricAlgorithm::ChaCha20Poly1305 | SymmetricAlgorithm::XChaCha20Poly1305 => {
+                SymmetricState::new(Box::new(ChaChaPolySymmetricState::new(alg, key, options)?))
+            }
             SymmetricAlgorithm::Xoodyak128 | SymmetricAlgorithm::Xoodyak160 => {
                 SymmetricState::new(Box::new(XoodyakSymmetricState::new(alg, key, options)?))
             }

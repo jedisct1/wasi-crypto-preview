@@ -201,6 +201,49 @@ fn test_signatures_eddsa() {
 }
 
 #[test]
+fn test_signatures_ecdsa_k256() {
+    use crate::{AlgorithmType, CryptoCtx};
+    use signature::SignatureEncoding;
+
+    let ctx = CryptoCtx::new();
+    let alg = "ECDSA_K256_SHA256";
+
+    let kp_handle = ctx
+        .keypair_generate(AlgorithmType::Signatures, alg, None)
+        .unwrap();
+    let pk_handle = ctx.keypair_publickey(kp_handle).unwrap();
+
+    let state_handle = ctx.signature_state_open(kp_handle).unwrap();
+    ctx.signature_state_update(state_handle, b"test").unwrap();
+    let signature_handle = ctx.signature_state_sign(state_handle).unwrap();
+
+    // A secp256k1 raw signature is r||s = 64 bytes; export then re-import to
+    // exercise EcdsaSignature::from_raw, which used to reject the genuine length.
+    let sig_serialized = ctx
+        .signature_export(signature_handle, SignatureEncoding::Raw)
+        .unwrap();
+    let mut raw = vec![0u8; ctx.array_output_len(sig_serialized).unwrap()];
+    ctx.array_output_pull(sig_serialized, &mut raw).unwrap();
+    assert_eq!(raw.len(), 64);
+    let signature_handle = ctx
+        .signature_import(alg, &raw, SignatureEncoding::Raw)
+        .unwrap();
+
+    let verification_state_handle = ctx.signature_verification_state_open(pk_handle).unwrap();
+    ctx.signature_verification_state_update(verification_state_handle, b"test")
+        .unwrap();
+    ctx.signature_verification_state_verify(verification_state_handle, signature_handle)
+        .unwrap();
+
+    ctx.signature_verification_state_close(verification_state_handle)
+        .unwrap();
+    ctx.signature_state_close(state_handle).unwrap();
+    ctx.keypair_close(kp_handle).unwrap();
+    ctx.publickey_close(pk_handle).unwrap();
+    ctx.signature_close(signature_handle).unwrap();
+}
+
+#[test]
 fn test_signatures_rsa() {
     use crate::{AlgorithmType, CryptoCtx};
 

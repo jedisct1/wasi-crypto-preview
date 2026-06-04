@@ -103,6 +103,19 @@ fn test_key_exchange() {
     ctx.keypair_close(kx_kp_handle2).unwrap();
 }
 
+#[test]
+fn test_x25519_publickey_verify() {
+    use crate::{AlgorithmType, CryptoCtx};
+
+    let ctx = CryptoCtx::new();
+
+    let kx_kp_handle = ctx
+        .keypair_generate(AlgorithmType::KeyExchange, "X25519", None)
+        .unwrap();
+    let pk = ctx.keypair_publickey(kx_kp_handle).unwrap();
+    ctx.publickey_verify(pk).unwrap();
+}
+
 #[cfg(feature = "pqcrypto")]
 #[test]
 fn test_key_encapsulation() {

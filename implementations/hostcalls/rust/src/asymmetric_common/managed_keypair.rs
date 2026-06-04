@@ -20,7 +20,7 @@ impl CryptoCtx {
         kp_handle: Handle,
         _key_id_buf: &mut [u8],
     ) -> Result<(), CryptoError> {
-        let _kp = self.handles.symmetric_key.get(kp_handle)?;
+        let _kp = self.handles.keypair.get(kp_handle)?;
         bail!(CryptoError::UnsupportedFeature)
     }
 
